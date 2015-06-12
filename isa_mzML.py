@@ -6,11 +6,32 @@ from obo_parse import oboparse
 from pymzml_obo_parse import oboTranslator as OT
 
 class mzMLmeta(object):
-    def __init__(self, in_file):
-        '''
-        todo
-        '''
+    """ Class to store and obtain the meta information from the mzML file
 
+    The class uses the xpaths of mzML locations and then extracts meta information at these locations.
+
+    The meta info taken is determined by the ontology terms and a set of rules associated with that term e.g.
+    if it can be repeated, if has associated software if it has a value as well as name.
+
+    Creates a dictionary of meta information and a JSON structure e.g:
+
+        "mass_analyzer_type": {
+            "accession": "MS:1000484",
+            "name": "orbitrap"
+        },
+        "ionization_type": {
+            "accession": "MS:1000073",
+            "name": "electrospray ionization"
+        }
+
+    """
+    def __init__(self, in_file):
+        """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
+        :param object app: QtGui.QApplication
+        :ivar obj self.tree: The xml tree object
+        :ivar dict self.ns: Dictionary of the namespace of the mzML file
+        :ivar obj self.obo: Parsing object used to get children and parents of the ontological terms
+        """
         self.tree = etree.parse(in_file)
         self.ns = {'s':'http://psi.hupo.org/ms/mzml'}
         self.obo = oboparse('/home/tomnl/MEGA/metabolomics/isatab/psi-ms.obo')
@@ -204,10 +225,15 @@ class mzMLmeta(object):
 
 
 class isa_assay_file(object):
+    """ Class to update the ISA-tab assay file
+
+    Bit clumsy at the moment. But just did it this way to show how it could be done.
+
+    """
     def __init__(self, isa_tab_assay_file, metalist):
-        ######################
-        # get index info
-        ######################
+        '''
+        # Class to update and ISA-Tab assay file
+        '''
         with open(isa_tab_assay_file, 'rb') as isa_orig:
 
             for index, line in enumerate(isa_orig):
@@ -276,10 +302,10 @@ if __name__ == "__main__":
 
     #in_file = '/home/tomnl/MEGA/metabolomics/isatab/small.pwiz.1.1.mzML'
 
-    # get 10 examples just for testing
+    # get 10 examples meta file infor just for testing
     metalist = [ mzMLmeta(in_file).meta for i in range(10)]
 
-
+    # update isa-tab file
     isa_assay = isa_assay_file(assay_file, metalist)
 
 

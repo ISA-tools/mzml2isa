@@ -157,7 +157,7 @@ class mzMLmeta(object):
                                 parent = self.obo.terms[parent[0]]['p']
 
                     # get serial number
-                    elif ie.attrib['accession'] in self.obo.getDescendents('MS:1000529'):
+                    elif ie.attrib['accession'] == 'MS:1000529':
                         self.meta['instrument_serial_number'] = {'value': ie.attrib['value']}
 
 
@@ -184,7 +184,7 @@ class mzMLmeta(object):
 
         #print self.meta
 
-
+#class isa_meta(object):
 
 
 

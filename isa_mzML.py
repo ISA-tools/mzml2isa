@@ -211,7 +211,9 @@ class mzMLmeta(object):
         #print self.meta
 
     def derived(self):
-        # hard coded for now
+        ############################
+        # HARD CODED FOR NOW!!!!!
+        ############################
         self.meta['mzrange'] = {'value': '100 - 1000'}
         self.meta['polarity'] = {'value': 'Positive'}
         self.meta['scan_number'] = {'value': '1000'}

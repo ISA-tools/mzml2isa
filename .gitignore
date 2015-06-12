@@ -1,3 +1,4 @@
 *.pyc
 ./idea
 ./idea/*
+./testing/SerumSample_pos_split1_Incl1_150422000904.mzML

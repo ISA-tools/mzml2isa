@@ -2,6 +2,8 @@ from lxml import etree
 import collections
 import json
 import csv
+import os
+
 from obo_parse import oboparse
 from pymzml_obo_parse import oboTranslator as OT
 
@@ -297,12 +299,14 @@ class isa_assay_file(object):
 
 
 if __name__ == "__main__":
+    dirname = os.path.dirname(os.path.realpath(__file__))
+    testing_path = os.path.join(dirname, "testing")
 
     # get a fake dataset of multiple files
-    in_file = '/home/tomnl/MEGA/metabolomics/inclusion_list_test_21april/InclusionLCMSMS/mzML/inc1/SerumSample_pos_split1_Incl1_150422000904.mzML'
-    assay_file = '/home/tomnl/soft/ISAcreatorMetaboLights/isatab files/dma_test2/a_ap_amp1_amd_metabolite_profiling_mass_spectrometry.txt'
+    in_file = os.path.join(testing_path, 'small.pwiz.1.1.mzML')
+    assay_file = os.path.join(testing_path, 'a_ap_amp1_amd_metabolite_profiling_mass_spectrometry.txt')
 
-    #in_file = '/home/tomnl/MEGA/metabolomics/isatab/small.pwiz.1.1.mzML'
+    #in_file = '/home/tomnl/MEGA/metabolomics/isatab/ 'a_ap_amp1_amd_metabolite_profiling_mass_spectrometry.txt'
 
     # get 10 examples meta file infor just for testing
     metalist = [ mzMLmeta(in_file).meta for i in range(10)]

@@ -262,15 +262,6 @@ class isa_assay_file(object):
                 writer.writerow(current_row)
 
 
-
-
-
-
-
-
-
-
-
 # Need to determine if indexedmzML present or not
 
 

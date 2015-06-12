@@ -1,16 +1,17 @@
 from lxml import etree
 import collections
+import json
+import csv
 from obo_parse import oboparse
 from pymzml_obo_parse import oboTranslator as OT
 
 class mzMLmeta(object):
-    def __init__(self, in_folder):
+    def __init__(self, in_file):
         '''
         todo
         '''
 
-        #self.tree = etree.parse('/home/tomnl/MEGA/metabolomics/isatab/small.pwiz.1.1.mzML')
-        self.tree = etree.parse('/home/tomnl/MEGA/metabolomics/inclusion_list_test_21april/InclusionLCMSMS/mzML/inc1/SerumSample_pos_split1_Incl1_150422000904.mzML')
+        self.tree = etree.parse(in_file)
         self.ns = {'s':'http://psi.hupo.org/ms/mzml'}
         self.obo = oboparse('/home/tomnl/MEGA/metabolomics/isatab/psi-ms.obo')
 
@@ -65,9 +66,13 @@ class mzMLmeta(object):
 
         # Have to special stuff to get information regarding instrument and software
         self.instrument()
-        #self.software()
 
-        # This information is derived by various values
+        # get derived data e.g. file count, polarity
+        self.derived()
+
+        self.meta_json = json.dumps(self.meta, indent=2)
+
+        print self.meta_json
 
 
     def extract_meta(self, terms, xpaths):
@@ -184,7 +189,84 @@ class mzMLmeta(object):
 
         #print self.meta
 
-#class isa_meta(object):
+    def derived(self):
+        # hard coded for now
+        self.meta['mzrange'] = {'value': '100 - 1000'}
+        self.meta['polarity'] = {'value': 'Positive'}
+        self.meta['scan_number'] = {'value': '1000'}
+        self.meta['scan_start'] = {'value': '0.05'}
+        self.meta['scan_finish'] = {'value': '1500'}
+        self.meta['term_source'] = {'value': 'MS'}
+        self.meta['raw_data_file'] = {'value': 'test.raw'}
+
+
+
+
+
+class isa_assay_file(object):
+    def __init__(self, isa_tab_assay_file, metalist):
+        ######################
+        # get index info
+        ######################
+        with open(isa_tab_assay_file, 'rb') as isa_orig:
+
+            for index, line in enumerate(isa_orig):
+                line = line.replace('"', '')
+                if index == 0:
+
+                    headers_l = line.split('\t')
+
+
+                elif index == 1:
+                    standard_row = line.split('\t')
+                    mass_protocol_idx = standard_row.index('Mass spectrometry')
+                    adj = mass_protocol_idx+1
+
+                    head_short = headers_l[mass_protocol_idx+1:]
+
+                    try:
+                        polarity_idx = head_short.index('Parameter Value[Scan polarity]')+adj
+                        mzrange_idx = head_short.index('Parameter Value[Scan m/z range]')+adj
+                        instrument_idx = head_short.index('Parameter Value[Instrument]')+adj
+                        ionsource_idx = head_short.index('Parameter Value[Ion source]')+adj
+                        detector_idx = head_short.index('Parameter Value[Mass analyzer]')+adj
+                        raw_data_idx = head_short.index('Raw Spectral Data File')+adj
+                    except ValueError as e:
+                        print e
+
+        ######################
+        # update the file
+        ######################
+        with open("isa_new.txt", 'wb') as new_file:
+            writer = csv.writer(new_file)
+            writer.writerow(headers_l)
+
+            for file in metalist:
+                current_row = standard_row
+                current_row[polarity_idx] = file['polarity']['value']
+                current_row[mzrange_idx] = file['mzrange']['value']
+                current_row[instrument_idx] = file['instrument_manufacturer']['name']
+                current_row[instrument_idx+1] = file['term_source']['value']
+                current_row[instrument_idx+2] = file['instrument_manufacturer']['accession']
+
+                current_row[ionsource_idx] = file['ionization_type']['name']
+                current_row[ionsource_idx+1] = file['term_source']['value']
+                current_row[ionsource_idx+2] = file['ionization_type']['accession']
+
+                current_row[detector_idx] = file['detector_type']['name']
+                current_row[detector_idx+1] = file['term_source']['value']
+                current_row[detector_idx+2] = file['detector_type']['accession']
+
+                current_row[raw_data_idx] = file['raw_data_file']['value']
+
+                writer.writerow(current_row)
+
+
+
+
+
+
+
 
 
 
@@ -197,6 +279,16 @@ class mzMLmeta(object):
 
 if __name__ == "__main__":
 
-    test = mzMLmeta('/home/tomnl/MEGA/metabolomics/isatab/small.pwiz.1.1.mzML')
+    # get a fake dataset of multiple files
+    in_file = '/home/tomnl/MEGA/metabolomics/inclusion_list_test_21april/InclusionLCMSMS/mzML/inc1/SerumSample_pos_split1_Incl1_150422000904.mzML'
+    assay_file = '/home/tomnl/soft/ISAcreatorMetaboLights/isatab files/dma_test2/a_ap_amp1_amd_metabolite_profiling_mass_spectrometry.txt'
+
+    #in_file = '/home/tomnl/MEGA/metabolomics/isatab/small.pwiz.1.1.mzML'
+
+    # get 10 examples just for testing
+    metalist = [ mzMLmeta(in_file).meta for i in range(10)]
+
+
+    isa_assay = isa_assay_file(assay_file, metalist)
 
 

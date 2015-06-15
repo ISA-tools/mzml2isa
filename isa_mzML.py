@@ -227,7 +227,6 @@ class mzMLmeta(object):
             if i.attrib['accession'] == 'MS:1000129':
                 neg = True
 
-
         if pos & neg:
             polarity = "positive/negative"
         elif pos:
@@ -269,18 +268,27 @@ class mzMLmeta(object):
         maxrt = str(round(max(time),4))
         timerange = minrt + " - " + maxrt
 
-        # Get polarity
+        #####################
+        # Some other stuff
+        ####################
+        scan_num = self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/@count', namespaces=self.ns)[0]
+
+        cv = self.tree.xpath('//s:indexedmzML/s:mzML/s:cvList/s:cv/@id', namespaces=self.ns)[0]
+
+        if not 'MS' in cv:
+            print "Standard controlled vocab not available. Can not parse "
+            return
+        else:
+            self.meta['term_source'] = {'value': 'MS'}
+
+        raw_file = self.tree.xpath('//s:indexedmzML/s:mzML/s:fileDescription/s:sourceFileList/'
+                             's:sourceFile/@name', namespaces=self.ns)[0]
+
+        self.meta['raw_data_file'] = {'value': raw_file}
+        self.meta['scan_number'] = {'value': int(scan_num)}
         self.meta['mzrange'] = {'value': mzrange}
         self.meta['polarity'] = {'value': polarity}
         self.meta['timerange'] = {'value': timerange}
-
-        scan_num = self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/@count',
-                                   namespaces=self.ns)[0]
-
-        self.meta['scan_number'] = {'value': int(scan_num)}
-        self.meta['term_source'] = {'value': 'MS'}
-        self.meta['raw_data_file'] = {'value': 'test.raw'}
-
 
 
 

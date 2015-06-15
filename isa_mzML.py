@@ -36,7 +36,9 @@ class mzMLmeta(object):
         """
         self.tree = etree.parse(in_file)
         self.ns = {'s':'http://psi.hupo.org/ms/mzml'}
-        self.obo = oboparse('/home/tomnl/MEGA/metabolomics/isatab/psi-ms.obo')
+        dirname = os.path.dirname(os.path.realpath(__file__))
+        obo_path = os.path.join(dirname, "psi-ms.obo")
+        self.obo = oboparse(obo_path)
 
         #initalize the meta info
         self.meta = collections.OrderedDict()
@@ -146,7 +148,6 @@ class mzMLmeta(object):
                         soft_ref = e.getparent().attrib['softwareRef']
                         self.software(soft_ref, meta_name)
 
-
     def instrument(self):
 
         translator = OT()
@@ -188,7 +189,6 @@ class mzMLmeta(object):
                     elif ie.attrib['accession'] == 'MS:1000529':
                         self.meta['instrument_serial_number'] = {'value': ie.attrib['value']}
 
-
         soft_ref = self.tree.xpath('//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/'
                              's:softwareRef/@ref', namespaces=self.ns)[0]
 
@@ -213,14 +213,71 @@ class mzMLmeta(object):
         #print self.meta
 
     def derived(self):
-        ############################
-        # HARD CODED FOR NOW!!!!!
-        ############################
-        self.meta['mzrange'] = {'value': '100 - 1000'}
-        self.meta['polarity'] = {'value': 'Positive'}
-        self.meta['scan_number'] = {'value': '1000'}
-        self.meta['scan_start'] = {'value': '0.05'}
-        self.meta['scan_finish'] = {'value': '1500'}
+        #######################
+        # Get polarity and time
+        #######################
+        sp_cv =  self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:cvParam',
+                                   namespaces=self.ns)
+        pos = False
+        neg = False
+
+        for i in sp_cv:
+            if i.attrib['accession'] == 'MS:1000130':
+                pos = True
+            if i.attrib['accession'] == 'MS:1000129':
+                neg = True
+
+
+        if pos & neg:
+            polarity = "positive/negative"
+        elif pos:
+            polarity = "positive"
+        elif neg:
+            polarity = "negative"
+        else:
+            polarity = "Not determined"
+
+        #######################
+        # Get mzrange
+        #######################
+        scan_window_cv =  self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/'
+                                 's:scanWindowList/s:scanWindow/s:cvParam',
+                                   namespaces=self.ns)
+        minmz_l = []
+        maxmz_l = []
+
+        for i in scan_window_cv:
+
+            if i.attrib['accession'] == 'MS:1000501':
+                minmz_l.append(float(i.attrib['value']))
+            if i.attrib['accession'] == 'MS:1000500':
+                maxmz_l.append(float(i.attrib['value']))
+
+        minmz = str(int(min(minmz_l)))
+        maxmz = str(int(max(maxmz_l)))
+        mzrange = minmz + " - " + maxmz
+
+        #######################
+        # Get timerange
+        #######################
+        scan_cv =  self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/s:cvParam',
+                                   namespaces=self.ns)
+
+        time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
+
+        minrt = str(round(min(time),4))
+        maxrt = str(round(max(time),4))
+        timerange = minrt + " - " + maxrt
+
+        # Get polarity
+        self.meta['mzrange'] = {'value': mzrange}
+        self.meta['polarity'] = {'value': polarity}
+        self.meta['timerange'] = {'value': timerange}
+
+        scan_num = self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/@count',
+                                   namespaces=self.ns)[0]
+
+        self.meta['scan_number'] = {'value': int(scan_num)}
         self.meta['term_source'] = {'value': 'MS'}
         self.meta['raw_data_file'] = {'value': 'test.raw'}
 

@@ -1,9 +1,9 @@
 from lxml import etree
 import collections
 import json
-import csv
-import os
 
+import os
+from ISA_tab import ISA_tab
 from obo_parse import oboparse
 from pymzml_obo_parse import oboTranslator as OT
 
@@ -55,31 +55,31 @@ class mzMLmeta(object):
 
         # The controlled vocab (cv) types we want from each of the above xpaths
         terms['file_content'] = {
-                'MS:1000524': {'attribute': False, 'name': 'data_file_content', 'plus1': True, 'value':False, 'soft': False},
-                'MS:1000525': {'attribute': False, 'name': 'spectrum_representation', 'plus1': False, 'value':False, 'soft': False}
+                'MS:1000524': {'attribute': False, 'name': 'Parameter Value[Data file content]', 'plus1': True, 'value':False, 'soft': False},
+                'MS:1000525': {'attribute': False, 'name': 'Parameter Value[Spectrum representation]', 'plus1': False, 'value':False, 'soft': False}
         }
 
         terms['source_file'] = {
-            'MS:1000767': {'attribute': False, 'name':'raw_spectrum_identifier_format', 'plus1': False, 'value':False, 'soft': False},
-            'MS:1000561': {'attribute': False, 'name':'raw_data_file_checksum_type', 'plus1': True, 'value':True, 'soft': False},
-            'MS:1000560': {'attribute': False, 'name':'raw_file_format', 'plus1': False, 'value':False, 'soft': False}
+            'MS:1000767': {'attribute': False, 'name':'Parameter Value[Native spectrum identifier format]', 'plus1': False, 'value':False, 'soft': False},
+            'MS:1000561': {'attribute': False, 'name':'Parameter Value[Raw data file checksum type]', 'plus1': True, 'value':True, 'soft': False},
+            'MS:1000560': {'attribute': False, 'name':'Parameter Value[Raw data file format]', 'plus1': False, 'value':False, 'soft': False}
         }
 
         terms['ionization'] = {
                 'MS:1000482': {'attribute': True, 'name':'source_attribute', 'plus1': True, 'value':True, 'soft': False},
-                'MS:1000008': {'attribute': False, 'name':'ionization_type', 'plus1': False, 'value':False, 'soft': False},
-                'MS:1000007': {'attribute': False, 'name':'inlet_type', 'plus1': False, 'value':False, 'soft': False}
+                'MS:1000008': {'attribute': False, 'name':'Parameter Value[Ion source]', 'plus1': False, 'value':False, 'soft': False},
+                'MS:1000007': {'attribute': False, 'name':'Parameter Value[Inlet type]', 'plus1': False, 'value':False, 'soft': False}
         }
 
         terms['analyzer'] = {
                 'MS:1000480': {'attribute': True, 'name':'analyzer_attribute', 'plus1': True, 'value':True, 'soft': False},
-                'MS:1000443': {'attribute': False, 'name':'mass_analyzer_type', 'plus1': False, 'value':False, 'soft': False}
+                'MS:1000443': {'attribute': False, 'name':'Parameter Value[Mass analyzer]', 'plus1': False, 'value':False, 'soft': False}
         }
 
         terms['detector'] = {
                 'MS:1000481': {'attribute': True, 'name':'detector_attribute', 'plus1': True, 'value': True, 'soft': False},
-                'MS:1000026': {'attribute': False, 'name':'detector_type', 'plus1': False, 'value': False, 'soft': False},
-                'MS:1000027': {'attribute': False, 'name':'detector_acquisition_mode', 'plus1': True, 'value':False, 'soft': False}
+                'MS:1000026': {'attribute': False, 'name':'Parameter Value[Detector]', 'plus1': False, 'value': False, 'soft': False},
+                'MS:1000027': {'attribute': False, 'name':'Parameter Value[Detector mode]', 'plus1': True, 'value':False, 'soft': False}
         }
 
         terms['data_processing'] = {
@@ -98,7 +98,6 @@ class mzMLmeta(object):
         self.meta_json = json.dumps(self.meta, indent=2)
 
         print self.meta_json
-
 
     def extract_meta(self, terms, xpaths):
         # get to the right location of the mzML file
@@ -128,25 +127,34 @@ class mzMLmeta(object):
 
                 # check if the element is one of the terms we are looking for
                 if e.attrib['accession'] in descendents[accession]:
-                    if(info['attribute'] & info['plus1']):
-                        meta_name = e.tag+str(c)
-                        c += 1
-                    elif(info['attribute']):
+                    if(info['attribute']):
                         meta_name = e.tag
-                    elif info['plus1']:
-                        meta_name = info['name']+str(c)
-                        c += 1
                     else:
                         meta_name = info['name']
 
-                    self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name']}
+                    if(info['plus1']):
 
-                    if (info['value']):
-                        self.meta[meta_name]['value'] = e.attrib['value']
+                        try:
+                            self.meta[meta_name]['entry_list'][c] = {'accession':e.attrib['accession'], 'name':e.attrib['name']}
+                        except KeyError:
+                            self.meta[meta_name] = {'entry_list':{c:{'accession':e.attrib['accession'], 'name':e.attrib['name']}}}
+
+                        if (info['value']):
+                            self.meta[meta_name]['entry_list'][c]['value'] = e.attrib['value']
+                        c += 1
+                    else:
+                        self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name']}
+                        if (info['value']):
+                            self.meta[meta_name]['value'] = e.attrib['value']
 
                     if (info['soft']):
                         soft_ref = e.getparent().attrib['softwareRef']
                         self.software(soft_ref, meta_name)
+
+
+
+
+
 
     def instrument(self):
 
@@ -167,7 +175,7 @@ class mzMLmeta(object):
 
                     # Get model
                     if ie.attrib['accession'] in self.obo.getDescendents('MS:1000031'):
-                        self.meta['instrument_model'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name']}
+                        self.meta['Parameter Value[Instrument]'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name']}
 
                         # get manufacturer (actually just derived from instrument model). Want to get the top level
                         # so have to go up (should only be a maximum of 3 steps above in the heirachy but do up 10 to be
@@ -180,19 +188,19 @@ class mzMLmeta(object):
                         for i in range(10):
                             # first get direct parent of the current instrument element
                             if parent[0] in direct_c:
-                                self.meta['instrument_manufacturer'] = {'accession': parent[0], 'name':translator[parent[0]]}
+                                self.meta['Parameter Value[Instrument manufacturer]'] = {'accession': parent[0], 'name':translator[parent[0]]}
                                 break
                             else:
                                 parent = self.obo.terms[parent[0]]['p']
 
                     # get serial number
                     elif ie.attrib['accession'] == 'MS:1000529':
-                        self.meta['instrument_serial_number'] = {'value': ie.attrib['value']}
+                        self.meta['Parameter Value[Instrument serial number]'] = {'value': ie.attrib['value']}
 
         soft_ref = self.tree.xpath('//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/'
                              's:softwareRef/@ref', namespaces=self.ns)[0]
 
-        self.software(soft_ref, 'instrument')
+        self.software(soft_ref, 'Parameter Value[Instrument')
         print self.meta
 
     def software(self, soft_ref, name):
@@ -203,12 +211,12 @@ class mzMLmeta(object):
 
             if e.attrib['id'] == soft_ref:
                 if e.attrib['version']:
-                    self.meta[name+'_software_version'] = {'value': e.attrib['version']}
+                    self.meta[name+' software version]'] = {'value': e.attrib['version']}
 
                 software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
 
                 for ie in software_cvParam:
-                    self.meta[name+'_software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
+                    self.meta[name+' software]'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
 
         #print self.meta
 
@@ -239,7 +247,7 @@ class mzMLmeta(object):
         #######################
         # Get mzrange
         #######################
-        scan_window_cv =  self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/'
+        scan_window_cv = self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/'
                                  's:scanWindowList/s:scanWindow/s:cvParam',
                                    namespaces=self.ns)
         minmz_l = []
@@ -284,77 +292,11 @@ class mzMLmeta(object):
         raw_file = self.tree.xpath('//s:indexedmzML/s:mzML/s:fileDescription/s:sourceFileList/'
                              's:sourceFile/@name', namespaces=self.ns)[0]
 
-        self.meta['raw_data_file'] = {'value': raw_file}
-        self.meta['scan_number'] = {'value': int(scan_num)}
-        self.meta['mzrange'] = {'value': mzrange}
-        self.meta['polarity'] = {'value': polarity}
-        self.meta['timerange'] = {'value': timerange}
-
-
-
-
-class isa_assay_file(object):
-    """ Class to update the ISA-tab assay file
-
-    Bit clumsy at the moment. But just did it this way to show how it could be done.
-
-    """
-    def __init__(self, isa_tab_assay_file, metalist):
-        '''
-        # Class to update and ISA-Tab assay file
-        '''
-        with open(isa_tab_assay_file, 'rb') as isa_orig:
-
-            for index, line in enumerate(isa_orig):
-                line = line.replace('"', '')
-                if index == 0:
-
-                    headers_l = line.split('\t')
-
-
-                elif index == 1:
-                    standard_row = line.split('\t')
-                    mass_protocol_idx = standard_row.index('Mass spectrometry')
-                    adj = mass_protocol_idx+1
-
-                    head_short = headers_l[mass_protocol_idx+1:]
-
-                    try:
-                        polarity_idx = head_short.index('Parameter Value[Scan polarity]')+adj
-                        mzrange_idx = head_short.index('Parameter Value[Scan m/z range]')+adj
-                        instrument_idx = head_short.index('Parameter Value[Instrument]')+adj
-                        ionsource_idx = head_short.index('Parameter Value[Ion source]')+adj
-                        detector_idx = head_short.index('Parameter Value[Mass analyzer]')+adj
-                        raw_data_idx = head_short.index('Raw Spectral Data File')+adj
-                    except ValueError as e:
-                        print e
-
-        ######################
-        # update the file
-        ######################
-        with open("isa_new.txt", 'wb') as new_file:
-            writer = csv.writer(new_file)
-            writer.writerow(headers_l)
-
-            for file in metalist:
-                current_row = standard_row
-                current_row[polarity_idx] = file['polarity']['value']
-                current_row[mzrange_idx] = file['mzrange']['value']
-                current_row[instrument_idx] = file['instrument_manufacturer']['name']
-                current_row[instrument_idx+1] = file['term_source']['value']
-                current_row[instrument_idx+2] = file['instrument_manufacturer']['accession']
-
-                current_row[ionsource_idx] = file['ionization_type']['name']
-                current_row[ionsource_idx+1] = file['term_source']['value']
-                current_row[ionsource_idx+2] = file['ionization_type']['accession']
-
-                current_row[detector_idx] = file['detector_type']['name']
-                current_row[detector_idx+1] = file['term_source']['value']
-                current_row[detector_idx+2] = file['detector_type']['accession']
-
-                current_row[raw_data_idx] = file['raw_data_file']['value']
-
-                writer.writerow(current_row)
+        self.meta['Parameter Value[Raw data file format]'] = {'value': raw_file}
+        self.meta['Parameter Value[Number of scans]'] = {'value': int(scan_num)}
+        self.meta['Parameter Value[Scan m/z range]'] = {'value': mzrange}
+        self.meta['Parameter Value[Scan polarity]'] = {'value': polarity}
+        self.meta['Parameter Value[Time range]'] = {'value': timerange}
 
 
 # Need to determine if indexedmzML present or not
@@ -369,14 +311,22 @@ if __name__ == "__main__":
 
     # get a fake dataset of multiple files
     in_file = os.path.join(testing_path, 'small.pwiz.1.1.mzML')
+
+    # Two options:
+    #   * use existing ISA tab folder and populate an assay file with the mzML files
+    #   * Create a new ISA-Tab folder with investigation/samples/ etc
+
     assay_file = os.path.join(testing_path, 'a_ap_amp1_amd_metabolite_profiling_mass_spectrometry.txt')
 
-    #in_file = '/home/tomnl/MEGA/metabolomics/isatab/ 'a_ap_amp1_amd_metabolite_profiling_mass_spectrometry.txt'
+    in_file = '/mnt/hgfs/DATA/MEGA/metabolomics/example_data/C30_LCMS/Daph_C18_Frac1_run3_neg.mzML'
 
+    mzMLmeta(in_file)
     # get 10 examples meta file infor just for testing
-    metalist = [ mzMLmeta(in_file).meta for i in range(10)]
+    metalist = [ mzMLmeta(in_file).meta for i in range(2)]
+
+    #print metalist
 
     # update isa-tab file
-    isa_assay = isa_assay_file(assay_file, metalist)
+    isa_assay = ISA_tab(metalist)
 
 

@@ -5,9 +5,10 @@ Parser to get meta information from mzML file and parse relevant information to 
 
 In very early stages at the moment. Come back later for a proper working version :) 
 
-mzML.py contains the class  for mzML meta extraction. ISA_tab.py contains the class for ISA-tab file creation
-obo_parse.py and  pymzml_obo_parse.py are parsers I have modified from a blog[1] and the python package pymzml
-psi-ms.obo contains all the onotology terms used
+* mzML.py contains the class  for mzML meta extraction. 
+* ISA_tab.py contains the class for ISA-tab file creation.
+* obo_parse.py and  pymzml_obo_parse.py are parsers I have modified from a blog[1] and the python package pymzml.
+* psi-ms.obo contains all the onotology terms used
 
 ## Meta extraction
 

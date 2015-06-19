@@ -5,7 +5,6 @@ import textwrap
 import argparse
 import os
 
-from ISA_tab import ISA_tab
 from obo_parse import oboparse
 from pymzml_obo_parse import oboTranslator as OT
 
@@ -315,11 +314,11 @@ if __name__ == "__main__":
                                  -------------------------------------------------------------------------
 
                                  Example Usage:
-                                 python mzML.py -i [infile] -o [out folder]
+                                 python mzML.py -i [infile] -o [outfile]
                                  '''))
 
     parser.add_argument('-i', dest='in_file', help='mzML file', required=True)
-    parser.add_argument('-o', dest='out_dir', help='out directory for json file', required=False)
+    parser.add_argument('-o', dest='out_file', help='out directory for json file', required=False)
 
     args = parser.parse_args()
 
@@ -328,27 +327,5 @@ if __name__ == "__main__":
     with open(args.out_file, 'w') as outfile:
         outfile.write(mzML.meta_json)
 
-
-    #dirname = os.path.dirname(os.path.realpath(__file__))
-    #testing_path = os.path.join(dirname, "testing")
-
-    # get a the example dataset
-    #in_file = os.path.join(testing_path, 'small.pwiz.1.1.mzML')
-    #in_file = '/mnt/hgfs/DATA/MEGA/metabolomics/example_data/C30_LCMS/Daph_C18_Frac1_run3_neg.mzML'
-
-    ####################################
-    #  Create ISA-Tab
-    ####################################
-    # CURRENTLY RESTRUCTURING! Comeback later!
-    # Two options:
-    #   * use existing ISA tab folder and populate an assay file with the mzML files
-    #   * Create a new ISA-Tab folder with investigation/samples/ etc
-    # get 2 examples meta file infor just for testing
-    # metalist = [ mzMLmeta(in_file).meta for i in range(2)]
-    #
-    #
-    # # update isa-tab file
-    # # assay_file = os.path.join(testing_path, 'a_ap_amp1_amd_metabolite_profiling_mass_spectrometry.txt')
-    # isa_assay = ISA_tab(metalist)
 
 

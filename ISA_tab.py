@@ -1,5 +1,6 @@
 import csv
 import os
+
 class ISA_tab(object):
     """ Class to hold the ISA_tab components
 

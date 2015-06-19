@@ -1,0 +1,90 @@
+{
+  "Parameter Value[Data file content]": {
+    "entry_list": {
+      "1": {
+        "accession": "MS:1000580", 
+        "name": "MSn spectrum"
+      }
+    }
+  }, 
+  "data_transformation": {
+    "entry_list": {
+      "1": {
+        "accession": "MS:1000544", 
+        "name": "Conversion to mzML"
+      }
+    }
+  }, 
+  "data_transformation software version]": {
+    "value": "1.4.0"
+  }, 
+  "data_transformation software]": {
+    "accession": "MS:1000615", 
+    "name": "ProteoWizard"
+  }, 
+  "Parameter Value[Mass analyzer]": {
+    "accession": "MS:1000083", 
+    "name": "radial ejection linear ion trap"
+  }, 
+  "Parameter Value[Ion source]": {
+    "accession": "MS:1000073", 
+    "name": "electrospray ionization"
+  }, 
+  "Parameter Value[Inlet type]": {
+    "accession": "MS:1000057", 
+    "name": "electrospray inlet"
+  }, 
+  "Parameter Value[Native spectrum identifier format]": {
+    "accession": "MS:1000768", 
+    "name": "Thermo nativeID format"
+  }, 
+  "Parameter Value[Raw data file format]": {
+    "value": "small.RAW"
+  }, 
+  "Parameter Value[Raw data file checksum type]": {
+    "entry_list": {
+      "1": {
+        "accession": "MS:1000569", 
+        "value": "b43e9286b40e8b5dbc0dfa2e428495769ca96a96", 
+        "name": "SHA-1"
+      }
+    }
+  }, 
+  "Parameter Value[Detector]": {
+    "accession": "MS:1000253", 
+    "name": "electron multiplier"
+  }, 
+  "Parameter Value[Instrument]": {
+    "accession": "MS:1000448", 
+    "name": "LTQ FT"
+  }, 
+  "Parameter Value[Instrument manufacturer]": {
+    "accession": "MS:1000483", 
+    "name": "Thermo Fisher Scientific instrument model"
+  }, 
+  "Parameter Value[Instrument serial number]": {
+    "value": "SN06061F"
+  }, 
+  "Parameter Value[Instrument software version]": {
+    "value": "1.1 Beta 7"
+  }, 
+  "Parameter Value[Instrument software]": {
+    "accession": "MS:1000532", 
+    "name": "Xcalibur"
+  }, 
+  "term_source": {
+    "value": "MS"
+  }, 
+  "Parameter Value[Number of scans]": {
+    "value": 48
+  }, 
+  "Parameter Value[Scan m/z range]": {
+    "value": "140 - 2000"
+  }, 
+  "Parameter Value[Scan polarity]": {
+    "value": "positive"
+  }, 
+  "Parameter Value[Time range]": {
+    "value": "0.0049 - 0.4872"
+  }
+}

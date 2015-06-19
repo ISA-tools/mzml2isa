@@ -1,8 +1,10 @@
 from lxml import etree
 import collections
 import json
-
+import textwrap
+import argparse
 import os
+
 from ISA_tab import ISA_tab
 from obo_parse import oboparse
 from pymzml_obo_parse import oboTranslator as OT
@@ -224,7 +226,7 @@ class mzMLmeta(object):
         #######################
         # Get polarity and time
         #######################
-        sp_cv =  self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:cvParam',
+        sp_cv = self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:cvParam',
                                    namespaces=self.ns)
         pos = False
         neg = False
@@ -306,27 +308,47 @@ class mzMLmeta(object):
 
 
 if __name__ == "__main__":
-    dirname = os.path.dirname(os.path.realpath(__file__))
-    testing_path = os.path.join(dirname, "testing")
+    parser = argparse.ArgumentParser(prog='PROG',
+                                 formatter_class=argparse.RawDescriptionHelpFormatter,
+                                 description='''Extract meta information from mzML as json''',
+                                 epilog=textwrap.dedent('''\
+                                 -------------------------------------------------------------------------
 
-    # get a fake dataset of multiple files
-    in_file = os.path.join(testing_path, 'small.pwiz.1.1.mzML')
+                                 Example Usage:
+                                 python mzML.py -i [infile] -o [out folder]
+                                 '''))
 
+    parser.add_argument('-i', dest='in_file', help='mzML file', required=True)
+    parser.add_argument('-o', dest='out_dir', help='out directory for json file', required=False)
+
+    args = parser.parse_args()
+
+    mzML = mzMLmeta(args.in_file)
+
+    with open(args.out_file, 'w') as outfile:
+        outfile.write(mzML.meta_json)
+
+
+    #dirname = os.path.dirname(os.path.realpath(__file__))
+    #testing_path = os.path.join(dirname, "testing")
+
+    # get a the example dataset
+    #in_file = os.path.join(testing_path, 'small.pwiz.1.1.mzML')
+    #in_file = '/mnt/hgfs/DATA/MEGA/metabolomics/example_data/C30_LCMS/Daph_C18_Frac1_run3_neg.mzML'
+
+    ####################################
+    #  Create ISA-Tab
+    ####################################
+    # CURRENTLY RESTRUCTURING! Comeback later!
     # Two options:
     #   * use existing ISA tab folder and populate an assay file with the mzML files
     #   * Create a new ISA-Tab folder with investigation/samples/ etc
-
-    assay_file = os.path.join(testing_path, 'a_ap_amp1_amd_metabolite_profiling_mass_spectrometry.txt')
-
-    in_file = '/mnt/hgfs/DATA/MEGA/metabolomics/example_data/C30_LCMS/Daph_C18_Frac1_run3_neg.mzML'
-
-    mzMLmeta(in_file)
-    # get 10 examples meta file infor just for testing
-    metalist = [ mzMLmeta(in_file).meta for i in range(2)]
-
-    #print metalist
-
-    # update isa-tab file
-    isa_assay = ISA_tab(metalist)
+    # get 2 examples meta file infor just for testing
+    # metalist = [ mzMLmeta(in_file).meta for i in range(2)]
+    #
+    #
+    # # update isa-tab file
+    # # assay_file = os.path.join(testing_path, 'a_ap_amp1_amd_metabolite_profiling_mass_spectrometry.txt')
+    # isa_assay = ISA_tab(metalist)
 
 

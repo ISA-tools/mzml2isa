@@ -6,7 +6,7 @@ import os
 dirname = os.path.dirname(os.path.realpath(__file__))
 testing_path = os.path.join(dirname, "testing")
 
-# get a the example dataset
+# get the example dataset
 in_file = os.path.join(testing_path, 'small.pwiz.1.1.mzML')
 # in_file = '/mnt/hgfs/DATA/MEGA/metabolomics/example_data/C30_LCMS/Daph_C18_Frac1_run3_neg.mzML'
 

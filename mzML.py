@@ -293,7 +293,8 @@ class mzMLmeta(object):
         raw_file = self.tree.xpath('//s:indexedmzML/s:mzML/s:fileDescription/s:sourceFileList/'
                              's:sourceFile/@name', namespaces=self.ns)[0]
 
-        self.meta['Parameter Value[Raw data file format]'] = {'value': raw_file}
+        self.meta['Raw Spectral Data File'] = {'value': raw_file}
+        self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(raw_file))[0]}
         self.meta['Parameter Value[Number of scans]'] = {'value': int(scan_num)}
         self.meta['Parameter Value[Scan m/z range]'] = {'value': mzrange}
         self.meta['Parameter Value[Scan polarity]'] = {'value': polarity}
@@ -326,6 +327,8 @@ if __name__ == "__main__":
 
     with open(args.out_file, 'w') as outfile:
         outfile.write(mzML.meta_json)
+
+
 
 
 

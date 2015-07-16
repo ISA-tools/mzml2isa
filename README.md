@@ -32,8 +32,8 @@ Or you can import the package
 ```
 from mzml_2_isa import parsing
 
-in_dir = '/path/to/mzml_files/
-out_dir = '/path/to/out_folder/
+in_dir = "/path/to/mzml_files/"
+out_dir = "/path/to/out_folder/"
 study_identifier_name = "new_metabolomics_thing"
 
 parsing.full_parse(in_dir, out_dir, study_identifier_name)

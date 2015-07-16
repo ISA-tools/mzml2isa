@@ -13,9 +13,9 @@ out_dir = os.path.join(crnt_dir,"out_folder")
 # Simple parsing
 #===================================================
 from mzml_2_isa import parsing
-parsing.full_parse(in_dir, out_dir, "testing")
+parsing.full_parse(in_dir, out_dir, "metabolomics_study_456")
 
-
+raw_input()
 #====================================================
 # Just get meta information from a SINGLE mzML file
 #====================================================

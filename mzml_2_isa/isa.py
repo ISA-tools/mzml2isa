@@ -12,6 +12,7 @@ class ISA_Tab(object):
         '''
         # Class to update and ISA-Tab assay file
         '''
+        print "Parse mzML meta information into ISA-Tab structure"
         self.out_dir = os.path.join(out_dir, name)
         self.name = name
         self.platform = {}

@@ -21,9 +21,8 @@ def main():
     platforms = ['Linux (ubuntu), Windows'],
     keywords = ['Metabolomics', 'Mass spectrometry', 'metabolites', 'ISA Tab', 'mzML', 'parsing'],
     packages=['mzml_2_isa'],
-
-    package_dir={'mzml_2_isa': 'mzml_2_isa'},
-    #package_data={'MI_Pack': ['*.pyd', '*.so']},
+    package_data={'': ['license.txt']},
+    package_data={'MI_Pack': ['*.pyd', '*.so']},
 
     data_files=[(example_path, example_files)],
     long_description="mzml_2_isa - mzML to ISA-tab parsing tool",)

@@ -5,8 +5,7 @@ import textwrap
 import argparse
 import os
 
-from obo_parse import oboparse
-from pymzml_obo_parse import oboTranslator as OT
+from obo import oboparse, oboTranslator
 
 class mzMLmeta(object):
     """ Class to store and obtain the meta information from the mzML file
@@ -28,6 +27,7 @@ class mzMLmeta(object):
         }
 
     """
+
     def __init__(self, in_file):
         """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
         :param object app: QtGui.QApplication
@@ -158,7 +158,7 @@ class mzMLmeta(object):
 
     def instrument(self):
 
-        translator = OT()
+        translator = oboTranslator()
 
         # gets the first Instrument config (something to watch out for)
         ic_ref = self.tree.xpath('//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/'
@@ -335,8 +335,3 @@ if __name__ == "__main__":
 
     with open(args.out_file, 'w') as outfile:
         outfile.write(mzML.meta_json)
-
-
-
-
-

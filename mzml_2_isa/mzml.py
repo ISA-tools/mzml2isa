@@ -307,27 +307,3 @@ class mzMLmeta(object):
                 self.meta_isa[meta_name] = self.meta[meta_name]
             else:
                 self.meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]
-
-
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(prog='PROG',
-                                 formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 description='''Extract meta information from mzML as json''',
-                                 epilog=textwrap.dedent('''\
-                                 -------------------------------------------------------------------------
-
-                                 Example Usage:
-                                 python mzML.py -i [infile] -o [outfile]
-                                 '''))
-
-    parser.add_argument('-i', dest='in_file', help='mzML file', required=True)
-    parser.add_argument('-o', dest='out_file', help='out directory for json file', required=False)
-
-    args = parser.parse_args()
-
-    mzML = mzMLmeta(args.in_file)
-
-    with open(args.out_file, 'w') as outfile:
-        outfile.write(mzML.meta_json)

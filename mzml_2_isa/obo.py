@@ -94,7 +94,6 @@ class oboparse(object):
 
 
 # Taken and modified from pymzml
-
 class oboTranslator(object):
     def __init__(self, version='1.1.0'):
         self.version = version
@@ -170,12 +169,3 @@ class oboTranslator(object):
             return True
         else:
             return False
-
-
-if __name__ == "__main__":
-
-    obo = oboparse('/home/tomnl/MEGA/metabolomics/isatab/psi-ms.obo')
-
-    print obo.terms
-
-    print obo.getDescendents('MS:1000524')

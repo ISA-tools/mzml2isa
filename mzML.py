@@ -85,7 +85,7 @@ class mzMLmeta(object):
 
         terms['data_processing'] = {
                 'MS:1000630': {'attribute': True, 'name':'data_processing_parameter', 'plus1': True, 'value': True, 'soft': True},
-                'MS:1000452': {'attribute': False, 'name':'data_transformation', 'plus1': True, 'value': False, 'soft': True},
+                'MS:1000452': {'attribute': False, 'name':'data transformation', 'plus1': True, 'value': False, 'soft': True},
         }
 
         self.extract_meta(terms, xpaths)
@@ -95,6 +95,7 @@ class mzMLmeta(object):
 
         # get derived data e.g. file count, polarity
         self.derived()
+        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(in_file)} # mzML file name
 
         self.meta_json = json.dumps(self.meta, indent=2)
 
@@ -151,11 +152,6 @@ class mzMLmeta(object):
                     if (info['soft']):
                         soft_ref = e.getparent().attrib['softwareRef']
                         self.software(soft_ref, meta_name)
-
-
-
-
-
 
     def instrument(self):
 
@@ -301,10 +297,8 @@ class mzMLmeta(object):
         self.meta['Parameter Value[Time range]'] = {'value': timerange}
 
 
-# Need to determine if indexedmzML present or not
-
-
-# Get spectrum information
+    def isa_tab_compatible(self):
+        print "converts names to compatible with ISA_tab"
 
 
 if __name__ == "__main__":

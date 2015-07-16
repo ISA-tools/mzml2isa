@@ -1,4 +1,4 @@
-# mzml 2 isa
+# mzML 2 ISA-Tab
 
 ## About
 Parser to get meta information from mzML file and create an ISA-Tab file structure with the relevant meta information.

@@ -1,43 +1,58 @@
-# mzML_2_ISA-Tab
+# mzml 2 isa
 
 ## About
-Parser to get meta information from mzML file and parse relevant information to a ISA-Tab assay file. To be used as classes or standalone scripts.
+Parser to get meta information from mzML file and create an ISA-Tab file structure with the relevant meta information.
 
-In very early stages at the moment. Come back later for a proper working version :) 
+Still a few things to do but basic functionality to do the following is available
 
-* mzML.py contains the class  for mzML meta extraction. 
-* ISA_tab.py contains the class for ISA-tab file creation.
-* obo_parse.py and  pymzml_obo_parse.py are parsers I have modified from a blog[1] and the python package pymzml.
-* psi-ms.obo contains all the onotology terms used
-
-## Meta extraction
-
-If you just want to extract meta information you can use the mzML.py as a standalone script and it write out a json file of the meta information. Use like so:
-
-mzML.py -i /path/to/mzm_file.mzml -o /path/to/new/file.json 
+* Extract meta information from mzML files and store as either python dictionary or JSON format
+* Create an ISA-Tab file structure with relevant meta information
+* Can be used as standalone script or python package, see scripts folder
 
 ## mzML to ISA-tab parsing
 
-Full details to come later!
+Can use standalone script found in the scripts folder:
 
-Input: Takes in as input a (MetaboLights formatted) ISA-Tab assay file and 1 or more mzML files:
+```
+mzml_2_isa_parser.py -i /path/to/mzml_files/ -o /path/to/out_folder/ -s [study identifier name]
+```
 
-Outputs: Updated ISA-Tab assay file with relevant meta information for mass spectrometry
+Or you can import the package
 
+```
+from mzml_2_isa import parsing
+in_dir = '/path/to/mzml_files/
+out_dir = '/path/to/out_folder/
+study_identifier_name = "new_metabolomics_thing"
 
+parsing.full_parse(in_dir, out_dir, study_identifier_name)
+```
 
+## Meta extraction
+
+If you just want to extract meta information if that is all you want.
+
+```
+from mzml_2_isa import mzml
+onefile = os.path.join(in_dir,"samp1.mzML")
+mm = mzml.mzMLmeta(onefile)
+
+# python dictionary format
+print mm.meta
+
+# JSON format
+print mm.meta_json
+```
+See scipts/example.py for all examples 
 
 ## Todo 
 
-* Get derived meta data from mzML (e.g. scan start time) [DONE]
-* Create new columns in ISA-Tab assay file
-* Get JSON in correct format
+* Check to see how comptable with MetaboLights upload
 
-## Notes
-
-The way in which the ISA-Tab file will be created may change depending on developments elsewhere of other parsing tools.
 
 ## Ref
+For ontology extraction i used a modified version from this blog [1], and modified slightly the class from pymzml [2]
 
 [1] http://blog.nextgenetics.net/?e=6
+[2] http://pymzml.github.io/
 

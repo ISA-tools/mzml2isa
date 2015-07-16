@@ -62,6 +62,11 @@ print mm.meta_json
 ```
 See scipts/example.py for all examples 
 
+## Workflow
+
+![alt tag](https://github.com/Tomnl/mzml_2_isa/blob/master/isa_config/mzml_2_isa.png)
+
+
 ## Todo 
 
 * Check to see how comptable with MetaboLights upload

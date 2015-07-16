@@ -53,8 +53,6 @@ class ISA_tab(object):
             'accession':c_accession
         }
 
-        print self.platform
-
     def create_investigation(self, investigation_file, metalist):
         #
         #
@@ -108,8 +106,6 @@ class ISA_tab(object):
 
                     headers_l = line.split('\t')
 
-                    mzml_file_name_idx = headers_l.index("Derived Spectral Data File")
-
                 elif index == 1:
 
                     standard_row = line.split('\t')
@@ -118,26 +114,14 @@ class ISA_tab(object):
                     data_tran_idx = standard_row.index("Data transformation")
                     break
 
-            # c = 1
-            # for i in headers_l[mass_protocol_idx+1:]:
-            #     if i == "Protocol REF":
-            #         mass_end_idx = c+mass_protocol_idx
-            #         break
-            #     c += 1
+        pre_headers = headers_l[:mass_protocol_idx+1]
+        mass_headers = headers_l[mass_protocol_idx+1:mass_end_idx]
+        post_headers = headers_l[mass_end_idx:]
 
-            pre_headers = headers_l[:mass_protocol_idx+1]
-            mass_headers = headers_l[mass_protocol_idx+1:mass_end_idx]
-            post_headers = headers_l[mass_end_idx:]
+        pre_row = standard_row[:mass_protocol_idx+1]
+        mass_row = standard_row[mass_protocol_idx+1:mass_end_idx]
+        post_row = standard_row[mass_end_idx:]
 
-            pre_row = standard_row[:mass_protocol_idx+1]
-            mass_row = standard_row[mass_protocol_idx+1:mass_end_idx]
-            post_row = standard_row[mass_end_idx:]
-
-        print "pre headers", pre_headers
-        print "mass headers", mass_headers
-        print "post headers", post_headers
-
-        #self.new_mass_row = [""]*len(mass_headers)
         self.new_mass_row = [""]*len(mass_headers)
 
         full_row = []
@@ -158,21 +142,22 @@ class ISA_tab(object):
                         for meta_id, meta_val in list_item.items():
                             try:
                                 main = indices.pop()
-                                self.write_row(main, meta_val)
                             except IndexError as e:
-                                print e
+                                pass
+                            else:
+                                self.write_row(main, meta_val)
                 else:
                     try:
                         main = mass_headers.index(key)
-                        self.write_row(main, value)
                     except ValueError as e:
-                        print e
+                        pass
+                    else:
+                        self.write_row(main, value)
 
-            print mass_headers
-            print self.new_mass_row
+
             full_row.append(pre_row+self.new_mass_row+post_row)
 
-        headers_l, full_row = self.remove_blank_columns(mass_protocol_idx,mass_end_idx,full_row,headers_l)
+        headers_l, full_row = self.remove_blank_columns(mass_protocol_idx, mass_end_idx, full_row,headers_l)
 
         with open(os.path.join(self.out_dir,self.assay_file_name), 'wb') as new_file:
             writer = csv.writer(new_file, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
@@ -207,24 +192,30 @@ class ISA_tab(object):
 
         try:
             name = meta_val['name']
+        except KeyError as e:
+            pass
+        else:
             self.new_mass_row[main] = name
             main = main+1
-        except KeyError as e:
-            print e
 
         try:
             accession = meta_val['accession']
+        except KeyError as e:
+            pass
+        else:
             self.new_mass_row[main] = "MS"
             main = main+1
             self.new_mass_row[main] = accession
             main = main+1
-        except KeyError as e:
-            print e
 
         try:
             value = meta_val['value']
-            self.new_mass_row[main] = value
         except KeyError as e:
-            print e
+            pass
+        else:
+            self.new_mass_row[main] = value
+
+
+
 
 

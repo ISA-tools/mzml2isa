@@ -1,4 +1,4 @@
-# mzml 2 isa
+# mzML 2 ISA-Tab
 
 ## About
 Parser to get meta information from mzML file and create an ISA-Tab file structure with the relevant meta information.
@@ -9,14 +9,19 @@ Still a few things to complete and the code needs tidying up but the basic funct
 * Create an ISA-Tab file structure with relevant meta information
 * Can be used as standalone script or python package, see scripts/ for examples
 
-## Install the python package (linux)
+## Install the python package
 
 ```
 git clone https://github.com/Tomnl/mzml_2_isa.git
 
 cd mzml_2_isa
 
+# if in Linux
 sudo python setup.py install
+
+# if in windows need admin rights
+python setup.py install
+
 ```
 
 ## mzML to ISA-tab parsing

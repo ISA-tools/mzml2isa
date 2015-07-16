@@ -41,7 +41,7 @@ parsing.full_parse(in_dir, out_dir, study_identifier_name)
 
 ## Meta extraction
 
-If you just want to extract meta information if that is all you want.
+If you just want to extract meta information:
 
 ```
 from mzml_2_isa import mzml

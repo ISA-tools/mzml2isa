@@ -354,7 +354,7 @@ class mzMLmeta(object):
     def isa_tab_compatible(self):
         """ Get the ISA-tab comptibale meta dictionary. Updates self.meta_isa"""
         keep = ["data transformation", "data transformation software version", "data transformation software",
-                "term_source", "Raw Spectral Data File", "MS Assay Name"]
+                "term_source", "Raw Spectral Data File", "MS Assay Name", "Derived Spectral Data File"]
 
         for meta_name in self.meta:
             if meta_name in keep:

@@ -1,7 +1,0 @@
-"Characteristics[Organism]"	"Term Source REF"	"Term Accession Number"	"Characteristics[Organism part]"	"Term Source REF"	"Term Accession Number"	"Protocol REF"	"Sample Name"
-"Daphnia"	""	""	"adult"	""	""	"Sample collection"	"samp1"
-"Daphnia"	""	""	"adult"	""	""	"Sample collection"	"samp2"
-"Daphnia"	""	""	"adult"	""	""	"Sample collection"	"samp3"
-"Daphnia"	""	""	"adult"	""	""	"Sample collection"	"samp4"
-"Daphnia"	""	""	"adult"	""	""	"Sample collection"	"samp5"
-"Daphnia"	""	""	"adult"	""	""	"Sample collection"	"samp6"

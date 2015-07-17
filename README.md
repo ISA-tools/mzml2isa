@@ -9,6 +9,11 @@ Still a few things to complete and the code needs tidying up but the basic funct
 * Create an ISA-Tab file structure with relevant meta information
 * Can be used as standalone script or python package, see scripts/ for examples
 
+## Workflow
+
+![alt tag](https://github.com/Tomnl/mzml_2_isa/blob/master/isa_config/mzml2isa.png)
+
+
 ## Install the python package
 
 ```
@@ -62,14 +67,9 @@ print mm.meta_json
 ```
 See scipts/example.py for all examples 
 
-## Workflow
-
-![alt tag](https://github.com/Tomnl/mzml_2_isa/blob/master/isa_config/mzml2isa.png)
-
-
 ## Todo 
 
-* Check to see how comptable with MetaboLights upload
+* Check to see how compatible with MetaboLights upload
 
 
 ## Ref

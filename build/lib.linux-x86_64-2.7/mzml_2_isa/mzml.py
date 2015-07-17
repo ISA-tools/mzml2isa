@@ -25,7 +25,6 @@ class mzMLmeta(object):
             "accession": "MS:1000073",
             "name": "electrospray ionization"
         }
-
     """
 
     def __init__(self, in_file):
@@ -34,18 +33,26 @@ class mzMLmeta(object):
         :ivar obj self.tree: The xml tree object
         :ivar dict self.ns: Dictionary of the namespace of the mzML file
         :ivar obj self.obo: Parsing object used to get children and parents of the ontological terms
+        :ivar obj self.meta: Meta information in python dictionary
+        :ivar obj self.meta_json: Meta information in json format
+        :ivar obj self.meta_isa: Meta information with names compatible with ISA-Tab
         """
-        print "Parsing mzml file:", in_file
+        print "###### Parsing mzml file:", in_file, "######"
 
+        # setup lxml parsing
+        self.in_file = in_file
         self.tree = etree.parse(in_file)
-        self.ns = {'s':'http://psi.hupo.org/ms/mzml'}
+        self.ns = {'s':'http://psi.hupo.org/ms/mzml'} # namespace
+
+        # Get controlled vocb from the obo ontology file
         dirname = os.path.dirname(os.path.realpath(__file__))
         obo_path = os.path.join(dirname, "psi-ms.obo")
         self.obo = oboparse(obo_path)
 
-        #initalize the meta info
+        #initalize the meta variables
         self.meta = collections.OrderedDict()
-        terms = collections.OrderedDict()
+        self.meta_isa = collections.OrderedDict()
+        self.meta_json = ""
 
         # xpaths for the mzML locations that we want the meta information from any cvParam elements
         xpaths = {'file_content': '//s:indexedmzML/s:mzML/s:fileDescription/s:fileContent/s:cvParam',
@@ -56,7 +63,15 @@ class mzMLmeta(object):
                   'data_processing': '//s:indexedmzML/s:mzML/s:dataProcessingList/s:dataProcessing/s:processingMethod/s:cvParam'
                   }
 
-        # The controlled vocab (cv) types we want from each of the above xpaths
+        # We create a dictionary that contains "search parameters" that we use to parse the xml location from the xpaths
+        # above
+        #
+        # name: [string], What the CV will be saved as
+        # plus1: [Boolean], If there are multiple of this CV
+        # value: [Boolean], if there is an associated value with this CV
+        # soft: [Boolean], If there is associated software CV associated with this CV
+        # attribute: [Boolean], if the CV is an attribute then has to be handled differently
+        terms = collections.OrderedDict()
         terms['file_content'] = {
                 'MS:1000524': {'attribute': False, 'name': 'Data file content', 'plus1': True, 'value':False, 'soft': False},
                 'MS:1000525': {'attribute': False, 'name': 'Spectrum representation', 'plus1': False, 'value':False, 'soft': False}
@@ -90,19 +105,18 @@ class mzMLmeta(object):
                 'MS:1000452': {'attribute': False, 'name':'data transformation', 'plus1': True, 'value': False, 'soft': True},
         }
 
+        # update self.meta with the relevant meta infromation
         self.extract_meta(terms, xpaths)
 
-        # Have to special stuff to get information regarding instrument and software
+        # The instrument information has to be extracted separately
         self.instrument()
 
         # get derived data e.g. file count, polarity
         self.derived()
-        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(in_file)} # mzML file name
 
         self.isa_tab_compatible()
 
         self.meta_json = json.dumps(self.meta, indent=2)
-
 
     def extract_meta(self, terms, xpaths):
         # get to the right location of the mzML file
@@ -114,7 +128,6 @@ class mzMLmeta(object):
             elements = self.tree.xpath(xpath,namespaces=self.ns)
 
             self.cvParam_loop(elements, location_name, terms)
-
 
     def cvParam_loop(self, elements, location_name, terms):
 
@@ -201,7 +214,6 @@ class mzMLmeta(object):
 
         self.software(soft_ref, 'Instrument')
 
-
     def software(self, soft_ref, name):
         elements = self.tree.xpath('//s:indexedmzML/s:mzML/s:softwareList/s:software',
                                  namespaces=self.ns)
@@ -216,7 +228,6 @@ class mzMLmeta(object):
 
                 for ie in software_cvParam:
                     self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
-
 
     def derived(self):
         #######################
@@ -296,11 +307,11 @@ class mzMLmeta(object):
         self.meta['Scan m/z range'] = {'value': mzrange}
         self.meta['Scan polarity'] = {'value': polarity}
         self.meta['Time range'] = {'value': timerange}
+        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
 
     def isa_tab_compatible(self):
         keep = ["data transformation", "data transformation software version", "data transformation software",
                 "term_source", "Raw Spectral Data File", "MS Assay Name"]
-        self.meta_isa = {}
 
         for meta_name in self.meta:
             if meta_name in keep:

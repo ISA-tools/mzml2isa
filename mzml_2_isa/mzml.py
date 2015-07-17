@@ -29,7 +29,8 @@ class mzMLmeta(object):
 
     def __init__(self, in_file):
         """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
-        :param object app: QtGui.QApplication
+
+        :param str in_file: path to mzML file
         :ivar obj self.tree: The xml tree object
         :ivar dict self.ns: Dictionary of the namespace of the mzML file
         :ivar obj self.obo: Parsing object used to get children and parents of the ontological terms
@@ -240,8 +241,11 @@ class mzMLmeta(object):
         self.software(soft_ref, 'Instrument')
 
     def software(self, soft_ref, name):
+        """ Get associated software of cv term. Updates the self.meta dictionary
 
-
+        :param str soft_ref: Reference to software found in xml file
+        :param str name: Name of the associated CV term that the software is associated to
+        """
 
         elements = self.tree.xpath('//s:indexedmzML/s:mzML/s:softwareList/s:software',
                                  namespaces=self.ns)
@@ -258,6 +262,7 @@ class mzMLmeta(object):
                     self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
 
     def derived(self):
+        """ Get the derived meta information. Updates the self.meta dictionary"""
         #######################
         # Get polarity and time
         #######################
@@ -338,6 +343,7 @@ class mzMLmeta(object):
         self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
 
     def isa_tab_compatible(self):
+        """ Get the ISA-tab comptibale meta dictionary. Updates self.meta_isa"""
         keep = ["data transformation", "data transformation software version", "data transformation software",
                 "term_source", "Raw Spectral Data File", "MS Assay Name"]
 

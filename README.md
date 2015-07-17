@@ -69,7 +69,7 @@ See scipts/example.py for all examples
 
 ## Todo 
 
-* Check to see how comptable with MetaboLights upload
+* Check to see how compatible with MetaboLights upload
 
 
 ## Ref

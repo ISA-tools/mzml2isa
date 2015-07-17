@@ -1,3 +1,13 @@
+"""
+**Summary:**
+This file contains the two classes used for parsing the obo based ontology used. The class **oboparse** has been
+modified from the blog http://blog.nextgenetics.net/?e=6 and is used to identify what children or parents a ontological
+term has.
+
+The class **oboTranslator** has been modified from the pymzml package and is used to get the associated name of a term
+based on its accession number
+-------------------------------------------------------
+"""
 import os
 
 class oboparse(object):
@@ -42,7 +52,6 @@ class oboparse(object):
                 break
 
         self.terms = terms
-
 
     def getTerm(self, stream):
         block = []
@@ -93,8 +102,8 @@ class oboparse(object):
         return set(recursiveArray)
 
 
-# Taken and modified from pymzml
 class oboTranslator(object):
+    # Class Taken and modified from pymzml
     def __init__(self, version='1.1.0'):
         self.version = version
         self.allDicts = []

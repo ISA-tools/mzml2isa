@@ -29,7 +29,8 @@ class mzMLmeta(object):
 
     def __init__(self, in_file):
         """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
-        :param object app: QtGui.QApplication
+
+        :param str in_file: path to mzML file
         :ivar obj self.tree: The xml tree object
         :ivar dict self.ns: Dictionary of the namespace of the mzML file
         :ivar obj self.obo: Parsing object used to get children and parents of the ontological terms
@@ -37,7 +38,7 @@ class mzMLmeta(object):
         :ivar obj self.meta_json: Meta information in json format
         :ivar obj self.meta_isa: Meta information with names compatible with ISA-Tab
         """
-        print "###### Parsing mzml file:", in_file, "######"
+        print "Parsing mzml file:", in_file
 
         # setup lxml parsing
         self.in_file = in_file
@@ -114,23 +115,39 @@ class mzMLmeta(object):
         # get derived data e.g. file count, polarity
         self.derived()
 
+        # Get the isa_tab compatible meta dictionary
         self.isa_tab_compatible()
 
+        # get meta information in json format
         self.meta_json = json.dumps(self.meta, indent=2)
 
     def extract_meta(self, terms, xpaths):
-        # get to the right location of the mzML file
+        """ Extract meta information for CV terms based on their location in the xml file
 
-        # loop through the different sections of the mzML file as determined by the relevant xpaths
+        Updates the self.meta dictionary with the relevant meta information
+
+        :param dict terms: The CV and "search parameters" required at the xml locations
+        :param dict xpath: The xpath locations to be searched
+        .. seealso::
+            :func:`cvParam_loop`
+        """
+
+        # loop though the xpaths
         for location_name, xpath in xpaths.iteritems():
 
             # get the elements from the xpath
             elements = self.tree.xpath(xpath,namespaces=self.ns)
 
+            # loop through the elements and see if the terms are found
             self.cvParam_loop(elements, location_name, terms)
 
     def cvParam_loop(self, elements, location_name, terms):
+        """ loop through the elements and see if the terms are found. If they are update the self.meta dict
 
+        :param obj elements: lxml object
+        :param str location_name: Name of the xml location
+        :param dict terms: CV terms we want
+        """
         # get associated meta information from each file
         descendents = {k:self.obo.getDescendents(k) for k in terms[location_name]}
 
@@ -141,35 +158,42 @@ class mzMLmeta(object):
         for e in elements:
             # go through the terms available for this location
             for accession, info in terms[location_name].iteritems():
-
                 # check if the element is one of the terms we are looking for
                 if e.attrib['accession'] in descendents[accession]:
                     if(info['attribute']):
                         meta_name = e.tag
                     else:
                         meta_name = info['name']
-
+                    # Check if there can be more than one of the same term
                     if(info['plus1']):
-
+                        # Setup the dictionary for multiple entries
                         try:
                             self.meta[meta_name]['entry_list'][c] = {'accession':e.attrib['accession'], 'name':e.attrib['name']}
                         except KeyError:
                             self.meta[meta_name] = {'entry_list':{c:{'accession':e.attrib['accession'], 'name':e.attrib['name']}}}
-
+                        # Check if a value is associated with this CV
                         if (info['value']):
                             self.meta[meta_name]['entry_list'][c]['value'] = e.attrib['value']
                         c += 1
                     else:
+                        # Standard CV with only with entry
                         self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name']}
+                        # Check if value associated
                         if (info['value']):
                             self.meta[meta_name]['value'] = e.attrib['value']
-
+                    # Check if there is expected associated software
                     if (info['soft']):
                         soft_ref = e.getparent().attrib['softwareRef']
                         self.software(soft_ref, meta_name)
 
     def instrument(self):
+        """ The instrument meta information is more complicated to extract so it has its own function
 
+        Updates the self.meta with the relevant meta information.
+
+        Requires looking at the hierarchy of ontological terms to get all the instrument information
+        """
+        # To convert accession number to name
         translator = oboTranslator()
 
         # gets the first Instrument config (something to watch out for)
@@ -178,14 +202,15 @@ class mzMLmeta(object):
 
         elements = self.tree.xpath('//s:indexedmzML/s:mzML/s:referenceableParamGroupList/s:referenceableParamGroup',
                                  namespaces=self.ns)
+        # Loop through xml elements
         for e in elements:
-
+            # get all CV information from the instrument config
             if e.attrib['id']==ic_ref:
                 instrument_e = e.findall('s:cvParam', namespaces=self.ns)
 
                 for ie in instrument_e:
 
-                    # Get model
+                    # Get the instrument manufacturer
                     if ie.attrib['accession'] in self.obo.getDescendents('MS:1000031'):
                         self.meta['Instrument'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name']}
 
@@ -212,9 +237,16 @@ class mzMLmeta(object):
         soft_ref = self.tree.xpath('//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/'
                              's:softwareRef/@ref', namespaces=self.ns)[0]
 
+        # Get associated software
         self.software(soft_ref, 'Instrument')
 
     def software(self, soft_ref, name):
+        """ Get associated software of cv term. Updates the self.meta dictionary
+
+        :param str soft_ref: Reference to software found in xml file
+        :param str name: Name of the associated CV term that the software is associated to
+        """
+
         elements = self.tree.xpath('//s:indexedmzML/s:mzML/s:softwareList/s:software',
                                  namespaces=self.ns)
 
@@ -230,6 +262,7 @@ class mzMLmeta(object):
                     self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
 
     def derived(self):
+        """ Get the derived meta information. Updates the self.meta dictionary"""
         #######################
         # Get polarity and time
         #######################
@@ -310,6 +343,7 @@ class mzMLmeta(object):
         self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
 
     def isa_tab_compatible(self):
+        """ Get the ISA-tab comptibale meta dictionary. Updates self.meta_isa"""
         keep = ["data transformation", "data transformation software version", "data transformation software",
                 "term_source", "Raw Spectral Data File", "MS Assay Name"]
 

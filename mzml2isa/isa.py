@@ -3,16 +3,23 @@ import os
 import shutil
 
 class ISA_Tab(object):
-    """ Class to hold the ISA_tab components
+    """ Class to create an ISA-Tab structure based on a python meta dictionary generated from the mzMLmeta class.
 
-    Bit clumsy at the moment. But just did it this way to show how it could be done.
+    Uses a default ISA-Tab found in folder ./default created using the ISA-Tab configeration tool.
+
+    Creates a new investigation, study and assay file based on the meta information.
 
     """
     def __init__(self, metalist, out_dir, name):
-        '''
-        # Class to update and ISA-Tab assay file
-        '''
+        """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
+
+        :param list metalist: list of dictionaries containing mzML meta information
+        :param str out_dir: Pth to out directory
+        :param str name: Study identifier name
+        """
         print "Parse mzML meta information into ISA-Tab structure"
+
+        # Setup the instance variables
         self.out_dir = os.path.join(out_dir, name)
         self.name = name
         self.platform = {}
@@ -23,17 +30,28 @@ class ISA_Tab(object):
         dirname = os.path.dirname(os.path.realpath(__file__))
         self.default_path = os.path.join(dirname, "default")
 
+        # create the new out dir
         if not os.path.exists(self.out_dir):
             os.makedirs(self.out_dir)
 
+        # Check what instrument to use for the platform used to desribe the assay
         self.check_assay_name(metalist)
 
+        # Create a new assay file based on the relevant meta information
         self.create_assay(metalist)
-        self.create_investigation(metalist)
+
+        # Create a new investigation file
+        self.create_investigation()
+
+        # Create a new study file (will just be copy of the default)
         self.create_study()
-        #self.existing_assay(isa_tab_assay_file, metalist)
+
 
     def check_assay_name(self, metalist):
+        """ Check what instrument to use for the platform used to desribe the assay
+
+        :param list metalist: list of dictionaries containing mzML meta information
+        """
         instruments = []
         accession = []
         for meta in metalist:
@@ -54,8 +72,8 @@ class ISA_Tab(object):
             'accession':c_accession
         }
 
-    def create_investigation(self, metalist):
-
+    def create_investigation(self):
+        """ Create the investigation file   """
         dirname = os.path.dirname(os.path.realpath(__file__))
         path = os.path.join(dirname, "default")
         investigation_file = os.path.join(path, 'i_Investigation.txt')
@@ -73,7 +91,7 @@ class ISA_Tab(object):
                     i_out.write(l)
 
     def create_study(self):
-
+        """ Create the study file   """
         src_file = os.path.join(self.default_path, "s_mzML_parse.txt")
         shutil.copy(src_file, self.out_dir)
         dst_file = os.path.join(self.out_dir, "s_mzML_parse.txt")
@@ -81,11 +99,19 @@ class ISA_Tab(object):
         os.rename(dst_file, out_file)
 
     def create_assay(self, metalist):
+        """ Create the assay file.
+        * Loops through a default assay file and locates the columns for the mass spectrometry (MS) section.
+        * Get associated meta information for each column of the MS section
+        * Deletes any unused MS columns
+        * Creates the the new assay file
+        :param list metalist: list of dictionaries containing mzML meta information
+        """
 
         assay_file = os.path.join(self.default_path, 'a_mzML_parse.txt')
 
-
+        #=================================================
         # Get location of the mass spectrometry section
+        #=================================================
         with open(assay_file, 'rb') as isa_orig:
 
             for index, line in enumerate(isa_orig):
@@ -101,12 +127,9 @@ class ISA_Tab(object):
                     standard_row = line.split('\t')
                     mass_protocol_idx = standard_row.index("Mass spectrometry")
                     mass_end_idx = standard_row.index("Metabolite identification")
-                    data_tran_idx = standard_row.index("Data transformation")
                     break
 
-        pre_headers = headers_l[:mass_protocol_idx+1]
         mass_headers = headers_l[mass_protocol_idx+1:mass_end_idx]
-        post_headers = headers_l[mass_end_idx:]
 
         pre_row = standard_row[:mass_protocol_idx+1]
         mass_row = standard_row[mass_protocol_idx+1:mass_end_idx]
@@ -116,70 +139,73 @@ class ISA_Tab(object):
 
         full_row = []
 
-        #indices = [i for i, val in enumerate(mass_headers) if val == '"Parameter Value[Ion source]"']
-        # Get columns that are going to be added
+        #=================================================
+        # Get associated meta information for each column
+        #=================================================
+        # The columns need to correspond to the names of the dictionary
+        # Loop through list of the meta dictionaries
         for file_meta in metalist:
-
+            # get the names and associated dictionaries for each meta term
             for key, value in file_meta.items():
                 # if key is an entry list it means this means there can be more than one of this meta type
                 # This will check all meta data where there might be multiple columns of the same data e.g.
                 # data file content
                 if "entry_list" in value.keys():
+                    # loop through the multiple entries on the entry list
                     for list_item in value.values():
+                        # Locate the available columns
                         indices = [i for i, val in enumerate(mass_headers) if val == key]
                         # needs to be in reverse order
                         indices = indices[::-1]
+                        # Add the items to the available columns untill they are all full up
                         for meta_id, meta_val in list_item.items():
                             try:
                                 main = indices.pop()
                             except IndexError as e:
                                 pass
                             else:
-                                self.write_row(main, meta_val)
+                                # update row with meta information
+                                self.update_row(main, meta_val)
                 else:
                     try:
+                        # get matching column for meta information
                         main = mass_headers.index(key)
                     except ValueError as e:
                         pass
                     else:
-                        self.write_row(main, value)
+                        # update row with meta information
+                        self.update_row(main, value)
 
-
+            # Add a list a fully updated row
             full_row.append(pre_row+self.new_mass_row+post_row)
 
+        #=================================================
+        # Delete unused mass spectrometry columns
+        #=================================================
         headers_l, full_row = self.remove_blank_columns(mass_protocol_idx, mass_end_idx, full_row,headers_l)
 
+        #=================================================
+        # Create the the new assay file
+        #=================================================
         with open(os.path.join(self.out_dir,self.assay_file_name), 'wb') as new_file:
             writer = csv.writer(new_file, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
             writer.writerow(headers_l)
 
-            data_tran_idx = headers_l.index("Derived Spectral Data File")-2 # need to add in data-transformation info
+            # need to add in data-transformation info that is lost in the above processing
+            data_tran_idx = headers_l.index("Derived Spectral Data File")-2
 
             for row in full_row:
                 row[data_tran_idx] = "Data transformation"
                 writer.writerow(row)
 
-    def remove_blank_columns(self,start,end,full_row,headers_l):
-        delete_cols = []
-        update_row = []
-        for i in range(start,end-3):
-            # check if a column is empty
-            column = [col[i] for col in full_row]
-            if column.count('') == len(full_row):
-                delete_cols.append(i)
+    def update_row(self, main, meta_val):
+        """ Updates the MS section of a row based on the meta information.
 
-        for row in full_row:
-            # pythons way of deleting multiple entries of a list. So much more hassle than numpy/pandas....
-            row[:] = [ item for i, item in enumerate(row) if i not in delete_cols ]
-            update_row.append(row)
-
-        update_headers = []
-        update_headers[:] = [ item for i, item in enumerate(headers_l) if i not in delete_cols ]
-
-        return update_headers, update_row
-
-    def write_row(self,main, meta_val):
-
+        i.e. updates self.new_mass_row with the meta info to the location provided
+        :param int main: index of the matched column:
+        :param dict meta_val: Dictionary of the associated meta values
+        """
+        # First add the "name" of the meta, for instrument this would something like "Q Exactive"
         try:
             name = meta_val['name']
         except KeyError as e:
@@ -188,6 +214,7 @@ class ISA_Tab(object):
             self.new_mass_row[main] = name
             main = main+1
 
+        # Add associated accession
         try:
             accession = meta_val['accession']
         except KeyError as e:
@@ -198,9 +225,37 @@ class ISA_Tab(object):
             self.new_mass_row[main] = accession
             main = main+1
 
+        # Add associated value e.g. for number of scans this would be 58
         try:
             value = meta_val['value']
         except KeyError as e:
             pass
         else:
             self.new_mass_row[main] = value
+
+    def remove_blank_columns(self, start, end, full_row, headers_l):
+        """ Delete unused mass spectrometry columns between two columns (start, end)
+
+        :param int start: Which column to start at
+        :param int end: Which column to end at
+        :param list full_row: Row to remove columns from
+        :param list headers_l: Headers to remove columns from
+        :returns list update_headers, list updated_row
+        """
+        delete_cols = []
+        updated_row = []
+        for i in range(start,end-3):
+            # check if a column is empty
+            column = [col[i] for col in full_row]
+            if column.count('') == len(full_row):
+                delete_cols.append(i)
+
+        for row in full_row:
+            # pythons way of deleting multiple entries of a list. So much more hassle than numpy/pandas....
+            row[:] = [ item for i, item in enumerate(row) if i not in delete_cols ]
+            updated_row.append(row)
+
+        updated_headers = []
+        updated_headers[:] = [ item for i, item in enumerate(headers_l) if i not in delete_cols ]
+
+        return updated_headers, updated_row

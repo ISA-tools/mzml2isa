@@ -1,7 +1,7 @@
 import argparse
 import textwrap
 import os
-from mzml_2_isa import parsing
+from mzml2isa import parsing
 
 p = argparse.ArgumentParser(prog='PROG',
                                  formatter_class=argparse.RawDescriptionHelpFormatter,

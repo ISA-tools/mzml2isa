@@ -12,14 +12,14 @@ out_dir = os.path.join(crnt_dir,"out_folder")
 #==================================================
 # Simple parsing
 #===================================================
-from mzml_2_isa import parsing
+from mzml2isa import parsing
 parsing.full_parse(in_dir, out_dir, "metabolomics_study_456")
 
 raw_input()
 #====================================================
 # Just get meta information from a SINGLE mzML file
 #====================================================
-from mzml_2_isa import mzml
+from mzml2isa import mzml
 onefile = os.path.join(in_dir,"samp1.mzML")
 mm = mzml.mzMLmeta(onefile)
 
@@ -36,7 +36,7 @@ print mm.meta_isa
 #====================================================
 # Get meta information for all mzML files
 #====================================================
-from mzml_2_isa import mzml
+from mzml2isa import mzml
 import glob
 
 # get a list of mzml files

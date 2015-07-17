@@ -64,7 +64,7 @@ See scipts/example.py for all examples
 
 ## Workflow
 
-![alt tag](https://github.com/Tomnl/mzml_2_isa/blob/master/isa_config/mzml_2_isa.png)
+![alt tag](https://github.com/Tomnl/mzml_2_isa/blob/master/isa_config/mzml2isa.png)
 
 
 ## Todo 

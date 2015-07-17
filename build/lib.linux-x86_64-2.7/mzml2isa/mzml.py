@@ -1,3 +1,12 @@
+"""
+The mzml2isa parse was created by Tom Lawson (University of Birmingham). As part of a NERC funded placement at EBI
+Cambridge in June 2015.
+
+Birmingham supervisor: Prof Mark Viant
+Help provided from  Reza Salek ‎[reza.salek@ebi.ac.uk]‎‎, Ken Haug ‎[kenneth@ebi.ac.uk]‎ and Christoph Steinbeck
+‎[christoph.steinbeck@gmail.com]‎ at the EBI Cambridge.
+-------------------------------------------------------
+"""
 from lxml import etree
 import collections
 import json

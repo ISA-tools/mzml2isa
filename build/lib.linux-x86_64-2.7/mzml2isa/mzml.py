@@ -344,7 +344,7 @@ class mzMLmeta(object):
                              's:sourceFile/@name', namespaces=self.ns)[0]
 
         self.meta['Raw Spectral Data File'] = {'value': raw_file}
-        self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(raw_file))[0]}
+        self.meta['MS Assay Name'] = {'value': os.path.basename(self.in_file)[0]}
         self.meta['Number of scans'] = {'value': int(scan_num)}
         self.meta['Scan m/z range'] = {'value': mzrange}
         self.meta['Scan polarity'] = {'value': polarity}

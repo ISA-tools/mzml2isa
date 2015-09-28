@@ -102,11 +102,36 @@ class ISA_Tab(object):
 
     def create_study(self):
         """ Create the study file   """
-        src_file = os.path.join(self.default_path, "s_mzML_parse.txt")
-        shutil.copy(src_file, self.out_dir)
-        dst_file = os.path.join(self.out_dir, "s_mzML_parse.txt")
-        out_file = os.path.join(self.out_dir, self.study_file_name)
-        os.rename(dst_file, out_file)
+        # src_file = os.path.join(self.default_path, "s_mzML_parse.txt")
+        # shutil.copy(src_file, self.out_dir)
+        # dst_file = os.path.join(self.out_dir, "s_mzML_parse.txt")
+        # out_file = os.path.join(self.out_dir, self.study_file_name)
+        # os.rename(dst_file, out_file)
+
+        dirname = os.path.dirname(os.path.realpath(__file__))
+        path = os.path.join(dirname, "default")
+        study_file = os.path.join(path, 's_mzML_parse.txt')
+
+        new_s_path = os.path.join(self.out_dir, self.study_file_name)
+
+        with open(study_file, 'rb') as isa_orig:
+            with open(new_s_path, 'w') as isa_new:
+                writer = csv.writer(isa_new, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
+                for index, line in enumerate(isa_orig):
+                    line = line.rstrip()
+                    line = line.replace('"', '')
+                    row = line.split('\t')
+                    if index == 0:
+                        sample_name_idx = row.index("Sample Name")
+                        writer.writerow(row)
+                    else:
+                        try:
+                            row[sample_name_idx] = self.sample_names.pop(0)
+                            writer.writerow(row)
+                        except IndexError as e:
+                            # no more samples left
+                            pass
+                    
 
     def create_assay(self, metalist):
         """ Create the assay file.
@@ -131,6 +156,7 @@ class ISA_Tab(object):
                 if index == 0:
 
                     headers_l = line.split('\t')
+                    sample_name_idx = headers_l.index("Sample Name")
 
                 elif index == 1:
 
@@ -146,6 +172,7 @@ class ISA_Tab(object):
         post_row = standard_row[mass_end_idx:]
 
         self.new_mass_row = [""]*len(mass_headers)
+        self.sample_names = []
 
         full_row = []
 
@@ -157,6 +184,11 @@ class ISA_Tab(object):
         for file_meta in metalist:
             # get the names and associated dictionaries for each meta term
             for key, value in file_meta.items():
+                # special case for sample name as it is not amongst the mass columns
+                if key == "Sample Name":
+                    pre_row[sample_name_idx] = value['value']
+                    self.sample_names.append(value['value'])
+
                 # if key is an entry list it means this means there can be more than one of this meta type
                 # This will check all meta data where there might be multiple columns of the same data e.g.
                 # data file content

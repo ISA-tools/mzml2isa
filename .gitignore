@@ -2,3 +2,5 @@
 ./idea
 ./idea/*
 ./testing/*
+./archive/*
+./build/*

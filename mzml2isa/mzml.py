@@ -10,8 +10,6 @@ Help provided from  Reza Salek ‎[reza.salek@ebi.ac.uk]‎‎, Ken Haug ‎[ken
 from lxml import etree
 import collections
 import json
-import textwrap
-import argparse
 import os
 
 from obo import oboparse, oboTranslator
@@ -343,18 +341,21 @@ class mzMLmeta(object):
         raw_file = self.tree.xpath('//s:indexedmzML/s:mzML/s:fileDescription/s:sourceFileList/'
                              's:sourceFile/@name', namespaces=self.ns)[0]
 
-        self.meta['Raw Spectral Data File'] = {'value': raw_file}
-        self.meta['MS Assay Name'] = {'value': os.path.basename(self.in_file)[0]}
+        in_dir = os.path.dirname(self.in_file)
+
+        self.meta['Raw Spectral Data File'] = {'value': os.path.join(in_dir, raw_file)}
+        self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
         self.meta['Number of scans'] = {'value': int(scan_num)}
         self.meta['Scan m/z range'] = {'value': mzrange}
         self.meta['Scan polarity'] = {'value': polarity}
         self.meta['Time range'] = {'value': timerange}
-        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
+        self.meta['Derived Spectral Data File'] = {'value': self.in_file} # mzML file name
+        self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name
 
     def isa_tab_compatible(self):
         """ Get the ISA-tab comptibale meta dictionary. Updates self.meta_isa"""
         keep = ["data transformation", "data transformation software version", "data transformation software",
-                "term_source", "Raw Spectral Data File", "MS Assay Name", "Derived Spectral Data File"]
+                "term_source", "Raw Spectral Data File", "MS Assay Name", "Derived Spectral Data File", "Sample Name"]
 
         for meta_name in self.meta:
             if meta_name in keep:

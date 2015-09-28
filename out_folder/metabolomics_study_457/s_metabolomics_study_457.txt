@@ -1,0 +1,7 @@
+"Source Name"	"Characteristics[Organism]"	"Term Source REF"	"Term Accession Number"	"Characteristics[Organism part]"	"Term Source REF"	"Term Accession Number"	"Protocol REF"	"Sample Name"
+""	""	""	""	""	""	""	"Sample collection"	"5_samp"
+""	""	""	""	""	""	""	"Sample collection"	"3_samp"
+""	""	""	""	""	""	""	"Sample collection"	"2_samp"
+""	""	""	""	""	""	""	"Sample collection"	"1_samp"
+""	""	""	""	""	""	""	"Sample collection"	"6_samp"
+""	""	""	""	""	""	""	"Sample collection"	"4_samp"

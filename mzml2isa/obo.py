@@ -33,10 +33,10 @@ class oboparse(object):
                 #only add to the structure if the term has a is_a tag
                 #the is_a value contain GOID and term definition
                 #we only want the GOID
-                if term.has_key('is_a'):
+                if 'is_a' in term:
                     termParents = [p.split()[0] for p in term['is_a']]
 
-                    if not terms.has_key(termID):
+                    if termID not in terms:
                         #each goid will have two arrays of parents and children
                         terms[termID] = {'p':[],'c':[]}
 
@@ -45,7 +45,7 @@ class oboparse(object):
 
                     #for every parent term, add this current term as children
                     for termParent in termParents:
-                        if not terms.has_key(termParent):
+                        if termParent not in terms:
                             terms[termParent] = {'p':[],'c':[]}
                         terms[termParent]['c'].append(termID)
             else:
@@ -74,7 +74,7 @@ class oboparse(object):
             except IndexError:
                 value = line.split(':',1)[1]
 
-            if not data.has_key(tag):
+            if tag not in data:
                 data[tag] = []
 
             data[tag].append(value)
@@ -83,7 +83,7 @@ class oboparse(object):
 
     def getDescendents(self, goid):
         recursiveArray = [goid]
-        if self.terms.has_key(goid):
+        if goid in self.terms:
             children = self.terms[goid]['c']
             if len(children) > 0:
                 for child in children:
@@ -93,7 +93,7 @@ class oboparse(object):
 
     def getAncestors(self, goid):
         recursiveArray = [goid]
-        if self.terms.has_key(goid):
+        if goid in self.terms:
             parents = self.terms[goid]['p']
             if len(parents) > 0:
                 for parent in parents:
@@ -156,7 +156,7 @@ class oboTranslator(object):
                             k = line.find(":")
                             collections[line[:k]] = line[k + 1:].strip()
         else:
-            print "No obo file version"
+            print("No obo file version")
 
             raise Exception("Could not find obo file.")
         return

@@ -10,7 +10,10 @@ Help provided from  Reza Salek ‎[reza.salek@ebi.ac.uk]‎‎, Ken Haug ‎[ken
 
 import csv
 import os
+import sys
 import shutil
+
+from mzml2isa.versionutils import RMODE, WMODE
 
 class ISA_Tab(object):
     """ Class to create an ISA-Tab structure based on a python meta dictionary generated from the mzMLmeta class.
@@ -27,7 +30,7 @@ class ISA_Tab(object):
         :param str out_dir: Pth to out directory
         :param str name: Study identifier name
         """
-        print "Parse mzML meta information into ISA-Tab structure"
+        print("Parse mzML meta information into ISA-Tab structure")
 
         # Setup the instance variables
         self.out_dir = os.path.join(out_dir, name)
@@ -69,9 +72,10 @@ class ISA_Tab(object):
             accession.append(meta['Parameter Value[Instrument]']['accession'])
 
         if len(set(instruments)) > 1:
-            print "Warning: More than one instrument platform used. Metabolights by default divides assays based on" \
+            print("Warning: More than one instrument platform used. Metabolights by default divides assays based on" \
                   " platform. For convenience here though only one assay file will be created including all files, " \
                   " the investigation file though will detail the most common platform used" \
+                  )
 
         # get most common item in list
         c_name = max(set(instruments), key=instruments.count)
@@ -90,7 +94,7 @@ class ISA_Tab(object):
 
         new_i_path = os.path.join(self.out_dir,"i_Investigation.txt")
 
-        with open(investigation_file, "rb") as i_in:
+        with open(investigation_file, RMODE) as i_in:
             with open(new_i_path, "w") as i_out:
                 for l in i_in:
                     l = l.replace('STUDY_IDENTIFIER', self.name)
@@ -114,7 +118,7 @@ class ISA_Tab(object):
 
         new_s_path = os.path.join(self.out_dir, self.study_file_name)
 
-        with open(study_file, 'rb') as isa_orig:
+        with open(study_file, RMODE) as isa_orig:
             with open(new_s_path, 'w') as isa_new:
                 writer = csv.writer(isa_new, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
                 for index, line in enumerate(isa_orig):
@@ -147,7 +151,7 @@ class ISA_Tab(object):
         #=================================================
         # Get location of the mass spectrometry section
         #=================================================
-        with open(assay_file, 'rb') as isa_orig:
+        with open(assay_file, RMODE) as isa_orig:
 
             for index, line in enumerate(isa_orig):
                 line = line.rstrip()
@@ -229,7 +233,7 @@ class ISA_Tab(object):
         #=================================================
         # Create the the new assay file
         #=================================================
-        with open(os.path.join(self.out_dir,self.assay_file_name), 'wb') as new_file:
+        with open(os.path.join(self.out_dir,self.assay_file_name), WMODE) as new_file:
             writer = csv.writer(new_file, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
             writer.writerow(headers_l)
 

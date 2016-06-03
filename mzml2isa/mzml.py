@@ -7,12 +7,13 @@ Help provided from  Reza Salek ‎[reza.salek@ebi.ac.uk]‎‎, Ken Haug ‎[ken
 ‎[christoph.steinbeck@gmail.com]‎ at the EBI Cambridge.
 -------------------------------------------------------
 """
-from lxml import etree
+
 import collections
 import json
 import os
 
-from obo import oboparse, oboTranslator
+from mzml2isa.obo import oboparse, oboTranslator
+from mzml2isa.versionutils import *
 
 class mzMLmeta(object):
     """ Class to store and obtain the meta information from the mzML file
@@ -45,7 +46,7 @@ class mzMLmeta(object):
         :ivar obj self.meta_json: Meta information in json format
         :ivar obj self.meta_isa: Meta information with names compatible with ISA-Tab
         """
-        print "Parsing mzml file:", in_file
+        print("Parsing mzml file: {}".format(in_file))
 
         # setup lxml parsing
         self.in_file = in_file
@@ -63,13 +64,7 @@ class mzMLmeta(object):
         self.meta_json = ""
 
         # xpaths for the mzML locations that we want the meta information from any cvParam elements
-        xpaths = {'file_content': '//s:indexedmzML/s:mzML/s:fileDescription/s:fileContent/s:cvParam',
-                  'source_file': '//s:indexedmzML/s:mzML/s:fileDescription/s:sourceFileList/s:sourceFile/s:cvParam',
-                  'ionization': '//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/s:componentList/s:source/s:cvParam',
-                  'analyzer': '//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/s:componentList/s:analyzer/s:cvParam',
-                  'detector': '//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/s:componentList/s:detector/s:cvParam',
-                  'data_processing': '//s:indexedmzML/s:mzML/s:dataProcessingList/s:dataProcessing/s:processingMethod/s:cvParam'
-                  }
+        xpaths_meta = XPATHS_META
 
         # We create a dictionary that contains "search parameters" that we use to parse the xml location from the xpaths
         # above
@@ -114,7 +109,7 @@ class mzMLmeta(object):
         }
 
         # update self.meta with the relevant meta infromation
-        self.extract_meta(terms, xpaths)
+        self.extract_meta(terms, xpaths_meta)
 
         # The instrument information has to be extracted separately
         self.instrument()
@@ -140,13 +135,15 @@ class mzMLmeta(object):
         """
 
         # loop though the xpaths
-        for location_name, xpath in xpaths.iteritems():
+        for location_name, xpath in iterdict(xpaths):
 
             # get the elements from the xpath
-            elements = self.tree.xpath(xpath,namespaces=self.ns)
+            elements = pyxpath(self.tree, xpath, self.ns)
 
             # loop through the elements and see if the terms are found
             self.cvParam_loop(elements, location_name, terms)
+
+
 
     def cvParam_loop(self, elements, location_name, terms):
         """ loop through the elements and see if the terms are found. If they are update the self.meta dict
@@ -164,7 +161,7 @@ class mzMLmeta(object):
         # go through every cvParam element
         for e in elements:
             # go through the terms available for this location
-            for accession, info in terms[location_name].iteritems():
+            for accession, info in iterdict(terms[location_name]):
                 # check if the element is one of the terms we are looking for
                 if e.attrib['accession'] in descendents[accession]:
                     if(info['attribute']):
@@ -190,7 +187,7 @@ class mzMLmeta(object):
                             self.meta[meta_name]['value'] = e.attrib['value']
                     # Check if there is expected associated software
                     if (info['soft']):
-                        soft_ref = e.getparent().attrib['softwareRef']
+                        soft_ref = getparent(e, self.tree).attrib['softwareRef']
                         self.software(soft_ref, meta_name)
 
     def instrument(self):
@@ -204,16 +201,15 @@ class mzMLmeta(object):
         translator = oboTranslator()
 
         # gets the first Instrument config (something to watch out for)
-        ic_ref = self.tree.xpath('//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/'
-                             's:referenceableParamGroupRef/@ref', namespaces=self.ns)[0]
+        ic_ref = attrib(pyxpath(self.tree, XPATHS['ic_ref'], self.ns)[0], "ref")
 
-        elements = self.tree.xpath('//s:indexedmzML/s:mzML/s:referenceableParamGroupList/s:referenceableParamGroup',
-                                 namespaces=self.ns)
+        elements = pyxpath(self.tree, XPATHS['ic_elements'], self.ns)
+        
         # Loop through xml elements
         for e in elements:
             # get all CV information from the instrument config
             if e.attrib['id']==ic_ref:
-                instrument_e = e.findall('s:cvParam', namespaces=self.ns)
+                instrument_e = pyxpath(e, 's:cvParam', self.ns)
 
                 for ie in instrument_e:
 
@@ -241,8 +237,8 @@ class mzMLmeta(object):
                     elif ie.attrib['accession'] == 'MS:1000529':
                         self.meta['Instrument serial number'] = {'value': ie.attrib['value']}
 
-        soft_ref = self.tree.xpath('//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/'
-                             's:softwareRef/@ref', namespaces=self.ns)[0]
+
+        soft_ref = attrib(pyxpath(self.tree, XPATHS['ic_soft_ref'], self.ns)[0], "ref")
 
         # Get associated software
         self.software(soft_ref, 'Instrument')
@@ -254,8 +250,7 @@ class mzMLmeta(object):
         :param str name: Name of the associated CV term that the software is associated to
         """
 
-        elements = self.tree.xpath('//s:indexedmzML/s:mzML/s:softwareList/s:software',
-                                 namespaces=self.ns)
+        elements = pyxpath(self.tree, XPATHS['software_elements'], self.ns)
 
         for e in elements:
 
@@ -273,8 +268,9 @@ class mzMLmeta(object):
         #######################
         # Get polarity and time
         #######################
-        sp_cv = self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:cvParam',
-                                   namespaces=self.ns)
+
+        sp_cv = pyxpath(self.tree, XPATHS['sp_cv'], self.ns)
+
         pos = False
         neg = False
 
@@ -296,9 +292,9 @@ class mzMLmeta(object):
         #######################
         # Get mzrange
         #######################
-        scan_window_cv = self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/'
-                                 's:scanWindowList/s:scanWindow/s:cvParam',
-                                   namespaces=self.ns)
+
+        scan_window_cv = pyxpath(self.tree, XPATHS['scan_window_cv'], self.ns)
+
         minmz_l = []
         maxmz_l = []
 
@@ -316,8 +312,9 @@ class mzMLmeta(object):
         #######################
         # Get timerange
         #######################
-        scan_cv =  self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/s:cvParam',
-                                   namespaces=self.ns)
+
+        scan_cv =  pyxpath(self.tree, XPATHS['scan_cv'], self.ns)
+
 
         time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
 
@@ -328,18 +325,20 @@ class mzMLmeta(object):
         #####################
         # Some other stuff
         ####################
-        scan_num = self.tree.xpath('//s:indexedmzML/s:mzML/s:run/s:spectrumList/@count', namespaces=self.ns)[0]
+        scan_num = attrib(pyxpath(self.tree, XPATHS['scan_num'], self.ns)[0], "count")
 
-        cv = self.tree.xpath('//s:indexedmzML/s:mzML/s:cvList/s:cv/@id', namespaces=self.ns)[0]
+        
+        cv = attrib(pyxpath(self.tree, XPATHS['cv'], self.ns)[0], "id")
+
 
         if not 'MS' in cv:
-            print "Standard controlled vocab not available. Can not parse "
+            print("Standard controlled vocab not available. Can not parse ")
             return
         else:
             self.meta['term_source'] = {'value': 'MS'}
 
-        raw_file = self.tree.xpath('//s:indexedmzML/s:mzML/s:fileDescription/s:sourceFileList/'
-                             's:sourceFile/@name', namespaces=self.ns)[0]
+        raw_file = attrib(pyxpath(self.tree, XPATHS['raw_file'], self.ns)[0], "name")
+
 
         in_dir = os.path.dirname(self.in_file)
 
@@ -361,4 +360,5 @@ class mzMLmeta(object):
             if meta_name in keep:
                 self.meta_isa[meta_name] = self.meta[meta_name]
             else:
+                #print(meta_name)
                 self.meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]

@@ -46,16 +46,36 @@ XPATHS_META_PY2 = {'file_content': '//s:indexedmzML/s:mzML/s:fileDescription/s:f
                }
 
 XPATHS_PY2 = {'ic_ref': '//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/s:referenceableParamGroupRef/@ref',
+
+
+
           'ic_elements': '//s:indexedmzML/s:mzML/s:referenceableParamGroupList/s:referenceableParamGroup',
           'ic_soft_ref': '//s:indexedmzML/s:mzML/s:instrumentConfigurationList/s:instrumentConfiguration/s:softwareRef/@ref',
           'software_elements': '//s:indexedmzML/s:mzML/s:softwareList/s:software',
           'sp_cv': '//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:cvParam',
-          'scan_window_cv': '//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/s:scanWindowList/s:scanWindow/s:cvParam',
-          'scan_cv': '//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/s:cvParam',
-          'scan_num': '//s:indexedmzML/s:mzML/s:run/s:spectrumList/@count',
+          
+
+          'scan_window_cv':          '//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/s:scanWindowList/s:scanWindow/s:cvParam',          
+          'scan_window_cv_specdesc':        '//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:spectrumDescription/s:scan/s:scanWindowList/s:scanWindow/s:cvParam',
+          'scan_window_cv_selectionwindow': './s:run/s:spectrumList/s:spectrum/s:spectrumDescription/s:scan/s:selectionWindowList/s:selectionWindow/s:cvParam',
+          
+
+
+          'scan_cv':          '//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:scanList/s:scan/s:cvParam',
+          'scan_cv_specdesc': '//s:indexedmzML/s:mzML/s:run/s:spectrumList/s:spectrum/s:spectrumDescription/s:scan/s:cvParam',
+          'scan_cv_selectionwindow': './s:run/s:spectrumList/s:spectrum/s:spectrumDescription/s:scan/s:cvParam',
+          
+          #'scan_num': '//s:indexedmzML/s:mzML/s:run/s:spectrumList/@count',
+          'scan_num': './s:run/s:spectrumList/@count',
+
           'cv': '//s:indexedmzML/s:mzML/s:cvList/s:cv/@id',
+          'cv_cvlabel': './s:cvList/s:cv/@cvLabel',
+
           'raw_file': '//s:indexedmzML/s:mzML/s:fileDescription/s:sourceFileList/s:sourceFile/@name',
+          'raw_file_sourcefilename': './s:fileDescription/s:sourceFileList/s:sourceFile/@sourceFileName',
+
          }
+
 
 try:
     from lxml import etree # Python 2.7.8

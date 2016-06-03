@@ -1,0 +1,45 @@
+
+
+- Develop standardized xpaths expressions
+
+
+
+
+
+- Stop using attrib(...) to get an attribute (relying on different behaviour
+  depending on lxml or xml.ElementTree) and use .attrib[] instead
+
+
+
+- Change the mzmlMeta.instrument:
+
+	- Format of the instrument serial number:
+		either:
+	<mzml>
+		<instrument(Configuration)List>
+			<instrument(Configuration)>
+				<referenceableParamGroupRef ref="SOMETHING"/>
+			</instrument(Configuration)>
+		</instrument(Configuration)List>
+		<referenceableParamGroupList>
+			<referenceableParamGroup id="SOMETHING">
+				<cvParam cvRef="MS" accession="MS:1000529" name="instrument serial number" value="SN06061F"/>													        
+				<cvParam cvRef="MS" accession="MS:1000448" name="LTQ FT" value=""/>	 	    ^~~~ serial number
+ 					instrument name accession ~~~~~~^	 ^~~~ instrument name
+
+			</referenceableParamGroup>
+		</referenceableParamGroupList>
+	</mzml>
+
+		or:
+
+	<mzml>
+		<instrument(Configuration)List>
+			<instrument id="LCQ Deca">
+				<cvParam cvLabel="MS" accession="MS:1000554" name="LCQ Deca" value=""/>
+ 					instrument name accession ~~~~~~^	 ^~~~ instrument name                v~~~ serial number
+				<cvParam cvLabel="MS" accession="MS:1000529" name="instrument serial number" value="23433"/>
+			</instrument>
+		</instrument(Configuration)List>
+	</mzml>
+

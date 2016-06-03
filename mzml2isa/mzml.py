@@ -51,7 +51,10 @@ class mzMLmeta(object):
         # setup lxml parsing
         self.in_file = in_file
         self.tree = etree.parse(in_file)
-        self.ns = {'s':'http://psi.hupo.org/ms/mzml'} # namespace
+
+        self.ns = {'s': self.tree.getroot().tag[1:].split("}")[0]} #      'http://psi.hupo.org/ms/mzml'} # namespace
+        #print(self.ns)
+
 
         # Get controlled vocb from the obo ontology file
         dirname = os.path.dirname(os.path.realpath(__file__))
@@ -187,7 +190,12 @@ class mzMLmeta(object):
                             self.meta[meta_name]['value'] = e.attrib['value']
                     # Check if there is expected associated software
                     if (info['soft']):
-                        soft_ref = getparent(e, self.tree).attrib['softwareRef']
+                        
+                        try: # softwareRef in <Processing Method>
+                            soft_ref = getparent(e, self.tree).attrib['softwareRef']
+                        except KeyError: # softwareRef in <DataProcessing>
+                            soft_ref = getparent(getparent(e, self.tree), self.tree).attrib['softwareRef']
+
                         self.software(soft_ref, meta_name)
 
     def instrument(self):
@@ -201,7 +209,10 @@ class mzMLmeta(object):
         translator = oboTranslator()
 
         # gets the first Instrument config (something to watch out for)
-        ic_ref = attrib(pyxpath(self.tree, XPATHS['ic_ref'], self.ns)[0], "ref")
+        try:
+            ic_ref = attrib(pyxpath(self.tree, XPATHS['ic_ref'], self.ns)[0], "ref")
+        except IndexError:
+            ic_ref = ''
 
         elements = pyxpath(self.tree, XPATHS['ic_elements'], self.ns)
         
@@ -237,8 +248,10 @@ class mzMLmeta(object):
                     elif ie.attrib['accession'] == 'MS:1000529':
                         self.meta['Instrument serial number'] = {'value': ie.attrib['value']}
 
-
-        soft_ref = attrib(pyxpath(self.tree, XPATHS['ic_soft_ref'], self.ns)[0], "ref")
+        try:
+            soft_ref = attrib(pyxpath(self.tree, XPATHS['ic_soft_ref'], self.ns)[0], "ref")
+        except IndexError:
+            soft_ref = ''
 
         # Get associated software
         self.software(soft_ref, 'Instrument')
@@ -252,16 +265,26 @@ class mzMLmeta(object):
 
         elements = pyxpath(self.tree, XPATHS['software_elements'], self.ns)
 
+
         for e in elements:
 
             if e.attrib['id'] == soft_ref:
-                if e.attrib['version']:
-                    self.meta[name+' software version'] = {'value': e.attrib['version']}
 
-                software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
+                try: # <Softwarelist <Software <cvParam>>>
+                   
+                    if e.attrib['version']:
+                        self.meta[name+' software version'] = {'value': e.attrib['version']}
+                    software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
+                    for ie in software_cvParam:
+                        self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
+                
+                except KeyError:  # <SoftwareList <software <softwareParam>>>
 
-                for ie in software_cvParam:
-                    self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
+                    params = e.find('s:softwareParam', namespaces=self.ns)
+                    if params.attrib['version']:
+                        self.meta[name+' software version'] = {'value': params.attrib['version']}
+                    self.meta[name+' software'] = {'accession':params.attrib['accession'], 'name':params.attrib['name']}
+
 
     def derived(self):
         """ Get the derived meta information. Updates the self.meta dictionary"""
@@ -293,7 +316,12 @@ class mzMLmeta(object):
         # Get mzrange
         #######################
 
+                               # Case /spectrum/scanList/scan/scanWindowList/scanWindow...
         scan_window_cv = pyxpath(self.tree, XPATHS['scan_window_cv'], self.ns)
+        if not scan_window_cv: #Case /spectrum/spectrumDescription/scan/scanWindowList/scanWindow...
+            scan_window_cv = pyxpath(self.tree, XPATHS['scan_window_cv_specdesc'], self.ns)
+        if not scan_window_cv: #Case /spectrum/spectrumDescription/scan/selectionWindowList/selectionWindow...
+            scan_window_cv = pyxpath(self.tree, XPATHS['scan_window_cv_selectionwindow'], self.ns)
 
         minmz_l = []
         maxmz_l = []
@@ -313,8 +341,12 @@ class mzMLmeta(object):
         # Get timerange
         #######################
 
+                        # Case 'scanList/scan/cvParam',
         scan_cv =  pyxpath(self.tree, XPATHS['scan_cv'], self.ns)
-
+        if not scan_cv: # Case 'spectrumDescription/scan/cvParam'
+            scan_cv = pyxpath(self.tree, XPATHS['scan_cv_specdesc'], self.ns)
+        if not scan_cv: 
+            scan_cv = pyxpath(self.tree, XPATHS['scan_cv_selectionwindow'], self.ns)
 
         time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
 
@@ -327,8 +359,10 @@ class mzMLmeta(object):
         ####################
         scan_num = attrib(pyxpath(self.tree, XPATHS['scan_num'], self.ns)[0], "count")
 
-        
-        cv = attrib(pyxpath(self.tree, XPATHS['cv'], self.ns)[0], "id")
+        try:
+            cv = attrib(pyxpath(self.tree, XPATHS['cv'], self.ns)[0], "id")
+        except IndexError:
+            cv = attrib(pyxpath(self.tree, XPATHS['cv_cvlabel'], self.ns)[0], "cvLabel")
 
 
         if not 'MS' in cv:
@@ -337,7 +371,10 @@ class mzMLmeta(object):
         else:
             self.meta['term_source'] = {'value': 'MS'}
 
-        raw_file = attrib(pyxpath(self.tree, XPATHS['raw_file'], self.ns)[0], "name")
+        try:
+            raw_file = attrib(pyxpath(self.tree, XPATHS['raw_file'], self.ns)[0], "name")
+        except IndexError:
+            raw_file = attrib(pyxpath(self.tree, XPATHS['raw_file_sourcefilename'], self.ns)[0], "sourceFileName")
 
 
         in_dir = os.path.dirname(self.in_file)

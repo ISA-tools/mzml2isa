@@ -16,7 +16,7 @@ Still a few things to complete and the code needs tidying up but the basic funct
 
 ## Install the python package
 
-```
+```bash
 git clone https://github.com/Tomnl/mzml2isa.git
 
 cd mzml2isa
@@ -31,15 +31,15 @@ python setup.py install
 
 ## mzML to ISA-tab parsing
 
-Can use standalone script found in the scripts folder:
+Can use the system command that ships with the library:
 
-```
-mzml2isa_parser.py -i /path/to/mzml_files/ -o /path/to/out_folder/ -s new_metabolomics_thing
+```bash
+mzml2isa -i /path/to/mzml_files/ -o /path/to/out_folder/ -s new_metabolomics_thing
 ```
 
 Or you can import the package
 
-```
+```python
 from mzml2isa import parsing
 
 in_dir = "/path/to/mzml_files/"
@@ -53,7 +53,7 @@ parsing.full_parse(in_dir, out_dir, study_identifier_name)
 
 If you just want to extract meta information:
 
-```
+```python
 from mzml2isa import mzml
 
 onefile = os.path.join(in_dir,"samp1.mzML")

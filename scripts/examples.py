@@ -16,7 +16,7 @@ out_dir = os.path.join(crnt_dir, "out_folder")
 from mzml2isa import parsing
 parsing.full_parse(in_dir, out_dir, "metabolomics_study_457")
 
-raw_input() # raw input is just a standard python function that stops the script until the user presses enter
+input() # input is just a standard python function that stops the script until the user presses enter
 
 #====================================================
 # Just get meta information from a SINGLE mzML file

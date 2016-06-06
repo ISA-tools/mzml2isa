@@ -52,8 +52,8 @@ class mzMLmeta(object):
         self.in_file = in_file
         self.tree = etree.parse(in_file)
 
-        self.ns = {'s': self.tree.getroot().tag[1:].split("}")[0]} #      'http://psi.hupo.org/ms/mzml'} # namespace
-        #print(self.ns)
+        self.build_env()
+      
 
 
         # Get controlled vocb from the obo ontology file
@@ -141,7 +141,7 @@ class mzMLmeta(object):
         for location_name, xpath in iterdict(xpaths):
 
             # get the elements from the xpath
-            elements = pyxpath(self.tree, xpath, self.ns)
+            elements = pyxpath(self, xpath)
 
             # loop through the elements and see if the terms are found
             self.cvParam_loop(elements, location_name, terms)
@@ -198,7 +198,7 @@ class mzMLmeta(object):
 
                         self.software(soft_ref, meta_name)
 
-    def instrument(self):
+    def _instrument_byref(self):
         """ The instrument meta information is more complicated to extract so it has its own function
 
         Updates the self.meta with the relevant meta information.
@@ -209,18 +209,15 @@ class mzMLmeta(object):
         translator = oboTranslator()
 
         # gets the first Instrument config (something to watch out for)
-        try:
-            ic_ref = attrib(pyxpath(self.tree, XPATHS['ic_ref'], self.ns)[0], "ref")
-        except IndexError:
-            ic_ref = ''
+        ic_ref = pyxpath(self, XPATHS['ic_ref'])[0].attrib["ref"]
 
-        elements = pyxpath(self.tree, XPATHS['ic_elements'], self.ns)
+        elements = pyxpath(self, XPATHS['ic_elements'])
         
         # Loop through xml elements
         for e in elements:
             # get all CV information from the instrument config
             if e.attrib['id']==ic_ref:
-                instrument_e = pyxpath(e, 's:cvParam', self.ns)
+                instrument_e = e.findall('s:cvParam', self.ns)
 
                 for ie in instrument_e:
 
@@ -248,13 +245,55 @@ class mzMLmeta(object):
                     elif ie.attrib['accession'] == 'MS:1000529':
                         self.meta['Instrument serial number'] = {'value': ie.attrib['value']}
 
-        try:
-            soft_ref = attrib(pyxpath(self.tree, XPATHS['ic_soft_ref'], self.ns)[0], "ref")
-        except IndexError:
-            soft_ref = ''
-
+        
+        soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib["ref"]
+        
         # Get associated software
         self.software(soft_ref, 'Instrument')
+
+    def _instrument_nested(self):
+        """
+        The easy case, where version number is not in ./referenceableParamList but directly
+        in instrument/cvParam
+        """
+
+        translator = oboTranslator()
+
+        elements = pyxpath(self, XPATHS['ic_nest'])
+
+        for i, e in enumerate(elements):
+            
+
+            if e.attrib['accession'] in self.obo.getDescendents('MS:1000031'):
+                self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name']}
+
+                parent = self.obo.terms[e.attrib['accession']]['p']
+
+                if parent[0] == 'MS:1000031': #case accession is just manufacturer
+                    self.meta['Instrument manufacturer'] = {'accession': e.attrib['accession'], 'name':translator[e.attrib['accession']]}
+
+                else: #case accession is instrument model
+                    direct_c = self.obo.terms['MS:1000031']['c']
+
+                    for i in range(10):
+                        # first get direct parent of the current instrument element
+                        if parent[0] in direct_c:
+                            self.meta['Instrument manufacturer'] = {'accession': parent[0], 'name':translator[parent[0]]}
+                            break
+                        else:
+                            print(self.obo.terms)
+                            parent = self.obo.terms[parent]['p']
+
+            elif e.attrib['accession'] == 'MS:1000529':
+                self.meta['Instrument serial number'] = {'value': e.attrib['value']}
+
+
+
+        soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib["ref"]
+        # Get associated software
+        self.software(soft_ref, 'Instrument')
+
+
 
     def software(self, soft_ref, name):
         """ Get associated software of cv term. Updates the self.meta dictionary
@@ -263,7 +302,7 @@ class mzMLmeta(object):
         :param str name: Name of the associated CV term that the software is associated to
         """
 
-        elements = pyxpath(self.tree, XPATHS['software_elements'], self.ns)
+        elements = pyxpath(self, XPATHS['software_elements'])
 
 
         for e in elements:
@@ -292,7 +331,7 @@ class mzMLmeta(object):
         # Get polarity and time
         #######################
 
-        sp_cv = pyxpath(self.tree, XPATHS['sp_cv'], self.ns)
+        sp_cv = pyxpath(self, XPATHS['sp_cv'])
 
         pos = False
         neg = False
@@ -316,12 +355,7 @@ class mzMLmeta(object):
         # Get mzrange
         #######################
 
-                               # Case /spectrum/scanList/scan/scanWindowList/scanWindow...
-        scan_window_cv = pyxpath(self.tree, XPATHS['scan_window_cv'], self.ns)
-        if not scan_window_cv: #Case /spectrum/spectrumDescription/scan/scanWindowList/scanWindow...
-            scan_window_cv = pyxpath(self.tree, XPATHS['scan_window_cv_specdesc'], self.ns)
-        if not scan_window_cv: #Case /spectrum/spectrumDescription/scan/selectionWindowList/selectionWindow...
-            scan_window_cv = pyxpath(self.tree, XPATHS['scan_window_cv_selectionwindow'], self.ns)
+        scan_window_cv = pyxpath(self, XPATHS['scan_window_cv'])
 
         minmz_l = []
         maxmz_l = []
@@ -341,12 +375,7 @@ class mzMLmeta(object):
         # Get timerange
         #######################
 
-                        # Case 'scanList/scan/cvParam',
-        scan_cv =  pyxpath(self.tree, XPATHS['scan_cv'], self.ns)
-        if not scan_cv: # Case 'spectrumDescription/scan/cvParam'
-            scan_cv = pyxpath(self.tree, XPATHS['scan_cv_specdesc'], self.ns)
-        if not scan_cv: 
-            scan_cv = pyxpath(self.tree, XPATHS['scan_cv_selectionwindow'], self.ns)
+        scan_cv =  pyxpath(self, XPATHS['scan_cv'])
 
         time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
 
@@ -357,13 +386,8 @@ class mzMLmeta(object):
         #####################
         # Some other stuff
         ####################
-        scan_num = attrib(pyxpath(self.tree, XPATHS['scan_num'], self.ns)[0], "count")
-
-        try:
-            cv = attrib(pyxpath(self.tree, XPATHS['cv'], self.ns)[0], "id")
-        except IndexError:
-            cv = attrib(pyxpath(self.tree, XPATHS['cv_cvlabel'], self.ns)[0], "cvLabel")
-
+        scan_num = pyxpath(self, XPATHS['scan_num'])[0].attrib["count"]
+        cv = pyxpath(self, XPATHS['cv'])[0].attrib[self.env["cvLabel"]]            
 
         if not 'MS' in cv:
             print("Standard controlled vocab not available. Can not parse ")
@@ -371,11 +395,7 @@ class mzMLmeta(object):
         else:
             self.meta['term_source'] = {'value': 'MS'}
 
-        try:
-            raw_file = attrib(pyxpath(self.tree, XPATHS['raw_file'], self.ns)[0], "name")
-        except IndexError:
-            raw_file = attrib(pyxpath(self.tree, XPATHS['raw_file_sourcefilename'], self.ns)[0], "sourceFileName")
-
+        raw_file = pyxpath(self, XPATHS['raw_file'])[0].attrib[self.env["filename"]]
 
         in_dir = os.path.dirname(self.in_file)
 
@@ -399,3 +419,70 @@ class mzMLmeta(object):
             else:
                 #print(meta_name)
                 self.meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]
+
+
+    def build_env(self):
+
+        self.ns = {'s': self.tree.getroot().tag[1:].split("}")[0]} # namespace
+        self.env = {}
+
+        # Check if indexedmzML/mzML or mzML
+        if self.tree.find('./s:mzML', self.ns) is None:
+            self.env['root'] = '.'
+        else:
+            self.env['root'] = './s:mzML'
+
+        # check if spectrum or chromatogram
+        if self.tree.find('{root}/s:run/s:chromatogramList/s:chromatogram/'.format(**self.env), self.ns) is not None:
+            self.env['spectrum'] = 's:chromatogram'
+        else:
+            self.env['spectrum'] = 's:spectrum'
+
+        # check if scanList or SpectrumDescription
+        if self.tree.find('{root}/s:run/s:spectrumList/s:spectrum/s:scanList'.format(**self.env), self.ns) is not None:
+            self.env['scanList'] = 's:scanList'
+        else:
+            self.env['scanList'] = 's:spectrumDescription'
+
+        # check if scanWindow or selectionWindow
+        if self.tree.find('{root}/s:run/s:spectrumList/s:spectrum/{scanList}/s:scan/s:scanWindowList/s:scanWindow'.format(**self.env), self.ns) is not None:
+            self.env['scanWindow'] = 's:scanWindow'
+        else:
+            self.env['scanWindow'] = 's:selectionWindow'
+
+        # check if sourceFile/@name or sourceFile/@sourceFileName
+        if self.tree.find('{root}/s:fileDescription/s:sourceFileList/s:sourceFile[@name]'.format(**self.env), self.ns) is not None:
+            self.env['filename'] = 'name'
+        else:
+            self.env['filename'] = 'sourceFileName'
+
+        # check if cv/@id or cv
+        if self.tree.find('{root}/s:cvList/s:cv[@id]'.format(**self.env), self.ns) is not None:
+            self.env['cvLabel'] = 'id'
+        else:
+            self.env['cvLabel'] = 'cvLabel'
+
+        # check if instrumentList or instrumentConfigurationList
+        if self.tree.find('{root}/s:instrumentConfigurationList'.format(**self.env), self.ns) is not None:
+            self.env['instrument'] = 's:instrumentConfiguration'
+        else:
+            self.env['instrument'] = 's:instrument'
+
+        # check if softwareRef or instrumentSoftwareRef
+        if self.tree.find('{root}/{instrument}List/{instrument}/s:softwareRef[@ref]'.format(**self.env), self.ns) is not None:
+            self.env['softwareRef'] = 's:softwareRef'
+        elif self.tree.find('{root}/{instrument}List/{instrument}/s:instrumentSoftwareRef[@ref]'.format(**self.env), self.ns) is not None:
+            self.env['softwareRef'] = 's:instrumentSoftwareRef'
+
+        
+        if self.tree.find('{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@accession="MS:1000529"]'.format(**self.env), self.ns) is not None:
+            self.instrument = self._instrument_byref
+        #if self.tree.find('{root}/{instrument}List/{instrument}/s:cvParam[@accession="MS:1000529"]'.format(**self.env), self.ns) is not None:
+        else:
+            self.instrument = self._instrument_nested
+        
+        #print(self.env)
+        
+
+
+

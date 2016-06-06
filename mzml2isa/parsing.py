@@ -41,8 +41,9 @@ def full_parse(in_dir, out_dir, study_identifer):
     mzml_files.sort()
     # get meta information for all files
     metalist = [ mzml.mzMLmeta(i).meta_isa for i in mzml_files ]
-    print(metalist)
-    return
+    #print(metalist)
+    
     # update isa-tab file
     isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer)
 
+    return

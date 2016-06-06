@@ -65,7 +65,16 @@ print mm.meta
 # JSON format
 print mm.meta_json
 ```
-See scipts/example.py for all examples 
+
+## Metabolights
+To test the converter with (real) Metabolights studies, run
+```python
+python scripts/metabolights.py <size>
+```
+where size is the maximum size in GiB you can allocate to download files
+
+
+
 
 ## Todo 
 

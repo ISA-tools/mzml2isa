@@ -8,6 +8,11 @@ Help provided from  Reza Salek ‎[reza.salek@ebi.ac.uk]‎‎, Ken Haug ‎[ken
 -------------------------------------------------------
 """
 
+##ML
+## Following features were commented out (look for #!# comments):
+## - software version number
+## - SHA-1 checksum
+
 import collections
 import json
 import os
@@ -263,8 +268,10 @@ class mzMLmeta(object):
 
         for i, e in enumerate(elements):
             
+            if e.attrib['accession'] == 'MS:1000031':
+                break
 
-            if e.attrib['accession'] in self.obo.getDescendents('MS:1000031'):
+            elif e.attrib['accession'] in self.obo.getDescendents('MS:1000031'):
                 self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name']}
 
                 parent = self.obo.terms[e.attrib['accession']]['p']
@@ -288,10 +295,12 @@ class mzMLmeta(object):
                 self.meta['Instrument serial number'] = {'value': e.attrib['value']}
 
 
-
-        soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib[self.env['softwareRef']]
-        # Get associated software
-        self.software(soft_ref, 'Instrument')
+        try: 
+            soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib[self.env['softwareRef']]
+            # Get associated software
+            self.software(soft_ref, 'Instrument')
+        except (IndexError, KeyError): #Sometimes <Instrument> contains no Software tag
+            pass
 
 
 
@@ -311,8 +320,8 @@ class mzMLmeta(object):
 
                 try: # <Softwarelist <Software <cvParam>>>
                    
-                    if e.attrib['version']:
-                        self.meta[name+' software version'] = {'value': e.attrib['version']}
+                    #!# if e.attrib['version']:
+                    #!#     self.meta[name+' software version'] = {'value': e.attrib['version']}
                     software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
                     for ie in software_cvParam:
                         self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
@@ -320,8 +329,8 @@ class mzMLmeta(object):
                 except KeyError:  # <SoftwareList <software <softwareParam>>>
 
                     params = e.find('s:softwareParam', namespaces=self.ns)
-                    if params.attrib['version']:
-                        self.meta[name+' software version'] = {'value': params.attrib['version']}
+                    #!# if params.attrib['version']:
+                    #!#     self.meta[name+' software version'] = {'value': params.attrib['version']}
                     self.meta[name+' software'] = {'accession':params.attrib['accession'], 'name':params.attrib['name']}
 
 
@@ -354,10 +363,8 @@ class mzMLmeta(object):
         #######################
         # Get mzrange
         #######################
-
-        scan_window_cv = pyxpath(self, XPATHS['scan_window_cv'])
-
         try: #case with detection range
+            scan_window_cv = pyxpath(self, XPATHS['scan_window_cv'])
 
             minmz_l = []
             maxmz_l = []
@@ -380,14 +387,16 @@ class mzMLmeta(object):
         #######################
         # Get timerange
         #######################
+        try:
+            scan_cv =  pyxpath(self, XPATHS['scan_cv'])
 
-        scan_cv =  pyxpath(self, XPATHS['scan_cv'])
+            time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
 
-        time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
-
-        minrt = str(round(min(time),4))
-        maxrt = str(round(max(time),4))
-        timerange = minrt + " - " + maxrt
+            minrt = str(round(min(time),4))
+            maxrt = str(round(max(time),4))
+            timerange = minrt + " - " + maxrt
+        except ValueError:
+            timerange = ''
 
         #####################
         # Some other stuff
@@ -401,11 +410,16 @@ class mzMLmeta(object):
         else:
             self.meta['term_source'] = {'value': 'MS'}
 
-        raw_file = pyxpath(self, XPATHS['raw_file'])[0].attrib[self.env["filename"]]
+
+        try:
+            raw_file = pyxpath(self, XPATHS['raw_file'])[0].attrib[self.env["filename"]]
+            self.meta['Raw Spectral Data File'] = {'value': os.path.basename(raw_file)}
+        except IndexError:
+            pass
 
         in_dir = os.path.dirname(self.in_file)
 
-        self.meta['Raw Spectral Data File'] = {'value': os.path.basename(raw_file)}
+        
         self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
         self.meta['Number of scans'] = {'value': int(scan_num)}
         self.meta['Scan m/z range'] = {'value': mzrange}
@@ -445,13 +459,13 @@ class mzMLmeta(object):
             self.env['spectrum'] = 's:spectrum'
 
         # check if scanList or SpectrumDescription
-        if self.tree.find('{root}/s:run/s:spectrumList/s:spectrum/s:scanList'.format(**self.env), self.ns) is not None:
+        if self.tree.find('{root}/s:run/{spectrum}List/{spectrum}/s:scanList'.format(**self.env), self.ns) is not None:
             self.env['scanList'] = 's:scanList'
         else:
             self.env['scanList'] = 's:spectrumDescription'
 
         # check if scanWindow or selectionWindow
-        if self.tree.find('{root}/s:run/s:spectrumList/s:spectrum/{scanList}/s:scan/s:scanWindowList/s:scanWindow'.format(**self.env), self.ns) is not None:
+        if self.tree.find('{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:scanWindowList/s:scanWindow'.format(**self.env), self.ns) is not None:
             self.env['scanWindow'] = 's:scanWindow'
         else:
             self.env['scanWindow'] = 's:selectionWindow'
@@ -478,17 +492,11 @@ class mzMLmeta(object):
         if self.tree.find('{root}/{instrument}List/{instrument}/s:softwareRef[@ref]'.format(**self.env), self.ns) is not None:
             self.env['software'] = 's:softwareRef'
             self.env['softwareRef'] = 'ref'
-
         elif self.tree.find('{root}/{instrument}List/{instrument}/s:instrumentSoftwareRef[@ref]'.format(**self.env), self.ns) is not None:
             self.env['software'] = 's:instrumentSoftwareRef'
             self.env['softwareRef'] = 'ref'
-
-        elif self.tree.find('{root}/s:dataProcessingList/s:dataProcessing/s:processingMethod[@softwareRef]'.format(**self.env), self.ns) is not None:
-            self.env['software'] = 's:processingMethod'
-            self.env['softwareRef'] = 'sofwareRef'
-            self.env['dataProcessing'] = 's:dataProcessing'
-
-        
+      
+        # check if instrument serial is in instrument or refereceableParam
         if self.tree.find('{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@accession="MS:1000529"]'.format(**self.env), self.ns) is not None:
             self.instrument = self._instrument_byref
         #if self.tree.find('{root}/{instrument}List/{instrument}/s:cvParam[@accession="MS:1000529"]'.format(**self.env), self.ns) is not None:

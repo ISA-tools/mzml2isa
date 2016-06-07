@@ -85,7 +85,7 @@ class mzMLmeta(object):
 
         terms['source_file'] = {
             'MS:1000767': {'attribute': False, 'name':'Native spectrum identifier format', 'plus1': False, 'value':False, 'soft': False},
-            'MS:1000561': {'attribute': False, 'name':'Raw data file checksum type', 'plus1': True, 'value':True, 'soft': False},
+        #!# 'MS:1000561': {'attribute': False, 'name':'Raw data file checksum type', 'plus1': True, 'value':True, 'soft': False},
             'MS:1000560': {'attribute': False, 'name':'Raw data file format', 'plus1': False, 'value':False, 'soft': False}
         }
 
@@ -246,7 +246,7 @@ class mzMLmeta(object):
                         self.meta['Instrument serial number'] = {'value': ie.attrib['value']}
 
         
-        soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib["ref"]
+        soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib[self.env['softwareRef']]
         
         # Get associated software
         self.software(soft_ref, 'Instrument')
@@ -289,7 +289,7 @@ class mzMLmeta(object):
 
 
 
-        soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib["ref"]
+        soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib[self.env['softwareRef']]
         # Get associated software
         self.software(soft_ref, 'Instrument')
 
@@ -357,19 +357,25 @@ class mzMLmeta(object):
 
         scan_window_cv = pyxpath(self, XPATHS['scan_window_cv'])
 
-        minmz_l = []
-        maxmz_l = []
+        try: #case with detection range
 
-        for i in scan_window_cv:
+            minmz_l = []
+            maxmz_l = []
 
-            if i.attrib['accession'] == 'MS:1000501':
-                minmz_l.append(float(i.attrib['value']))
-            if i.attrib['accession'] == 'MS:1000500':
-                maxmz_l.append(float(i.attrib['value']))
+            for i in scan_window_cv:
 
-        minmz = str(int(min(minmz_l)))
-        maxmz = str(int(max(maxmz_l)))
-        mzrange = minmz + " - " + maxmz
+                if i.attrib['accession'] == 'MS:1000501':
+                    minmz_l.append(float(i.attrib['value']))
+                if i.attrib['accession'] == 'MS:1000500':
+                    maxmz_l.append(float(i.attrib['value']))
+
+            minmz = str(int(min(minmz_l)))
+            maxmz = str(int(max(maxmz_l)))
+            mzrange = minmz + " - " + maxmz
+
+        except ValueError: #Case with windowed target
+
+            mzrange = ''
 
         #######################
         # Get timerange
@@ -399,13 +405,13 @@ class mzMLmeta(object):
 
         in_dir = os.path.dirname(self.in_file)
 
-        self.meta['Raw Spectral Data File'] = {'value': os.path.join(in_dir, raw_file)}
+        self.meta['Raw Spectral Data File'] = {'value': os.path.basename(raw_file)}
         self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
         self.meta['Number of scans'] = {'value': int(scan_num)}
         self.meta['Scan m/z range'] = {'value': mzrange}
         self.meta['Scan polarity'] = {'value': polarity}
         self.meta['Time range'] = {'value': timerange}
-        self.meta['Derived Spectral Data File'] = {'value': self.in_file} # mzML file name
+        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
         self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name
 
     def isa_tab_compatible(self):
@@ -470,9 +476,17 @@ class mzMLmeta(object):
 
         # check if softwareRef or instrumentSoftwareRef
         if self.tree.find('{root}/{instrument}List/{instrument}/s:softwareRef[@ref]'.format(**self.env), self.ns) is not None:
-            self.env['softwareRef'] = 's:softwareRef'
+            self.env['software'] = 's:softwareRef'
+            self.env['softwareRef'] = 'ref'
+
         elif self.tree.find('{root}/{instrument}List/{instrument}/s:instrumentSoftwareRef[@ref]'.format(**self.env), self.ns) is not None:
-            self.env['softwareRef'] = 's:instrumentSoftwareRef'
+            self.env['software'] = 's:instrumentSoftwareRef'
+            self.env['softwareRef'] = 'ref'
+
+        elif self.tree.find('{root}/s:dataProcessingList/s:dataProcessing/s:processingMethod[@softwareRef]'.format(**self.env), self.ns) is not None:
+            self.env['software'] = 's:processingMethod'
+            self.env['softwareRef'] = 'sofwareRef'
+            self.env['dataProcessing'] = 's:dataProcessing'
 
         
         if self.tree.find('{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@accession="MS:1000529"]'.format(**self.env), self.ns) is not None:
@@ -483,6 +497,5 @@ class mzMLmeta(object):
         
         #print(self.env)
         
-
 
 

@@ -68,10 +68,10 @@ print mm.meta_json
 
 ## Metabolights
 To test the converter with (real) Metabolights studies, run
-```python
+```bash
 python scripts/metabolights.py <size>
 ```
-where size is the maximum size in GiB you can allocate to download files
+where size is the maximum size in GiB you can allocate to download files.
 
 
 

@@ -31,7 +31,7 @@ XPATHS_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cv
 XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:referenceableParamGroupRef[@ref]',
                'ic_elements':       '{root}/s:referenceableParamGroupList/s:referenceableParamGroup',
                'ic_nest':           '{root}/{instrument}List/{instrument}/s:cvParam[@accession]',
-               'ic_soft_ref':       '{root}/{instrument}List/{instrument}/{softwareRef}[@ref]',
+               'ic_soft_ref':       '{root}/{instrument}List/{instrument}/{software}[@{softwareRef}]',
                'software_elements': '{root}/s:softwareList/s:software',
                'sp_cv':             '{root}/s:run/s:spectrumList/s:spectrum/s:cvParam',
                'scan_window_cv':    '{root}/s:run/s:spectrumList/s:spectrum/{scanList}/s:scan/{scanWindow}List/{scanWindow}/s:cvParam',                   

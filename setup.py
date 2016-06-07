@@ -13,27 +13,16 @@ else: deps = []
 
 """
 def main():
-    #if sys.version_info[0] != 2 and sys.version_info[1] != 7:
-    #    raise Error("Python-2.7.8 is required")
     example_files = glob.glob(os.path.join('scripts', '*.*'))
     example_path = os.path.join('scripts')
 
     setup( name="mzml_2_isa",
     version= "0.1",
-    description= "mzML to ISA-tab parsing tool",
-    author= "Thomas Lawson",
-    author_email= "tnl495@bham.ac.uk",
-    url= "http://www.biosciences.bham.ac.uk/labs/viant/",
-    platforms = ['Linux (ubuntu), Windows'],
     keywords = ['Metabolomics', 'Mass spectrometry', 'metabolites', 'ISA Tab', 'mzML', 'parsing'],
-    packages=['mzml2isa'],
-    package_data={'': ['default/*.txt','*.obo']},
 
     data_files=[(example_path, example_files)],
     long_description="mzml2isa - mzML to ISA-tab parsing tool",)
 
-if __name__ == "__main__":
-    main()
 """
 
 ## SETUPTOOLS VERSION
@@ -45,10 +34,8 @@ setup(
     
     py_modules=['mzml2isa'],
     
-
     author= "Thomas Lawson",
     author_email= "tnl495@bham.ac.uk",
-
 
     description="mzML to ISA-tab parsing tool",
     long_description=open('README.md').read(),
@@ -58,8 +45,6 @@ setup(
     include_package_data=True,
 
     url='http://www.biosciences.bham.ac.uk/labs/viant/',
-
-
 
     classifiers=[
     "Programming Language :: Python",
@@ -72,7 +57,6 @@ setup(
     "Operating System :: OS Independent",
     ],
 
-
     entry_points = {
         'console_scripts': [
             'mzml2isa = mzml2isa.parsing:run',
@@ -81,9 +65,6 @@ setup(
     license="GPLv3",
 
     keywords = ['Metabolomics', 'Mass spectrometry', 'metabolites', 'ISA Tab', 'mzML', 'parsing'],
-
-
-
 
 )
 

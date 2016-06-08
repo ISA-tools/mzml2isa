@@ -343,8 +343,8 @@ class mzMLmeta(object):
                             self.meta['Instrument manufacturer'] = {'accession': parent[0], 'name':translator[parent[0]]}
                             break
                         else:
-                            print(self.obo.terms)
-                            parent = self.obo.terms[parent]['p']
+                            #print(self.obo.terms)
+                            parent = self.obo.terms[parent[0]]['p']
 
             elif e.attrib['accession'] == 'MS:1000529':
                 self.meta['Instrument serial number'] = {'value': e.attrib['value']}

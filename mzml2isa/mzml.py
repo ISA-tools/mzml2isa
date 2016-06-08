@@ -122,8 +122,23 @@ class mzMLmeta(object):
         # The instrument information has to be extracted separately
         self.instrument()
 
-        # get derived data e.g. file count, polarity
+        #
+        self.polarity()
+
+        #
+        self.timerange()
+
+        #
+        self.mzrange()
+
+        #
+        self.scan_num()
+
+        # 
         self.derived()
+
+        #
+        self.urlize()
 
         # Get the isa_tab compatible meta dictionary
         self.isa_tab_compatible()
@@ -336,9 +351,30 @@ class mzMLmeta(object):
 
     def derived(self):
         """ Get the derived meta information. Updates the self.meta dictionary"""
-        #######################
-        # Get polarity and time
-        #######################
+
+        cv = pyxpath(self, XPATHS['cv'])[0].attrib[self.env["cvLabel"]]            
+
+        if not 'MS' in cv:
+            print("Standard controlled vocab not available. Can not parse ")
+            return
+        else:
+            self.meta['term_source'] = {'value': 'MS'}
+
+
+        try:
+            raw_file = pyxpath(self, XPATHS['raw_file'])[0].attrib[self.env["filename"]]
+            self.meta['Raw Spectral Data File'] = {'value': os.path.basename(raw_file)}
+        except IndexError:
+            pass
+
+        in_dir = os.path.dirname(self.in_file)
+
+        
+        self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
+        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
+        self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name
+
+    def polarity(self):
 
         sp_cv = pyxpath(self, XPATHS['sp_cv'])
 
@@ -360,33 +396,10 @@ class mzMLmeta(object):
         else:
             polarity = "Not determined"
 
-        #######################
-        # Get mzrange
-        #######################
-        try: #case with detection range
-            scan_window_cv = pyxpath(self, XPATHS['scan_window_cv'])
+        self.meta['Scan polarity'] = {'value': polarity}
 
-            minmz_l = []
-            maxmz_l = []
 
-            for i in scan_window_cv:
-
-                if i.attrib['accession'] == 'MS:1000501':
-                    minmz_l.append(float(i.attrib['value']))
-                if i.attrib['accession'] == 'MS:1000500':
-                    maxmz_l.append(float(i.attrib['value']))
-
-            minmz = str(int(min(minmz_l)))
-            maxmz = str(int(max(maxmz_l)))
-            mzrange = minmz + " - " + maxmz
-
-        except ValueError: #Case with windowed target
-
-            mzrange = ''
-
-        #######################
-        # Get timerange
-        #######################
+    def timerange(self):
         try:
             scan_cv =  pyxpath(self, XPATHS['scan_cv'])
 
@@ -397,36 +410,36 @@ class mzMLmeta(object):
             timerange = minrt + " - " + maxrt
         except ValueError:
             timerange = ''
-
-        #####################
-        # Some other stuff
-        ####################
-        scan_num = pyxpath(self, XPATHS['scan_num'])[0].attrib["count"]
-        cv = pyxpath(self, XPATHS['cv'])[0].attrib[self.env["cvLabel"]]            
-
-        if not 'MS' in cv:
-            print("Standard controlled vocab not available. Can not parse ")
-            return
-        else:
-            self.meta['term_source'] = {'value': 'MS'}
-
-
-        try:
-            raw_file = pyxpath(self, XPATHS['raw_file'])[0].attrib[self.env["filename"]]
-            self.meta['Raw Spectral Data File'] = {'value': os.path.basename(raw_file)}
-        except IndexError:
-            pass
-
-        in_dir = os.path.dirname(self.in_file)
-
-        
-        self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
-        self.meta['Number of scans'] = {'value': int(scan_num)}
-        self.meta['Scan m/z range'] = {'value': mzrange}
-        self.meta['Scan polarity'] = {'value': polarity}
         self.meta['Time range'] = {'value': timerange}
-        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
-        self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name
+
+
+    def mzrange(self):
+        try: #case with detection range
+            scan_window_cv = pyxpath(self, XPATHS['scan_window_cv'])
+            minmz_l = []
+            maxmz_l = []
+
+            for i in scan_window_cv:
+                if i.attrib['accession'] == 'MS:1000501':
+                    minmz_l.append(float(i.attrib['value']))
+                if i.attrib['accession'] == 'MS:1000500':
+                    maxmz_l.append(float(i.attrib['value']))
+            
+            minmz = str(int(min(minmz_l)))
+            maxmz = str(int(max(maxmz_l)))
+            mzrange = minmz + " - " + maxmz
+        
+        except ValueError: #Case with windowed target
+            mzrange = ''
+
+        self.meta['Scan m/z range'] = {'value': mzrange}
+
+
+    def scan_num(self):
+        scan_num = pyxpath(self, XPATHS['scan_num'])[0].attrib["count"]
+        self.meta['Number of scans'] = {'value': int(scan_num)}
+
+
 
     def isa_tab_compatible(self):
         """ Get the ISA-tab comptibale meta dictionary. Updates self.meta_isa"""
@@ -440,6 +453,14 @@ class mzMLmeta(object):
                 #print(meta_name)
                 self.meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]
 
+
+    def urlize(self):
+        """Turns MS:XXXXXXX accession number into an url to purl.obolibrary.org/obo/MS_XXXXXXX"""
+        for meta_name in self.meta:
+            if 'accession' in self.meta[meta_name]:
+                self.meta[meta_name]['accession'] = "http://purl.obolibrary.org/obo/" + self.meta[meta_name]['accession'].replace(':', '_')
+
+        
 
     def build_env(self):
 

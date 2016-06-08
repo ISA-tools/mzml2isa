@@ -8,22 +8,8 @@ import os
 
 import mzml2isa
 
-if sys.version_info[0] == 2: deps = ['lxml']
+if sys.version_info[0] == 2: deps = ['lxml', 'argparse']
 else: deps = []
-
-"""
-def main():
-    example_files = glob.glob(os.path.join('scripts', '*.*'))
-    example_path = os.path.join('scripts')
-
-    setup( name="mzml_2_isa",
-    version= "0.1",
-    keywords = ['Metabolomics', 'Mass spectrometry', 'metabolites', 'ISA Tab', 'mzML', 'parsing'],
-
-    data_files=[(example_path, example_files)],
-    long_description="mzml2isa - mzML to ISA-tab parsing tool",)
-
-"""
 
 ## SETUPTOOLS VERSION
 setup(
@@ -34,10 +20,10 @@ setup(
     
     py_modules=['mzml2isa'],
     
-    author= "Thomas Lawson",
-    author_email= "tnl495@bham.ac.uk",
+    author= mzml2isa.__author__,
+    author_email= 'tnl495@bham.ac.uk',
 
-    description="mzML to ISA-tab parsing tool",
+    description="mzml2isa - mzML to ISA-tab parsing tool",
     long_description=open('README.md').read(),
     
     install_requires= deps,

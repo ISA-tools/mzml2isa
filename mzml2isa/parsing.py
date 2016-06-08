@@ -1,3 +1,25 @@
+"""
+Content
+-----------------------------------------------------------------------------
+This module exposes basic API of mzml2isa, either being called from command
+line interface with arguments parsing via **run** function, or from another
+Python program via the **full_parse** function which works the same.
+
+
+About
+-----------------------------------------------------------------------------
+The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK) 
+as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
+port and small enhancements were carried out by Martin Larralde (ENS Cachan, 
+France) in June 2016 during an internship at the EBI Cambridge.
+
+License
+-----------------------------------------------------------------------------
+GNU General Public License version 3.0 (GPLv3)
+"""
+
+
+
 import os
 import glob
 import argparse
@@ -10,6 +32,7 @@ import mzml2isa.mzml as mzml
 
 
 def run():
+	""" Runs **mzml2isa** from the command line"""
 	p = argparse.ArgumentParser(prog='PROG',
 	                                 formatter_class=argparse.RawDescriptionHelpFormatter,
 	                                 description='''Extract meta information from mzML files and create ISA-tab structure''',
@@ -33,6 +56,15 @@ def run():
 
 
 def full_parse(in_dir, out_dir, study_identifer):
+    """ Parses every study from *in_dir* and then creates ISA files.
+
+	A new folder is created in the out directory bearing the name of
+	the study identifier. 
+
+    :param str in_dir: 			 path to directory containing studies
+    :param str out_dir:          path to out directory
+    :param str study_identifier: name of the study (directory to create)
+    """
 
     # get mzML file in the example_files folder
     mzml_path = os.path.join(in_dir, "*.mzML")
@@ -45,5 +77,3 @@ def full_parse(in_dir, out_dir, study_identifer):
     
     # update isa-tab file
     isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer)
-
-    return

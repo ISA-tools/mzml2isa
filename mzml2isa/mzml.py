@@ -1,17 +1,31 @@
 """
-The mzml2isa parse was created by Tom Lawson (University of Birmingham). As part of a NERC funded placement at EBI
-Cambridge in June 2015.
+Content
+-----------------------------------------------------------------------------
+This module contains a single class, mzMLmeta, which is used to parse and 
+serialize an mzML file into a Python dictionnary. This class was slightly 
+modified from the pymzml implementation[1]_.
 
-Birmingham supervisor: Prof Mark Viant
-Help provided from  Reza Salek ‎[reza.salek@ebi.ac.uk]‎‎, Ken Haug ‎[kenneth@ebi.ac.uk]‎ and Christoph Steinbeck
-‎[christoph.steinbeck@gmail.com]‎ at the EBI Cambridge.
--------------------------------------------------------
+Following features are implemented but were commented out:
+- retrieval of sofware version number
+- retrieval of raw-data SHA-1 checksum
+Both can be found by looking for the #!# comment tag in the mzml2isa.mzml
+module source code.
+
+Reference:
+-----------------------------------------------------------------------------
+- [1] http://pymzml.github.io
+
+About
+-----------------------------------------------------------------------------
+The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK) 
+as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
+port and small enhancements were carried out by Martin Larralde (ENS Cachan, 
+France) in June 2016 during an internship at the EBI Cambridge.
+
+License
+-----------------------------------------------------------------------------
+GNU General Public License version 3.0 (GPLv3)
 """
-
-##ML
-## Following features were commented out (look for #!# comments):
-## - software version number
-## - SHA-1 checksum
 
 import collections
 import json
@@ -20,16 +34,42 @@ import os
 from mzml2isa.obo import oboparse, oboTranslator
 from mzml2isa.versionutils import *
 
+
+
+XPATHS_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cvParam',
+               'source_file':       '{root}/s:fileDescription/s:sourceFileList/s:sourceFile/s:cvParam',
+               'ionization':        '{root}/{instrument}List/{instrument}/s:componentList/s:source/s:cvParam',
+               'analyzer':          '{root}/{instrument}List/{instrument}/s:componentList/s:analyzer/s:cvParam',
+               'detector':          '{root}/{instrument}List/{instrument}/s:componentList/s:detector/s:cvParam',
+               'data_processing':   '{root}/s:dataProcessingList/s:dataProcessing/s:processingMethod/s:cvParam',
+              }
+
+
+XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:referenceableParamGroupRef[@ref]',
+               'ic_elements':       '{root}/s:referenceableParamGroupList/s:referenceableParamGroup',
+               'ic_nest':           '{root}/{instrument}List/{instrument}/s:cvParam[@accession]',
+               'ic_soft_ref':       '{root}/{instrument}List/{instrument}/{software}[@{softwareRef}]',
+               'software_elements': '{root}/s:softwareList/s:software',
+               'sp_cv':             '{root}/s:run/{spectrum}List/{spectrum}/s:cvParam',
+               'scan_window_cv':    '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/{scanWindow}List/{scanWindow}/s:cvParam',                   
+               'scan_cv':           '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',          
+               'scan_num':          '{root}/s:run/{spectrum}List[@count]',
+               'cv':                '{root}/s:cvList/s:cv[@{cvLabel}]',
+               'raw_file':          '{root}/s:fileDescription/s:sourceFileList/s:sourceFile[@{filename}]',
+              }
+
+
+
 class mzMLmeta(object):
     """ Class to store and obtain the meta information from the mzML file
 
-    The class uses the xpaths of mzML locations and then extracts meta information at these locations.
+    The class uses the xpaths of mzML locations and then extracts meta 
+    information at these locations. The meta info taken is determined by the 
+    ontology terms and a set of rules associated with that term e.g. if it 
+    can be repeated, if has associated software if it has a value as well 
+    as name.
 
-    The meta info taken is determined by the ontology terms and a set of rules associated with that term e.g.
-    if it can be repeated, if has associated software if it has a value as well as name.
-
-    Creates a dictionary of meta information and a JSON structure e.g:
-
+    Creates a dictionary of meta information and a JSON structure e.g::
         "mass_analyzer_type": {
             "accession": "MS:1000484",
             "name": "orbitrap"

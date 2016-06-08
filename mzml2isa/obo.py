@@ -1,18 +1,42 @@
 """
-**Summary:**
-This file contains the two classes used for parsing the obo based ontology used. The class **oboparse** has been
-modified from the blog http://blog.nextgenetics.net/?e=6 and is used to identify what children or parents a ontological
-term has.
+Content
+-----------------------------------------------------------------------------
+This module contains two classes used for parsing the obo based ontology 
+shipping with the parser. The class **oboparse** has been modified from the
+nextgenetics.net blog[1]_  and is used to identify what children or parents
+a ontological terms has. The class **oboTranslator** has been modified from
+the pymzml package[2]_ and is used to get the associated name of a term based
+on its accession number.
 
-The class **oboTranslator** has been modified from the pymzml package and is used to get the associated name of a term
-based on its accession number
--------------------------------------------------------
+Reference:
+-----------------------------------------------------------------------------
+- [1] http://blog.nextgenetics.net/?e=6
+- [2] http://pymzml.github.io
+
+About
+-----------------------------------------------------------------------------
+The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK) 
+as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
+port and small enhancements were carried out by Martin Larralde (ENS Cachan, 
+France) in June 2016 during an internship at the EBI Cambridge.
+
+License
+-----------------------------------------------------------------------------
+GNU General Public License version 3.0 (GPLv3)
 """
+
 import os
 
 class oboparse(object):
     # Class based around the code found in this excellent blog: http://blog.nextgenetics.net/?e=6
     def __init__(self, obo_file_path):
+        """ Opens the obo file and parses its content into **self.terms**
+
+        :param list obo_file_path: path to the obo file.
+        """
+
+
+
         oboFile = open(obo_file_path,'r')
 
         #declare a blank dictionary

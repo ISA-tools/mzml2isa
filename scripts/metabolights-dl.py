@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import json
@@ -64,7 +66,7 @@ print("\rCalculating size of directories: Done !   ")
 ## Download studies
 print('Downloading study files (max {} GiB):'.format(MAX_SIZE))
 total_dl_size, total_dl_studies, total_files = 0, 0, 0
-for study in sorted(size_dict, key=size_dict.__getitem__)[15:]:
+for study in sorted(size_dict, key=size_dict.__getitem__):
     
     ## check if next study is too large for max size
     if total_dl_size + size_dict[study] > MAX_SIZE * (2**30):

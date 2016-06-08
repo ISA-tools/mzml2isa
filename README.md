@@ -67,13 +67,17 @@ print mm.meta_json
 ```
 
 ## Metabolights
-To test the converter with (real) Metabolights studies, run
+To download some real data from MetaboLights studies to test the converter with, run
 ```bash
-python scripts/metabolights.py <size>
+python scripts/metabolights-dl.py <size>
 ```
 where size is the maximum size in GiB you can allocate to download files.
 
-
+If you are on a *NIX machine with **curlftpfs** installed, you can also run
+```bash
+scripts/metabolights.sh
+```
+to mount the database to the example directory and start converting mzML studies.
 
 
 ## Todo 

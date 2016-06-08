@@ -45,19 +45,21 @@ class ISA_Tab(object):
         print("Parse mzML meta information into ISA-Tab structure")
 
         # Setup the instance variables
-        self.out_dir = os.path.join(out_dir, name)
-        self.name = name
-        self.platform = {}
-        self.assay_file_name = 'a_'+self.name+'_metabolite_profiling_mass_spectrometry.txt'
-        self.study_file_name = 's_'+self.name+'.txt'
-        self.investigation_file_name = 'i_'+self.name+'.txt'
-
+        # dictionary allow for easy formatting of the study file.
         dirname = os.path.dirname(os.path.realpath(__file__))
-        self.default_path = os.path.join(dirname, "default")
-
+        self.isa_env = {
+            'out_dir': os.path.join(out_dir, name),
+            'study_identifier':  name,
+            'study_file_name': 's_'+ name+'.txt',
+            'assay_file_name': 'a_'+ name+'_metabolite_profiling_mass_spectrometry.txt',
+            'investigation_file_name': 'i_'+ name+'.txt',
+            'default_path': os.path.join(dirname, 'default'),
+            'platform': {},
+        }
+        
         # create the new out dir
-        if not os.path.exists(self.out_dir):
-            os.makedirs(self.out_dir)
+        if not os.path.exists(self.isa_env['out_dir']):
+            os.makedirs(self.isa_env['out_dir'])
 
         # Check what instrument to use for the platform used to desribe the assay
         self.check_assay_name(metalist)
@@ -97,62 +99,44 @@ class ISA_Tab(object):
         c_name = max(set(instruments), key=instruments.count)
         c_accession = max(set(accession), key=accession.count)
 
-        self.platform = {
+        self.isa_env['platform'] = {
             'name':c_name,
             'accession':c_accession
         }
 
     def create_investigation(self):
         """ Create the investigation file."""
-        dirname = os.path.dirname(os.path.realpath(__file__))
-        path = os.path.join(dirname, "default")
-        investigation_file = os.path.join(path, 'i_Investigation.txt')
 
-        new_i_path = os.path.join(self.out_dir,"i_Investigation.txt")
+        investigation_file = os.path.join(self.isa_env['default_path'], 'i_Investigation.txt')
+        new_i_path = os.path.join(self.isa_env['out_dir'], self.isa_env['investigation_file_name'])
 
         with open(investigation_file, RMODE) as i_in:
             with open(new_i_path, "w") as i_out:
                 for l in i_in:
-                    l = l.replace('STUDY_IDENTIFIER', self.name)
-                    l = l.replace('STUDY_FILE_NAME', self.study_file_name)
-                    l = l.replace('ASSAY_FILE_NAME', self.assay_file_name)
-                    l = l.replace('NAME_OF_MS_PLATFORM', self.platform['name'])
-                    l = l.replace('MS_ACCESSION_NUMBER', self.platform['name'])
+                    l = l.format(**self.isa_env)
                     i_out.write(l)
 
     def create_study(self):
         """ Create the study file   """
-        # src_file = os.path.join(self.default_path, "s_mzML_parse.txt")
-        # shutil.copy(src_file, self.out_dir)
-        # dst_file = os.path.join(self.out_dir, "s_mzML_parse.txt")
-        # out_file = os.path.join(self.out_dir, self.study_file_name)
-        # os.rename(dst_file, out_file)
 
-        dirname = os.path.dirname(os.path.realpath(__file__))
-        path = os.path.join(dirname, "default")
-        study_file = os.path.join(path, 's_mzML_parse.txt')
+        study_file = os.path.join(self.isa_env['default_path'], 's_mzML_parse.txt')
+        new_s_path = os.path.join(self.isa_env['out_dir'], self.isa_env['study_file_name'])
 
-        new_s_path = os.path.join(self.out_dir, self.study_file_name)
+        # get default rows
+        with open(study_file, RMODE) as isa_default:
+            headers_row, default_row = [x.rstrip().replace('"', '').split('\t') for x in isa_default]
 
-        print sample_name_idx
+        with open(new_s_path, 'w') as isa_new:
+            writer = csv.writer(isa_new, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
 
-        with open(study_file, RMODE) as isa_orig:
-            with open(new_s_path, 'w') as isa_new:
-                writer = csv.writer(isa_new, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
-                for index, line in enumerate(isa_orig):
-                    line = line.rstrip()
-                    line = line.replace('"', '')
-                    row = line.split('\t')
-                    if index == 0:
-                        sample_name_idx = row.index("Sample Name")
-                        writer.writerow(row)
-                    else:
-                        try:
-                            row[sample_name_idx] = self.sample_names.pop(0)
-                            writer.writerow(row)
-                        except IndexError as e:
-                            # no more samples left
-                            pass
+            # Write headers rows
+            sample_name_idx = headers_row.index("Sample Name")
+            writer.writerow(headers_row)
+
+            # Write default row
+            for sample_name in self.sample_names:
+                default_row[sample_name_idx] = sample_name
+                writer.writerow(default_row)
 
 
     def create_assay(self, metalist):
@@ -167,30 +151,19 @@ class ISA_Tab(object):
         :param list metalist: list of dictionaries containing mzML metadata
         """
 
-        assay_file = os.path.join(self.default_path, 'a_mzML_parse.txt')
+        assay_file = os.path.join(self.isa_env['default_path'], 'a_mzML_parse.txt')
 
         #=================================================
         # Get location of the mass spectrometry section
         #=================================================
-        with open(assay_file, RMODE) as isa_orig:
+        with open(assay_file, RMODE) as isa_default:
+            headers_row, standard_row = [x.rstrip().replace('"', '').split('\t') for x in isa_default]
 
-            for index, line in enumerate(isa_orig):
-                line = line.rstrip()
-                line = line.replace('"', '')
+        sample_name_idx = headers_row.index("Sample Name")
+        mass_protocol_idx = standard_row.index("Mass spectrometry")
+        mass_end_idx = standard_row.index("Metabolite identification")
 
-                if index == 0:
-
-                    headers_l = line.split('\t')
-                    sample_name_idx = headers_l.index("Sample Name")
-
-                elif index == 1:
-
-                    standard_row = line.split('\t')
-                    mass_protocol_idx = standard_row.index("Mass spectrometry")
-                    mass_end_idx = standard_row.index("Metabolite identification")
-                    break
-
-        mass_headers = headers_l[mass_protocol_idx+1:mass_end_idx]
+        mass_headers = headers_row[mass_protocol_idx+1:mass_end_idx]
 
         pre_row = standard_row[:mass_protocol_idx+1]
         mass_row = standard_row[mass_protocol_idx+1:mass_end_idx]
@@ -249,17 +222,17 @@ class ISA_Tab(object):
         #=================================================
         # Delete unused mass spectrometry columns
         #=================================================
-        headers_l, full_row = self.remove_blank_columns(mass_protocol_idx, mass_end_idx, full_row,headers_l)
+        headers_row, full_row = self.remove_blank_columns(mass_protocol_idx, mass_end_idx, full_row,headers_row)
 
         #=================================================
         # Create the the new assay file
         #=================================================
-        with open(os.path.join(self.out_dir,self.assay_file_name), WMODE) as new_file:
+        with open(os.path.join(self.isa_env['out_dir'],self.isa_env['assay_file_name']), WMODE) as new_file:
             writer = csv.writer(new_file, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
-            writer.writerow(headers_l)
+            writer.writerow(headers_row)
 
             # need to add in data-transformation info that is lost in the above processing
-            data_tran_idx = headers_l.index("Derived Spectral Data File")-2
+            data_tran_idx = headers_row.index("Derived Spectral Data File")-2
 
             for row in full_row:
                 row[data_tran_idx] = "Data transformation"
@@ -302,13 +275,13 @@ class ISA_Tab(object):
         else:
             self.new_mass_row[main] = value
 
-    def remove_blank_columns(self, start, end, full_row, headers_l):
+    def remove_blank_columns(self, start, end, full_row, headers_row):
         """ Delete unused mass spectrometry columns between start & end.
 
         :param int start:      index of the column to start at
         :param int end:        index of the column to end at
         :param list full_row:  row to remove columns from
-        :param list headers_l: headers to remove columns from
+        :param list headers_row: headers to remove columns from
         
         :returns list update_headers, list updated_row
         """
@@ -326,6 +299,6 @@ class ISA_Tab(object):
             updated_row.append(row)
 
         updated_headers = []
-        updated_headers[:] = [ item for i, item in enumerate(headers_l) if i not in delete_cols ]
+        updated_headers[:] = [ item for i, item in enumerate(headers_row) if i not in delete_cols ]
 
         return updated_headers, updated_row

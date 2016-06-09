@@ -9,6 +9,7 @@ echo "                  ftp.ebi.ac.uk       |___/       EBI     ";
 echo "                                                          ";
 
 
+## Get a list of MetaboLights Studies containing .mzML files
 /usr/bin/python3 -c "
 import json
 import urllib.request as rq
@@ -22,14 +23,30 @@ for study in mzml_studies:
     print(study)
 " > scripts/mzml_studies.txt
 
-
+## Mount ftp remote study folder with curlftpfs
 [ -d example_files/metabolights ] || mkdir example_files/metabolights
 [ -n "$(ls -A example_files/metabolights)" ] || curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
 
+## Create out folder if it does not exist
 [ -d out_folder/metabolights ] || mkdir out_folder/metabolights
+
+## Study loop
 while read study; do
-	mzml2isa -i example_files/metabolights/$study -o out_folder/metabolights -s ${study#*/*/*}
-	[ -d out_folder/metabolights/$study ] || echo $study >> fails.txt
+
+	## Check if study was not already generated
+	if [ -d out_folder/metabolights/$study ]; then
+		echo "Study ${study} was already generated."
+	else
+		## Run mzml2isa parser
+		mzml2isa -i example_files/metabolights/$study -o out_folder/metabolights -s $study
+
+		## Check if parser worked (look for generated files)
+		[ -f out_folder/metabolights/${study}/s_$study.txt ] \
+		&& [ -f out_folder/metabolights/${study}/i_$study.txt ] \
+		&& [ -f out_folder/metabolights/${study}/a_$study_*.txt ] \
+		|| echo $study >> fails.txt
+	fi
+
 done < scripts/mzml_studies.txt
 
 echo "Completed parsing... Press ENTER to unmount fuse MetaboLights"

@@ -96,8 +96,12 @@ class ISA_Tab(object):
                   )
 
         # get most common item in list
-        c_name = max(set(instruments), key=instruments.count)
-        c_accession = max(set(accession), key=accession.count)
+        try:
+            c_name = max(set(instruments), key=instruments.count)
+            c_accession = max(set(accession), key=accession.count)
+        except ValueError:
+            c_name = ''
+            c_accession = ''
 
         self.isa_env['platform'] = {
             'name':c_name,

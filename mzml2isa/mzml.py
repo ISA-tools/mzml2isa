@@ -51,8 +51,8 @@ XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:refe
                'ic_soft_ref':       '{root}/{instrument}List/{instrument}/{software}[@{softwareRef}]',
                'software_elements': '{root}/s:softwareList/s:software',
                'sp_cv':             '{root}/s:run/{spectrum}List/{spectrum}/s:cvParam',
-               'scan_window_cv':    '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/{scanWindow}List/{scanWindow}/s:cvParam',                   
-               'scan_cv':           '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',          
+               'scan_window_cv':    '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/{scanWindow}List/{scanWindow}/s:cvParam',
+               'scan_cv':           '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
                'scan_num':          '{root}/s:run/{spectrum}List[@count]',
                'cv':                '{root}/s:cvList/s:cv[@{cvLabel}]',
                'raw_file':          '{root}/s:fileDescription/s:sourceFileList/s:sourceFile[@{filename}]',
@@ -130,7 +130,7 @@ class mzMLmeta(object):
 
         terms['source_file'] = {
             'MS:1000767': {'attribute': False, 'name':'Native spectrum identifier format', 'plus1': False, 'value':False, 'soft': False},
-        #!# 'MS:1000561': {'attribute': False, 'name':'Raw data file checksum type', 'plus1': True, 'value':True, 'soft': False},
+        #!# 'MS:1000561': {'attribute': False, 'name':'data file checksum type', 'plus1': True, 'value':True, 'soft': False},
             'MS:1000560': {'attribute': False, 'name':'Raw data file format', 'plus1': False, 'value':False, 'soft': False}
         }
 
@@ -440,6 +440,7 @@ class mzMLmeta(object):
 
 
     def timerange(self):
+        
         try:
             scan_cv =  pyxpath(self, XPATHS['scan_cv'])
 
@@ -448,8 +449,10 @@ class mzMLmeta(object):
             minrt = str(round(min(time),4))
             maxrt = str(round(max(time),4))
             timerange = minrt + " - " + maxrt
+        
         except ValueError:
-            timerange = ''
+           timerange = ''
+        
         self.meta['Time range'] = {'value': timerange}
 
 
@@ -495,12 +498,14 @@ class mzMLmeta(object):
 
 
     def urlize(self):
-        """Turns MS:XXXXXXX accession number into an url to purl.obolibrary.org/obo/MS_XXXXXXX"""
+        """Turns MS:XXXXXXX accession number into an url to http://purl.obolibrary.org/obo/MS_XXXXXXX"""
         for meta_name in self.meta:
             if 'accession' in self.meta[meta_name]:
                 self.meta[meta_name]['accession'] = "http://purl.obolibrary.org/obo/" + self.meta[meta_name]['accession'].replace(':', '_')
-
-        
+            elif 'entry_list' in self.meta[meta_name]:
+                if 'accession' in self.meta[meta_name]['entry_list']:
+                    self.meta[meta_name]['entry_list']['accession'] = "http://purl.obolibrary.org/obo/" + self.meta[meta_name]['accession'].replace(':', '_')                
+            
 
     def build_env(self):
 
@@ -514,10 +519,10 @@ class mzMLmeta(object):
             self.env['root'] = './s:mzML'
 
         # check if spectrum or chromatogram
-        if self.tree.find('{root}/s:run/s:chromatogramList/s:chromatogram/'.format(**self.env), self.ns) is not None:
-            self.env['spectrum'] = 's:chromatogram'
-        else:
+        if self.tree.find('{root}/s:run/s:spectrumList/s:spectrum/'.format(**self.env), self.ns) is not None:
             self.env['spectrum'] = 's:spectrum'
+        elif self.tree.find('{root}/s:run/s:chromatogramList/s:chromatogram/'.format(**self.env), self.ns) is not None:
+            self.env['spectrum'] = 's:chromatogram'
 
         # check if scanList or SpectrumDescription
         if self.tree.find('{root}/s:run/{spectrum}List/{spectrum}/s:scanList'.format(**self.env), self.ns) is not None:

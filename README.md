@@ -31,10 +31,10 @@ python setup.py install
 
 ## mzML to ISA-tab parsing
 
-Can use the system command that ships with the library:
+You can use the system command that ships with the library:
 
 ```bash
-mzml2isa -i /path/to/mzml_files/ -o /path/to/out_folder/ -s new_metabolomics_thing
+mzml2isa -i /path/to/mzml_files/ -o /path/to/out_folder/ -s name_of_study
 ```
 
 Or you can import the package
@@ -44,7 +44,7 @@ from mzml2isa import parsing
 
 in_dir = "/path/to/mzml_files/"
 out_dir = "/path/to/out_folder/"
-study_identifier_name = "new_metabolomics_thing"
+study_identifier_name = "name_of_study"
 
 parsing.full_parse(in_dir, out_dir, study_identifier_name)
 ```
@@ -72,8 +72,9 @@ To download some real data from MetaboLights studies to test the converter with,
 python scripts/metabolights-dl.py <size>
 ```
 where size is the maximum size in GiB you can allocate to download files.
+The script will download the files to the example_files/metabolights folder and the run mzml2isa.
 
-If you are on a *NIX machine with **curlftpfs** installed, you can also run
+If you use a *NIX machine with **curlftpfs** installed, you can also run
 ```bash
 scripts/metabolights.sh
 ```

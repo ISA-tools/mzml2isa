@@ -4,14 +4,19 @@ import os
 import sys
 import json
 import ftplib 
+import warnings
 
 try :
     import urllib.request as rq
 except ImportError:
     import urllib2 as rq
 
-try: # fastest way to emulate a cli
-    MAX_SIZE = int(sys.argv[1])
+
+from mzml2isa.parsing import full_parse
+
+
+try: # is this even a command line **interface** at this point ?
+    MAX_SIZE = float(sys.argv[1])
 except IndexError:
     MAX_SIZE = 5
 
@@ -66,10 +71,11 @@ print("\rCalculating size of directories: Done !   ")
 ## Download studies
 print('Downloading study files (max {} GiB):'.format(MAX_SIZE))
 total_dl_size, total_dl_studies, total_files = 0, 0, 0
+downloaded_studies = []
 for study in sorted(size_dict, key=size_dict.__getitem__):
     
     ## check if next study is too large for max size
-    if total_dl_size + size_dict[study] > MAX_SIZE * (2**30):
+    if total_dl_size + size_dict[study] > MAX_SIZE * (2.0**30):
         break
     total_dl_size += size_dict[study]
     total_dl_studies += 1
@@ -98,6 +104,17 @@ for study in sorted(size_dict, key=size_dict.__getitem__):
 
     os.chdir('..')
     ftp.cwd('..')
+     
+    downloaded_studies.append(study)
 
 ftp.close()
+
 print('Downloaded {} of data in total ({} studies, {} files).'.format(human_readable(total_dl_size), total_dl_studies, total_files))
+
+for study in downloaded_studies:
+    with warnings.catch_warnings(record = True) as w:
+        warnings.simplefilter("once")
+        full_parse(study, '../../out_folder/metabolights', study)
+        print("Following warnings were encountered for study {}:".format(study))
+        for warning in w:
+            print("  - {}".format(warning.message))

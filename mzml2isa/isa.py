@@ -23,7 +23,13 @@ import os
 import sys
 import warnings
 
-from mzml2isa.versionutils import RMODE, WMODE
+from mzml2isa.versionutils import RMODE, WMODE, iterdict
+
+
+USERMETA = {'characteristics_organism':       {'value':'', 'accession':'', 'ref':''},
+            'characteristics_organism_part':  {'value':'', 'accession':'', 'ref':''},
+           }
+
 
 class ISA_Tab(object):
     """ Class to create an ISA-Tab structure from on a python meta dictionary.
@@ -35,12 +41,13 @@ class ISA_Tab(object):
     Investigation, study and assay files are created based on the metadata
     extracted from the meta dictionary.
     """
-    def __init__(self, metalist, out_dir, name):
+    def __init__(self, metalist, out_dir, name, usermeta = {}):
         """ Setup the xpaths and terms & run the various extraction methods
 
         :param list metalist: list of dictionaries containing mzML metadata
         :param str out_dir:   path to out directory
         :param str name:      study identifier name
+        :param dict usermeta: a dict containing more info about the study
         """
         print("Parse mzML meta information into ISA-Tab structure")
 
@@ -60,6 +67,9 @@ class ISA_Tab(object):
         # create the new out dir
         if not os.path.exists(self.isa_env['out_dir']):
             os.makedirs(self.isa_env['out_dir'])
+
+        # Complete usermeta with empty fields
+        self.usermeta_complete(usermeta)
 
         # Check what instrument to use for the platform used to desribe the assay
         self.check_assay_name(metalist)
@@ -121,7 +131,7 @@ class ISA_Tab(object):
         with open(investigation_file, RMODE) as i_in:
             with open(new_i_path, "w") as i_out:
                 for l in i_in:
-                    l = l.format(**self.isa_env)
+                    l = l.format(**self.isa_env, **self.usermeta).format()
                     i_out.write(l)
 
     def create_study(self):
@@ -132,19 +142,20 @@ class ISA_Tab(object):
 
         # get default rows
         with open(study_file, RMODE) as isa_default:
-            headers_row, default_row = [x.rstrip().replace('"', '').split('\t') for x in isa_default]
+            #headers_row, default_row = [x.rstrip().replace('"', '').split('\t') for x in isa_default]
+            headers_line, default_line = [x.rstrip().replace('"', '') for x in isa_default]
 
         with open(new_s_path, 'w') as isa_new:
             writer = csv.writer(isa_new, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
 
             # Write headers rows
-            sample_name_idx = headers_row.index("Sample Name")
-            writer.writerow(headers_row)
+            # sample_name_idx = headers_row.index("Sample Name")
+            writer.writerow(headers_line.split('\t'))
 
             # Write default row
             for sample_name in self.sample_names:
-                default_row[sample_name_idx] = sample_name
-                writer.writerow(default_row)
+                #default_row[sample_name_idx] = sample_name
+                writer.writerow(default_line.format(name=sample_name, **self.usermeta).split('\t'))
 
 
     def create_assay(self, metalist):
@@ -310,3 +321,11 @@ class ISA_Tab(object):
         updated_headers[:] = [ item for i, item in enumerate(headers_row) if i not in delete_cols ]
 
         return updated_headers, updated_row
+
+    def usermeta_complete(self, usermeta):
+        self.usermeta = USERMETA
+        for key,value in iterdict(usermeta):
+            if not key in self.usermeta:
+                warnings.warn("Unrecognized key: {}".format(key), UserWarning)
+            self.usermeta[key] = value
+

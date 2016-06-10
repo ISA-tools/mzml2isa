@@ -25,6 +25,7 @@ import sys
 import glob
 import argparse
 import textwrap
+import warnings
 
 import mzml2isa.isa as isa
 import mzml2isa.mzml as mzml
@@ -71,12 +72,13 @@ def full_parse(in_dir, out_dir, study_identifer):
     mzml_path = os.path.join(in_dir, "*.mzML")
     print(mzml_path)
     mzml_files = [mzML for mzML in glob.glob(mzml_path)]
-    mzml_files.sort()
+    #mzml_files.sort()
 
     if mzml_files:
         # get meta information for all files
-	metalist = [ mzml.mzMLmeta(i).meta_isa for i in mzml_files ]
-	# update isa-tab file
-	isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer)
+        metalist = [ mzml.mzMLmeta(i).meta_isa for i in mzml_files ]
+	    # update isa-tab file
+        isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer)
     else:
-    	print("No files were found.")	
+    	warnings.warn("No files were found in directory."), UserWarning
+    	#print("No files were found.")	

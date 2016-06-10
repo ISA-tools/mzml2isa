@@ -76,6 +76,7 @@ class oboparse(object):
                 break
 
         self.terms = terms
+        oboFile.close()
 
     def getTerm(self, stream):
         block = []

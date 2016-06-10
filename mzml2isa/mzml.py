@@ -30,6 +30,7 @@ GNU General Public License version 3.0 (GPLv3)
 import collections
 import json
 import os
+import warnings
 
 from mzml2isa.obo import oboparse, oboTranslator
 from mzml2isa.versionutils import *
@@ -355,7 +356,8 @@ class mzMLmeta(object):
             # Get associated software
             self.software(soft_ref, 'Instrument')
         except (IndexError, KeyError): #Sometimes <Instrument> contains no Software tag
-            pass
+            warnings.warn("Instrument {} does not have a software tag.".format(self.meta['Instrument']['name'] ),
+                           UserWarning)
 
 
 
@@ -405,7 +407,7 @@ class mzMLmeta(object):
             raw_file = pyxpath(self, XPATHS['raw_file'])[0].attrib[self.env["filename"]]
             self.meta['Raw Spectral Data File'] = {'value': os.path.basename(raw_file)}
         except IndexError:
-            pass
+            warnings.warn("Could not find any metadata about Raw Spectral Data File", UserWarning)
 
         in_dir = os.path.dirname(self.in_file)
 
@@ -451,7 +453,8 @@ class mzMLmeta(object):
             timerange = minrt + " - " + maxrt
         
         except ValueError:
-           timerange = ''
+            warnings.warn("Could not find any time range.", UserWarning)
+            timerange = ''
         
         self.meta['Time range'] = {'value': timerange}
 
@@ -473,6 +476,7 @@ class mzMLmeta(object):
             mzrange = minmz + " - " + maxmz
         
         except ValueError: #Case with windowed target
+            warnings.warn("Could not find any m/z range.", UserWarning)
             mzrange = ''
 
         self.meta['Scan m/z range'] = {'value': mzrange}

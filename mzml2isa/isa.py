@@ -21,7 +21,7 @@ GNU General Public License version 3.0 (GPLv3)
 import csv
 import os
 import sys
-import shutil
+import warnings
 
 from mzml2isa.versionutils import RMODE, WMODE
 
@@ -86,14 +86,18 @@ class ISA_Tab(object):
                 instruments.append(meta['Parameter Value[Instrument]']['name'])
                 accession.append(meta['Parameter Value[Instrument]']['accession'])
             except KeyError: # Missing Instrument (quite often with Waters Models)
-                pass
+                warnings.warn("No instrument was found in the source file.", UserWarning)
             
 
         if len(set(instruments)) > 1:
-            print("Warning: More than one instrument platform used. Metabolights by default divides assays based on" \
-                  " platform. For convenience here though only one assay file will be created including all files, " \
-                  " the investigation file though will detail the most common platform used" \
-                  )
+            #print("Warning: More than one instrument platform used. Metabolights by default divides assays based on" \
+            #      " platform. For convenience here though only one assay file will be created including all files, " \
+            #      " the investigation file though will detail the most common platform used" \
+            #      )
+            warnings.warn("More than one instrument platform used."
+                          " Investigation file will detail the most common platform used.",
+                          UserWarning)
+
 
         # get most common item in list
         try:

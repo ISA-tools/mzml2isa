@@ -17,27 +17,45 @@ License
 GNU General Public License version 3.0 (GPLv3)
 """
 
+import collections
+
 try: # Python 2
     from lxml import etree 
     
     def pyxpath(mzMLmeta, query): 
-      """Finds every occurence of *query* in *mzMLmeta.tree* with proper namespace
+        """Finds every occurence of *query* in *mzMLmeta.tree* with proper namespace
 
-      This function also formats the xpath query using the *mzMLmeta.env 
-      dictionnary created by the **mzml.mzMLmeta.build_env** function.
-      """ 
-      return mzMLmeta.tree.xpath(query.format(**mzMLmeta.env), namespaces=mzMLmeta.ns)
+        This function also formats the xpath query using the *mzMLmeta.env 
+        dictionnary created by the **mzml.mzMLmeta.build_env** function.
+        """ 
+        return mzMLmeta.tree.xpath(query.format(**mzMLmeta.env), namespaces=mzMLmeta.ns)
     
     def getparent(element, tree): 
-      """Finds every parent of a tree node.
+        """Finds every parent of a tree node.
 
-      Uses the method provided by lxml.etree
-      """
-      return element.getparent()
+        Uses the method provided by lxml.etree
+        """
+        return element.getparent()
     
     def iterdict(dictionary): 
-      """Creates an iterator on the items of a dictionnary"""
-      return dictionary.iteritems()
+        """Creates an iterator on the items of a dictionnary"""
+        return dictionary.iteritems()
+
+    def dict_update(d, u):
+        """Update a nested dictionnary of various depth
+
+        Shamelessly taken from here: http://stackoverflow.com/a/3233356/623424
+        """
+        for k, v in u.iteritems():
+            if isinstance(v, collections.Mapping):
+                if not k in d:
+                    warnings.warn("Unrecognized key: {}".format(k), UserWarning)
+                r = dict_update(d.get(k, {}), v)
+                d[k] = r
+            else:
+                d[k] = u[k]
+        return d
+
 
     RMODE = 'rb'
     WMODE = 'wb'
@@ -47,24 +65,39 @@ except ImportError: # Python 3
     from xml.etree import ElementTree as etree 
     
     def pyxpath(mzMLmeta, query):
-      """Finds every occurence of *query* in *mzMLmeta.tree* with proper namespace
+        """Finds every occurence of *query* in *mzMLmeta.tree* with proper namespace
 
-      This function also formats the xpath query using the *mzMLmeta.env 
-      dictionnary created by the **mzml.mzMLmeta.build_env** function.
-      """ 
-      return mzMLmeta.tree.findall(query.format(**mzMLmeta.env), mzMLmeta.ns)
+        This function also formats the xpath query using the *mzMLmeta.env 
+        dictionnary created by the **mzml.mzMLmeta.build_env** function.
+        """ 
+        return mzMLmeta.tree.findall(query.format(**mzMLmeta.env), mzMLmeta.ns)
     
     def getparent(element, tree): 
-      """Finds every parent of a tree node.
+        """Finds every parent of a tree node.
 
-      As xml.ElementTree has no **.getparent** method, the following was
-      proposed here : http://stackoverflow.com/questions/2170610#20132342
-      """
-      return {c:p for p in tree.iter() for c in p}[element]
+        As xml.ElementTree has no **.getparent** method, the following was
+        proposed here : http://stackoverflow.com/questions/2170610#20132342
+        """
+        return {c:p for p in tree.iter() for c in p}[element]
     
     def iterdict(dictionary): 
-      """Creates an iterator on the items of a dictionnary"""
-      return dictionary.items()
+        """Creates an iterator on the items of a dictionnary"""
+        return dictionary.items()
+
+    def dict_update(d, u):
+        """Update a nested dictionnary of various depth
+
+        Shamelessly taken from here: http://stackoverflow.com/a/3233356/623424
+        """
+        for k, v in u.items():
+            if isinstance(v, collections.Mapping):
+                if not k in d:
+                    warnings.warn("Unrecognized key: {}".format(k), UserWarning)
+                r = dict_update(d.get(k, {}), v)
+                d[k] = r
+            else:
+                d[k] = u[k]
+        return d
 
     RMODE = 'r'
     WMODE = 'w'

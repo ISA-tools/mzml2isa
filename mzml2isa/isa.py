@@ -23,11 +23,41 @@ import os
 import sys
 import warnings
 
-from mzml2isa.versionutils import RMODE, WMODE, iterdict
+from mzml2isa.versionutils import RMODE, WMODE, iterdict, dict_update
 
 
-USERMETA = {'characteristics_organism':       {'value':'', 'accession':'', 'ref':''},
-            'characteristics_organism_part':  {'value':'', 'accession':'', 'ref':''},
+USERMETA = {'characteristics':           {'organism':       {'value':'', 'accession':'', 'ref':''},
+                                          'variant':        {'value':'', 'accession':'', 'ref':''},
+                                          'organism_part':  {'value':'', 'accession':'', 'ref':''},
+                                         },
+            'investigation':             {'identifier': '', 'title': 'Investigation', 'description': '',
+                                          'submission_date':'', 'release_date':''
+                                         },
+            'investigation_publication': {'pubmed': '', 'doi': '', 'author_list': '', 'title':'',
+                                          'status': {'value':'', 'accession':'', 'ref':'PSO'},
+                                         },                                     
+            'investigation_contact':     {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
+                                          'fax': '', 'phone':'', 'adress':'', 'affiliation':'',
+                                          'roles': {'value':'', 'accession':'', 'ref':''},
+                                         },
+            'study':                     {
+                                          'title': '', 'description': '', 'submission_date':'', 'release_date':'',
+                                         },
+            'study_publication':         {'pubmed': '', 'doi': '', 'author_list': '', 'title':'',
+                                          'status': {'value':'', 'accession':'', 'ref':'PSO'},
+                                         },
+            'study_factors':             {'name': '',
+                                          'type': {'value':'', 'accession':'', 'ref':''},
+                                         },
+            'study_contacts':             {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
+                                          'fax': '', 'phone':'', 'adress':'', 'affiliation':'',
+                                          'roles': {'value':'', 'accession':'', 'ref':''},
+                                         },                                         
+
+            'description':               {'sample_collect':'', 'extraction':'', 'chroma':'', 'mass_spec':'', 
+                                          'data_trans':'', 'metabo_id':''
+                                         },
+
            }
 
 
@@ -56,7 +86,7 @@ class ISA_Tab(object):
         dirname = os.path.dirname(os.path.realpath(__file__))
         self.isa_env = {
             'out_dir': os.path.join(out_dir, name),
-            'study_identifier':  name,
+            'study_identifier':  name, 
             'study_file_name': 's_'+ name+'.txt',
             'assay_file_name': 'a_'+ name+'_metabolite_profiling_mass_spectrometry.txt',
             'investigation_file_name': 'i_'+ name+'.txt',
@@ -92,9 +122,11 @@ class ISA_Tab(object):
         instruments = []
         accession = []
         for meta in metalist:
+            
             try: 
                 instruments.append(meta['Parameter Value[Instrument]']['name'])
                 accession.append(meta['Parameter Value[Instrument]']['accession'])
+
             except KeyError: # Missing Instrument (quite often with Waters Models)
                 warnings.warn("No instrument was found in the source file.", UserWarning)
             
@@ -119,7 +151,8 @@ class ISA_Tab(object):
 
         self.isa_env['platform'] = {
             'name':c_name,
-            'accession':c_accession
+            'accession':c_accession,
+            'ref': c_accession.split(':')[0]
         }
 
     def create_investigation(self):
@@ -131,6 +164,7 @@ class ISA_Tab(object):
         with open(investigation_file, RMODE) as i_in:
             with open(new_i_path, "w") as i_out:
                 for l in i_in:
+                    
                     l = l.format(**self.isa_env, **self.usermeta).format()
                     i_out.write(l)
 
@@ -323,9 +357,4 @@ class ISA_Tab(object):
         return updated_headers, updated_row
 
     def usermeta_complete(self, usermeta):
-        self.usermeta = USERMETA
-        for key,value in iterdict(usermeta):
-            if not key in self.usermeta:
-                warnings.warn("Unrecognized key: {}".format(key), UserWarning)
-            self.usermeta[key] = value
-
+        self.usermeta = dict_update(USERMETA, usermeta)

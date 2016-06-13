@@ -26,6 +26,7 @@ import glob
 import argparse
 import textwrap
 import warnings
+import json
 
 import mzml2isa.isa as isa
 import mzml2isa.mzml as mzml
@@ -48,16 +49,20 @@ def run():
 	p.add_argument('-i', dest='in_dir', help='in folder containing mzML files', required=True)
 	p.add_argument('-o', dest='out_dir', help='out folder, new directory will be created here', required=True)
 	p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
+	p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
 
 	args = p.parse_args()
+
+	print(args.usermeta)
+
 	print("{} in directory: {}".format(os.linesep, args.in_dir))
 	print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
 	print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
 
-	full_parse(args.in_dir, args.out_dir, args.study_name)
+	full_parse(args.in_dir, args.out_dir, args.study_name, args.usermeta if args.usermeta else {})
 
 
-def full_parse(in_dir, out_dir, study_identifer):
+def full_parse(in_dir, out_dir, study_identifer, usermeta={}):
     """ Parses every study from *in_dir* and then creates ISA files.
 
 	A new folder is created in the out directory bearing the name of
@@ -78,7 +83,7 @@ def full_parse(in_dir, out_dir, study_identifer):
         # get meta information for all files
         metalist = [ mzml.mzMLmeta(i).meta_isa for i in mzml_files ]
 	    # update isa-tab file
-        isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer)
+        isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer, usermeta)
     else:
     	warnings.warn("No files were found in directory."), UserWarning
     	#print("No files were found.")	

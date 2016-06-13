@@ -36,7 +36,7 @@ USERMETA = {'characteristics':           {'organism':       {'value':'', 'access
             'investigation_publication': {'pubmed': '', 'doi': '', 'author_list': '', 'title':'',
                                           'status': {'value':'', 'accession':'', 'ref':'PSO'},
                                          },                                     
-            'investigation_contact':     {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
+            'investigation_contacts':     {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
                                           'fax': '', 'phone':'', 'adress':'', 'affiliation':'',
                                           'roles': {'value':'', 'accession':'', 'ref':''},
                                          },

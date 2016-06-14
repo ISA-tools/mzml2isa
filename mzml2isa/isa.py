@@ -71,7 +71,7 @@ class ISA_Tab(object):
     Investigation, study and assay files are created based on the metadata
     extracted from the meta dictionary.
     """
-    def __init__(self, metalist, out_dir, name, usermeta = {}):
+    def __init__(self, metalist, out_dir, name, usermeta = {}, separate_polarity = True):
         """ Setup the xpaths and terms & run the various extraction methods
 
         :param list metalist: list of dictionaries containing mzML metadata
@@ -80,6 +80,7 @@ class ISA_Tab(object):
         :param dict usermeta: a dict containing more info about the study
         """
         print("Parse mzML meta information into ISA-Tab structure")
+        print(separate_polarity)
 
         # Setup the instance variables
         # dictionary allow for easy formatting of the study file.
@@ -89,6 +90,7 @@ class ISA_Tab(object):
             'study_identifier':  name, 
             'study_file_name': 's_'+ name+'.txt',
             'assay_file_name': 'a_'+ name+'_metabolite_profiling_mass_spectrometry.txt',
+            'assay_polar_file_name': 'a_'+ name+'_metabolite_profiling_mass_spectrometry_{}.txt',
             'investigation_file_name': 'i_'+ name+'.txt',
             'default_path': os.path.join(dirname, 'default'),
             'platform': {},
@@ -105,7 +107,7 @@ class ISA_Tab(object):
         self.check_assay_name(metalist)
 
         # Create a new assay file based on the relevant meta information
-        self.create_assay(metalist)
+        self.create_assay(metalist, separate_polarity)
 
         # Create a new investigation file
         self.create_investigation()
@@ -165,6 +167,17 @@ class ISA_Tab(object):
             with open(new_i_path, "w") as i_out:
                 for l in i_in:
                     
+                    # If more than one study assay was written, more columns must be added
+                    if l[:11] == 'Study Assay' and len(self.written_assays) != 1:
+                        assay_row = l.split("\t") 
+                        if assay_row[0] == "Study Assay File Name":     # Change the
+                            l = assay_row[0]                            # filename
+                            for assay in self.written_assays:           # section
+                                l += '\t"{}"'.format(assay)
+                        else:                                           # duplicate other sections
+                            l = assay_row[0] + "\t" + "\t".join(len(self.written_assays)*[assay_row[1].strip()])
+                        l += '\n'
+
                     l = l.format(**self.isa_env, **self.usermeta).format()
                     i_out.write(l)
 
@@ -192,7 +205,7 @@ class ISA_Tab(object):
                 writer.writerow(default_line.format(name=sample_name, **self.usermeta).split('\t'))
 
 
-    def create_assay(self, metalist):
+    def create_assay(self, metalist, separate_polarity):
         """ Create the assay file.
         
         - Loops through a default assay file and locates the columns for the 
@@ -215,6 +228,7 @@ class ISA_Tab(object):
         sample_name_idx = headers_row.index("Sample Name")
         mass_protocol_idx = standard_row.index("Mass spectrometry")
         mass_end_idx = standard_row.index("Metabolite identification")
+        polarity_idx = headers_row.index('Parameter Value[Scan polarity]')
 
         mass_headers = headers_row[mass_protocol_idx+1:mass_end_idx]
 
@@ -278,18 +292,45 @@ class ISA_Tab(object):
         headers_row, full_row = self.remove_blank_columns(mass_protocol_idx, mass_end_idx, full_row,headers_row)
 
         #=================================================
+        # Check if the assay contains differents polarities
+        #=================================================
+        polarities = set([x[polarity_idx] for x in full_row])
+
+        #=================================================
         # Create the the new assay file
         #=================================================
-        with open(os.path.join(self.isa_env['out_dir'],self.isa_env['assay_file_name']), WMODE) as new_file:
-            writer = csv.writer(new_file, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
-            writer.writerow(headers_row)
+        self.written_assays = []
+        if len(polarities) == 1 or not separate_polarity:
+            with open(os.path.join(self.isa_env['out_dir'],self.isa_env['assay_file_name']), WMODE) as new_file:
+                writer = csv.writer(new_file, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
+                writer.writerow(headers_row)
 
-            # need to add in data-transformation info that is lost in the above processing
-            data_tran_idx = headers_row.index("Derived Spectral Data File")-2
+                # need to add in data-transformation info that is lost in the above processing
+                data_tran_idx = headers_row.index("Derived Spectral Data File")-2
 
-            for row in full_row:
-                row[data_tran_idx] = "Data transformation"
-                writer.writerow(row)
+                for row in full_row:
+                    row[data_tran_idx] = "Data transformation"
+                    writer.writerow(row)
+            self.written_assays.append(self.isa_env['assay_file_name'])
+
+        else:
+            for polarity in polarities:
+                polarity_row = [x for x in full_row if x[polarity_idx] == polarity]
+                
+                with open(os.path.join(self.isa_env['out_dir'], self.isa_env['assay_polar_file_name'].format(polarity[:3].upper())), 
+                          WMODE) as new_file:
+
+                    writer = csv.writer(new_file, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
+                    writer.writerow(headers_row)
+
+                    data_tran_idx = headers_row.index("Derived Spectral Data File")-2
+
+                    for row in polarity_row:
+                        row[data_tran_idx] = "Data transformation"
+                        writer.writerow(row)
+                self.written_assays.append(self.isa_env['assay_polar_file_name'].format(polarity[:3].upper()))
+
+
 
     def update_row(self, main, meta_val):
         """ Updates the MS section of a row based on the meta information.

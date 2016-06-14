@@ -43,26 +43,27 @@ def run():
 	                                 -------------------------------------------------------------------------
 
 	                                 Example Usage:
-	                                 python mzml_2_isa.py -i [in dir] -o [out dir] -s [study identifier name]
+	                                 mzml2isa -i [in dir] -o [out dir] -s [study identifier name]
 	                                 '''))
 
 	p.add_argument('-i', dest='in_dir', help='in folder containing mzML files', required=True)
 	p.add_argument('-o', dest='out_dir', help='out folder, new directory will be created here', required=True)
 	p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
 	p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
+	p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
 
 	args = p.parse_args()
 
-	print(args.usermeta)
+	print(args)
 
 	print("{} in directory: {}".format(os.linesep, args.in_dir))
 	print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
 	print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
 
-	full_parse(args.in_dir, args.out_dir, args.study_name, args.usermeta if args.usermeta else {})
+	full_parse(args.in_dir, args.out_dir, args.study_name, args.usermeta if args.usermeta else {}, args.split)
 
 
-def full_parse(in_dir, out_dir, study_identifer, usermeta={}):
+def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True):
     """ Parses every study from *in_dir* and then creates ISA files.
 
 	A new folder is created in the out directory bearing the name of
@@ -83,7 +84,7 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}):
         # get meta information for all files
         metalist = [ mzml.mzMLmeta(i).meta_isa for i in mzml_files ]
 	    # update isa-tab file
-        isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer, usermeta)
+        isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer, usermeta, split)
     else:
     	warnings.warn("No files were found in directory."), UserWarning
     	#print("No files were found.")	

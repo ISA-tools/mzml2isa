@@ -30,7 +30,7 @@ Investigation Person Address	"{investigation_contacts[adress]}"
 Investigation Person Affiliation	"{investigation_contacts[affiliation]}"
 Investigation Person Roles	"{investigation_contacts[roles][value]}"
 Investigation Person Roles Term Accession Number	"{investigation_contacts[roles][accession]}"
-Investigation Person Roles Term Source REF	""
+Investigation Person Roles Term Source REF	"{investigation_contacts[roles][ref]}"
 STUDY
 Study Identifier	"{study_identifier}"
 Study Title	"{study[title]}"

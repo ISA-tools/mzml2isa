@@ -8,9 +8,6 @@ import os
 
 import mzml2isa
 
-if sys.version_info[0] == 2: deps = ['lxml', 'argparse', 'progressbar2']
-else: deps = ['progressbar2']
-
 ## SETUPTOOLS VERSION
 setup(
     name='mzml2isa',
@@ -26,7 +23,9 @@ setup(
     description="mzml2isa - mzML to ISA-tab parsing tool",
     long_description=open('README.md').read(),
     
-    install_requires= deps,
+    install_requires=[],
+    extras_requires={ 'LXML': ['lxml'] ,
+                      'PB':   ['progressbar2'] },
 
     include_package_data=True,
 

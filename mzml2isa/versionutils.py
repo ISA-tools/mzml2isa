@@ -18,9 +18,15 @@ GNU General Public License version 3.0 (GPLv3)
 """
 
 import collections
+import sys
 
-try: # Python 2
-    from lxml import etree 
+#try: # Python 2
+
+if sys.version_info == 2:
+    try:
+        from lxml import etree 
+    except ImportError:
+        from xml.etree import cElementTree as etree 
     
     def pyxpath(mzMLmeta, query): 
         """Finds every occurence of *query* in *mzMLmeta.tree* with proper namespace
@@ -66,8 +72,12 @@ try: # Python 2
     WMODE = 'wb'
 
 
-except ImportError: # Python 3
-    from xml.etree import ElementTree as etree 
+else:
+    print("PY3")
+    try:
+        from lxml import etree
+    except ImportError:
+        from xml.etree import ElementTree as etree 
     
     def pyxpath(mzMLmeta, query):
         """Finds every occurence of *query* in *mzMLmeta.tree* with proper namespace

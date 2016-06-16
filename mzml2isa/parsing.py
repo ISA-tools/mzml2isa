@@ -27,7 +27,12 @@ import argparse
 import textwrap
 import warnings
 import json
-import progressbar as pb
+
+try:
+    import progressbar as pb
+    PB_AVAILABLE = True
+except ImportError:
+    PB_AVAILABLE = True
 
 import mzml2isa.isa as isa
 import mzml2isa.mzml as mzml
@@ -36,34 +41,39 @@ import mzml2isa.mzml as mzml
 
 
 def run():
-	""" Runs **mzml2isa** from the command line"""
-	p = argparse.ArgumentParser(prog='PROG',
-	                                 formatter_class=argparse.RawDescriptionHelpFormatter,
-	                                 description='''Extract meta information from mzML files and create ISA-tab structure''',
-	                                 epilog=textwrap.dedent('''\
-	                                 -------------------------------------------------------------------------
+    """ Runs **mzml2isa** from the command line"""
+    p = argparse.ArgumentParser(prog='PROG',
+	                        formatter_class=argparse.RawDescriptionHelpFormatter,
+	                        description='''Extract meta information from mzML files and create ISA-tab structure''',
+	                        epilog=textwrap.dedent('''\
+	                        -------------------------------------------------------------------------
 
-	                                 Example Usage:
-	                                 mzml2isa -i [in dir] -o [out dir] -s [study identifier name] -m [usermeta...]
-	                                 '''))
+                                Example Usage:
+                                mzml2isa -i [in dir] -o [out dir] -s [study identifier name] -m [usermeta...]
+                                '''))
 
-	p.add_argument('-i', dest='in_dir', help='in folder containing mzML files', required=True)
-	p.add_argument('-o', dest='out_dir', help='out folder, new directory will be created here', required=True)
-	p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
-	p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
-	p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
-	p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
+    p.add_argument('-i', dest='in_dir', help='in folder containing mzML files', required=True)
+    p.add_argument('-o', dest='out_dir', help='out folder, new directory will be created here', required=True)
+    p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
+    p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
+    p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
+	
+    if PB_AVAILABLE:	
+        p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
 
-	args = p.parse_args()
+    args = p.parse_args()
+    
+    if not PB_AVAILABLE:
+        setattr(args, 'verbose', True)
 
-	if args.verbose:
-		print("{} in directory: {}".format(os.linesep, args.in_dir))
-		print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
-		print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
+    if args.verbose:
+	print("{} in directory: {}".format(os.linesep, args.in_dir))
+        print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
+	print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
 
-	full_parse(args.in_dir, args.out_dir, args.study_name, 
-			   args.usermeta if args.usermeta else {}, 
-			   args.split, args.verbose)
+    full_parse(args.in_dir, args.out_dir, args.study_name, 
+               args.usermeta if args.usermeta else {}, 
+               args.split, args.verbose)
 
 
 def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbose=False):

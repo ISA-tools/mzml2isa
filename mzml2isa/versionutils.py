@@ -45,6 +45,7 @@ try: # Python 2
         """Update a nested dictionnary of various depth
 
         Shamelessly taken from here: http://stackoverflow.com/a/3233356/623424
+        And updated to work with dictionaries nested in lists.
         """
         for k, v in u.iteritems():
             if isinstance(v, collections.Mapping):
@@ -52,10 +53,14 @@ try: # Python 2
                     warnings.warn("Unrecognized key: {}".format(k), UserWarning)
                 r = dict_update(d.get(k, {}), v)
                 d[k] = r
+            elif isinstance(v, list):
+                r = []
+                for x in v:                      # v Mandatory because of Python linking lists
+                    r.append(dict_update(d[k][0].copy(), x))
+                d[k] = r
             else:
                 d[k] = u[k]
         return d
-
 
     RMODE = 'rb'
     WMODE = 'wb'
@@ -88,12 +93,18 @@ except ImportError: # Python 3
         """Update a nested dictionnary of various depth
 
         Shamelessly taken from here: http://stackoverflow.com/a/3233356/623424
+        And updated to work with dictionaries nested in lists.
         """
         for k, v in u.items():
             if isinstance(v, collections.Mapping):
                 if not k in d:
                     warnings.warn("Unrecognized key: {}".format(k), UserWarning)
                 r = dict_update(d.get(k, {}), v)
+                d[k] = r
+            elif isinstance(v, list):
+                r = []
+                for x in v:                      # v Mandatory because of Python linking lists
+                    r.append(dict_update(d[k][0].copy(), x))
                 d[k] = r
             else:
                 d[k] = u[k]

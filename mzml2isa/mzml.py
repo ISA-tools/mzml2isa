@@ -91,8 +91,7 @@ class mzMLmeta(object):
         :ivar obj self.meta: Meta information in python dictionary
         :ivar obj self.meta_json: Meta information in json format
         :ivar obj self.meta_isa: Meta information with names compatible with ISA-Tab
-        """
-        print("Parsing mzml file: {}".format(in_file))
+        """            
 
         # setup lxml parsing
         self.in_file = in_file
@@ -397,7 +396,8 @@ class mzMLmeta(object):
         cv = pyxpath(self, XPATHS['cv'])[0].attrib[self.env["cvLabel"]]            
 
         if not 'MS' in cv:
-            print("Standard controlled vocab not available. Can not parse ")
+            warnings.warn("Standard controlled vocab not available. Can not parse.", UserWarning)
+            #print("Standard controlled vocab not available. Can not parse ")
             return
         else:
             self.meta['term_source'] = {'value': 'MS'}

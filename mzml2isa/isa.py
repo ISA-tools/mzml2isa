@@ -26,9 +26,9 @@ import warnings
 from mzml2isa.versionutils import RMODE, WMODE, iterdict, dict_update
 
 
-USERMETA = {'characteristics':           {'organism':       {'value':'', 'accession':'', 'ref':''},
-                                          'variant':        {'value':'', 'accession':'', 'ref':''},
-                                          'organism_part':  {'value':'', 'accession':'', 'ref':''},
+USERMETA = {'characteristics':           {'organism': {'value':'', 'accession':'', 'ref':''},
+                                          'variant':  {'value':'', 'accession':'', 'ref':''},
+                                          'part':     {'value':'', 'accession':'', 'ref':''},
                                          },
             'investigation':             {'identifier': '', 'title': 'Investigation', 'description': '',
                                           'submission_date':'', 'release_date':''
@@ -36,27 +36,48 @@ USERMETA = {'characteristics':           {'organism':       {'value':'', 'access
             'investigation_publication': {'pubmed': '', 'doi': '', 'author_list': '', 'title':'',
                                           'status': {'value':'', 'accession':'', 'ref':'PSO'},
                                          },                                     
-            'investigation_contacts':     {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
-                                          'fax': '', 'phone':'', 'adress':'', 'affiliation':'',
-                                          'roles': {'value':'', 'accession':'', 'ref':''},
-                                         },
+                                         
             'study':                     {
                                           'title': '', 'description': '', 'submission_date':'', 'release_date':'',
                                          },
             'study_publication':         {'pubmed': '', 'doi': '', 'author_list': '', 'title':'',
                                           'status': {'value':'', 'accession':'', 'ref':'PSO'},
                                          },
-            'study_factors':             {'name': '',
-                                          'type': {'value':'', 'accession':'', 'ref':''},
-                                         },
-            'study_contacts':             {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
-                                          'fax': '', 'phone':'', 'adress':'', 'affiliation':'',
-                                          'roles': {'value':'', 'accession':'', 'ref':''},
-                                         },                                         
-
+            
             'description':               {'sample_collect':'', 'extraction':'', 'chroma':'', 'mass_spec':'', 
                                           'data_trans':'', 'metabo_id':''
                                          },
+            
+
+
+
+            #Multiple Values Parameters
+            'study_contacts':            [
+                                            {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
+                                             'fax': '', 'phone':'', 'adress':'', 'affiliation':'',
+                                             'roles': {'value':'', 'accession':'', 'ref':''},
+                                            },                                         
+                                         ],
+            
+            'investigation_contacts':    [
+                                            {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
+                                             'fax': '', 'phone':'', 'adress':'', 'affiliation':'',
+                                             'roles': {'value':'', 'accession':'', 'ref':''},
+                                            },                                         
+                                         ],
+            
+            'study_factors':             [
+                                            {'name': '',
+                                             'type': {'value':'', 'accession':'', 'ref':''},
+                                            },
+                                         ],
+
+            'study_designs':              [
+                                            {
+                                             'type': {'value':'', 'accession':'', 'ref':''},
+                                            },
+
+                                         ]
 
            }
 
@@ -79,8 +100,6 @@ class ISA_Tab(object):
         :param str name:      study identifier name
         :param dict usermeta: a dict containing more info about the study
         """
-        print("Parse mzML meta information into ISA-Tab structure")
-        print(separate_polarity)
 
         # Setup the instance variables
         # dictionary allow for easy formatting of the study file.
@@ -91,7 +110,7 @@ class ISA_Tab(object):
             'study_file_name': 's_'+ name+'.txt',
             'assay_file_name': 'a_'+ name+'_metabolite_profiling_mass_spectrometry.txt',
             'assay_polar_file_name': 'a_'+ name+'_metabolite_profiling_mass_spectrometry_{}.txt',
-            'investigation_file_name': 'i_'+ name+'.txt',
+            'investigation_file_name': 'i_Investigation.txt',
             'default_path': os.path.join(dirname, 'default'),
             'platform': {},
         }
@@ -124,7 +143,6 @@ class ISA_Tab(object):
         instruments = []
         accession = []
         for meta in metalist:
-            
             try: 
                 instruments.append(meta['Parameter Value[Instrument]']['name'])
                 accession.append(meta['Parameter Value[Instrument]']['accession'])
@@ -160,22 +178,59 @@ class ISA_Tab(object):
     def create_investigation(self):
         """ Create the investigation file."""
 
-        investigation_file = os.path.join(self.isa_env['default_path'], 'i_Investigation.txt')
-        new_i_path = os.path.join(self.isa_env['out_dir'], self.isa_env['investigation_file_name'])
+        #print(self.usermeta)
+
+        investigation_file = os.path.join(self.isa_env['default_path'], self.isa_env['investigation_file_name'])
+        new_i_path = os.path.join(self.isa_env['out_dir'], 'i_Investigation.txt')
 
         with open(investigation_file, RMODE) as i_in:
             with open(new_i_path, "w") as i_out:
                 for l in i_in:
                     
-                    # If more than one study assay was written, more columns must be added
-                    if l[:11] == 'Study Assay' and len(self.written_assays) != 1:
-                        assay_row = l.split("\t") 
-                        if assay_row[0] == "Study Assay File Name":     # Change the
+                    ## FORMAT SECTIONS WHERE MORE THAN ONE VALUE IS ACCEPTED
+                    if l[:11] == 'Study Assay':
+                        assay_row = l.strip().split('\t') 
+                        if assay_row[0] == 'Study Assay File Name':     # Change the
                             l = assay_row[0]                            # filename
                             for assay in self.written_assays:           # section
-                                l += '\t"{}"'.format(assay)
+                                l += '\t' + '"{}"'.format(assay)
                         else:                                           # duplicate other sections
-                            l = assay_row[0] + "\t" + "\t".join(len(self.written_assays)*[assay_row[1].strip()])
+                            l = assay_row[0] + "\t" + "\t".join(len(self.written_assays)*[assay_row[1]])
+                        l += '\n'
+
+                    elif l[:12] == 'Study Person':
+                        person_row = l.strip().split('\t')
+                        l = person_row[0]
+                        for person in self.usermeta['study_contacts']:
+                            l +=  '\t' + person_row[1].format(study_contact=person)
+                        l += '\n'
+
+                    elif l[:12] == 'Study Design':
+                        person_row = l.strip().split('\t')
+                        l = person_row[0]
+                        for design in self.usermeta['study_designs']:
+                            l +=  '\t' + person_row[1].format(study_design=design)
+                        l += '\n'    
+
+                    elif l[:12] == 'Study Factors':
+                        person_row = l.strip().split('\t')
+                        l = person_row[0]
+                        for factor in self.usermeta['study_factors']:
+                            l +=  '\t' + person_row[1].format(study_factor=person)
+                        l += '\n'
+
+                    elif l[:20] == 'Investigation Person':
+                        person_row = l.strip().split('\t')
+                        l = person_row[0]
+                        for person in self.usermeta['investigation_contacts']:
+                            l += '\t' + person_row[1].format(investigation_contact=person)
+                        l += '\n'
+
+                    elif l[:12] == 'Study Factor':
+                        factor_row = l.strip().split('\t')
+                        l = factor_row[0]
+                        for factor in self.usermeta['study_factors']:
+                            l += '\t' + factor_row[1].format(study_factor=factor)
                         l += '\n'
 
                     l = l.format(**self.isa_env, **self.usermeta).format()
@@ -226,6 +281,7 @@ class ISA_Tab(object):
             headers_row, standard_row = [x.rstrip().replace('"', '').split('\t') for x in isa_default]
 
         sample_name_idx = headers_row.index("Sample Name")
+        instrument_model_idx = headers_row.index("Parameter Value[Instrument]")
         mass_protocol_idx = standard_row.index("Mass spectrometry")
         mass_end_idx = standard_row.index("Metabolite identification")
         polarity_idx = headers_row.index('Parameter Value[Scan polarity]')
@@ -248,11 +304,16 @@ class ISA_Tab(object):
         # Loop through list of the meta dictionaries
         for file_meta in metalist:
             # get the names and associated dictionaries for each meta term
-            for key, value in file_meta.items():
+            for key, value in iterdict(file_meta):
                 # special case for sample name as it is not amongst the mass columns
                 if key == "Sample Name":
                     pre_row[sample_name_idx] = value['value']
                     self.sample_names.append(value['value'])
+
+                if key == "Parameter Value[Instrument]":
+                	if "Parameter Value[Instrument manufacturer]" in file_meta.keys():
+                		value['name'] = file_meta["Parameter Value[Instrument manufacturer]"]['name'][:-16] + value['name']
+
 
                 # if key is an entry list it means this means there can be more than one of this meta type
                 # This will check all meta data where there might be multiple columns of the same data e.g.

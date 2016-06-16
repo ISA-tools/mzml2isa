@@ -27,6 +27,7 @@ import argparse
 import textwrap
 import warnings
 import json
+import progressbar as pb
 
 import mzml2isa.isa as isa
 import mzml2isa.mzml as mzml
@@ -43,7 +44,7 @@ def run():
 	                                 -------------------------------------------------------------------------
 
 	                                 Example Usage:
-	                                 mzml2isa -i [in dir] -o [out dir] -s [study identifier name]
+	                                 mzml2isa -i [in dir] -o [out dir] -s [study identifier name] -m [usermeta...]
 	                                 '''))
 
 	p.add_argument('-i', dest='in_dir', help='in folder containing mzML files', required=True)
@@ -51,19 +52,21 @@ def run():
 	p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
 	p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
 	p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
+	p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
 
 	args = p.parse_args()
 
-	print(args)
+	if args.verbose:
+		print("{} in directory: {}".format(os.linesep, args.in_dir))
+		print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
+		print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
 
-	print("{} in directory: {}".format(os.linesep, args.in_dir))
-	print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
-	print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
-
-	full_parse(args.in_dir, args.out_dir, args.study_name, args.usermeta if args.usermeta else {}, args.split)
+	full_parse(args.in_dir, args.out_dir, args.study_name, 
+			   args.usermeta if args.usermeta else {}, 
+			   args.split, args.verbose)
 
 
-def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True):
+def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbose=False):
     """ Parses every study from *in_dir* and then creates ISA files.
 
 	A new folder is created in the out directory bearing the name of
@@ -76,15 +79,37 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True):
 
     # get mzML file in the example_files folder
     mzml_path = os.path.join(in_dir, "*.mzML")
-    print(mzml_path)
+    
+    if verbose:
+    	print(mzml_path)
+
+    
     mzml_files = [mzML for mzML in glob.glob(mzml_path)]
     #mzml_files.sort()
 
+    metalist = []
     if mzml_files:
+
         # get meta information for all files
-        metalist = [ mzml.mzMLmeta(i).meta_isa for i in mzml_files ]
-	    # update isa-tab file
+        if not verbose:
+	        pbar = pb.ProgressBar(widgets=['Parsing: ',
+                                           pb.Counter(), '/', str(len(mzml_files)), 
+                                           pb.Bar(marker="█", left=" |", right="| "),  
+                                           pb.Timer(), ' | ',
+                                           pb.AdaptiveETA()])
+	        for i in pbar(mzml_files):
+	        	metalist.append(mzml.mzMLmeta(i).meta_isa)
+
+        else:
+            for i in mzml_files:
+                print("Parsing mzml file: {}".format(i))
+                metalist.append(mzml.mzMLmeta(i).meta_isa)
+
+        # update isa-tab file
+        if verbose:
+            print("Parse mzML meta information into ISA-Tab structure")
         isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer, usermeta, split)
+    
     else:
     	warnings.warn("No files were found in directory."), UserWarning
     	#print("No files were found.")	

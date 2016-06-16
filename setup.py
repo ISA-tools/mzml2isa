@@ -8,8 +8,8 @@ import os
 
 import mzml2isa
 
-if sys.version_info[0] == 2: deps = ['lxml', 'argparse']
-else: deps = []
+if sys.version_info[0] == 2: deps = ['lxml', 'argparse', 'progressbar2']
+else: deps = ['progressbar2']
 
 ## SETUPTOOLS VERSION
 setup(

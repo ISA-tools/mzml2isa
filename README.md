@@ -1,44 +1,44 @@
-# mzML 2 ISA-Tab
+# mzml2isa
+#####Parser to get meta information from mzML file and parse relevant information to a ISA-Tab structure
 
-## About
-Parser to get meta information from mzML file and create an ISA-Tab file structure with the relevant meta information.
+## Overview
+mzml2isa is a Python3 program that can be used to generate an ISA-Tab structure out of mzML files, providing the backbone of a study which can then be edited with an ISA editing tool (see [Metabolight pre-packaged ISA Creator](http://www.ebi.ac.uk/metabolights/))
 
-Still a few things to complete and the code needs tidying up but the basic functionality is there. Does the following:
-
+Currently the program does the following
 * Extract meta information from mzML files and store as either python dictionary or JSON format
 * Create an ISA-Tab file structure with relevant meta information
-* Can be used as standalone script or python package, see scripts/ for examples
+* Add additional metadatas that cannot be parsed from mzML files to the ISA-Tab files through a JSON formatted dictionnary.
 
-## Workflow
+## Install
 
-![alt tag](https://github.com/Tomnl/mzml_2_isa/blob/master/isa_config/mzml2isa.png)
-
-
-## Install the python package
-
+### With PIP
+If `pip` is installed, it can be used to easily install the parser (this may need to be run as administrator depending on the machine's architecture):
 ```bash
-git clone https://github.com/Tomnl/mzml2isa.git
-
-cd mzml2isa
-
-# if in Linux
-sudo python setup.py install
-
-# if in windows need admin rights
-python setup.py install
-
+pip3 install git+git://github.com/althonos/mzml2isa
 ```
 
-## mzML to ISA-tab parsing
+### Without PIP
+Alternatively, you can also clone the repository and install from the source :
+```bash
+git clone git://github.com/althonos/mzml2isa && cd mzml2isa 
+python3 setup.py install
+```
 
-You can use the system command that ships with the library:
+mzml2isa has 2 optional dependencies: `progressbar2` and `lxml`, the latter quickening the parsing process while the other enhances the output of the program. To install them both, use pip:
+```bash
+pip3 install lxml progressbar2
+```
 
+## Use
+
+### CLI
+The parser comes with a slick one-liner:
 ```bash
 mzml2isa -i /path/to/mzml_files/ -o /path/to/out_folder/ -s name_of_study
 ```
 
-Or you can import the package
-
+### Module
+It is also possible to import the package:
 ```python
 from mzml2isa import parsing
 
@@ -49,8 +49,7 @@ study_identifier_name = "name_of_study"
 parsing.full_parse(in_dir, out_dir, study_identifier_name)
 ```
 
-## Meta extraction
-
+### Meta extraction
 If you just want to extract meta information:
 
 ```python
@@ -67,29 +66,26 @@ print mm.meta_json
 ```
 
 ## Metabolights
-To download some real data from MetaboLights studies to test the converter with, run
+To download some real data from [MetaboLights](http://www.ebi.ac.uk/metabolights/) studies to test the converter with, run 
 ```bash
 python scripts/metabolights-dl.py <size>
 ```
-where size is the maximum size in GiB you can allocate to download files.
-The script will download the files to the example_files/metabolights folder and the run mzml2isa.
+from inside the repository, where _size_ is the maximum size in GiB you can allocate to download files.
+The script will download the files to the `example_files/metabolight`s folder and then run mzml2isa on those files..
 
-If you use a *NIX machine with **curlftpfs** installed, you can also run
+If you use a *NIX machine with **curlftpfs** and **bash** available, you can also run
 ```bash
 scripts/metabolights.sh
 ```
 to mount the database to the example directory and start converting mzML studies.
 
+## Workflow
 
-## Todo 
-
-* Check to see how compatible with MetaboLights upload
-
+![alt tag](https://github.com/Tomnl/mzml_2_isa/blob/master/isa_config/mzml2isa.png)
 
 ## Ref
-For ontology extraction i used a modified version from this blog [1], and modified slightly the class from pymzml [2]
+A modified version of the ontology extraction from this blog[1] was used, and a slightly modified class from pymzml[2]
 
 [1] http://blog.nextgenetics.net/?e=6
-
 [2] http://pymzml.github.io/
 

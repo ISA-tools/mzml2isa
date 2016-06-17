@@ -32,7 +32,7 @@ try:
     import progressbar as pb
     PB_AVAILABLE = True
 except ImportError:
-    PB_AVAILABLE = True
+    PB_AVAILABLE = False
 
 import mzml2isa.isa as isa
 import mzml2isa.mzml as mzml
@@ -67,9 +67,9 @@ def run():
         setattr(args, 'verbose', True)
 
     if args.verbose:
-	print("{} in directory: {}".format(os.linesep, args.in_dir))
+        print("{} in directory: {}".format(os.linesep, args.in_dir))
         print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
-	print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
+        print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
 
     full_parse(args.in_dir, args.out_dir, args.study_name, 
                args.usermeta if args.usermeta else {}, 

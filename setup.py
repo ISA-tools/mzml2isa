@@ -24,8 +24,7 @@ setup(
     long_description=open('README.md').read(),
     
     install_requires=[],
-    extras_requires={ 'LXML': ['lxml'] ,
-                      'PB':   ['progressbar2'] },
+    extras_require={ 'extras': ['lxml', 'progressbar2'] },
 
     include_package_data=True,
 

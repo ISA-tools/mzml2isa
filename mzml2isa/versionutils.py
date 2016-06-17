@@ -73,7 +73,6 @@ if sys.version_info == 2:
 
 
 else:
-    print("PY3")
     try:
         from lxml import etree
     except ImportError:

@@ -19,6 +19,7 @@ GNU General Public License version 3.0 (GPLv3)
 
 import collections
 import sys
+from copy import deepcopy
 
 #try: # Python 2
 
@@ -62,7 +63,7 @@ if sys.version_info == 2:
             elif isinstance(v, list):
                 r = []
                 for x in v:                      # v Mandatory because of Python linking lists
-                    r.append(dict_update(d[k][0].copy(), x))
+                    r.append(dict_update(deepcopy(d[k][0]), deepcopy(x)))
                 d[k] = r
             else:
                 d[k] = u[k]
@@ -113,7 +114,7 @@ else:
             elif isinstance(v, list):
                 r = []
                 for x in v:                      # v Mandatory because of Python linking lists
-                    r.append(dict_update(d[k][0].copy(), x))
+                    r.append(dict_update(deepcopy(d[k][0]), deepcopy(x)))
                 d[k] = r
             else:
                 d[k] = u[k]

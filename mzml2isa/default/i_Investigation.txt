@@ -22,7 +22,7 @@ Investigation Publication Status Term Source REF	"{investigation_publication[sta
 INVESTIGATION CONTACTS
 Investigation Person Last Name	"{investigation_contact[last_name]}"
 Investigation Person First Name	"{investigation_contact[first_name]}"
-Investigation Person Mid Initials	"{investigation_contact[mid_initials]}"
+Investigation Person Mid Initials	"{investigation_contact[mid]}"
 Investigation Person Email	"{investigation_contact[email]}"
 Investigation Person Phone	"{investigation_contact[phone]}"
 Investigation Person Fax	"{investigation_contact[fax]}"
@@ -84,7 +84,7 @@ Study Protocol Components Type Term Source REF	""	""	""	""	""	""
 STUDY CONTACTS
 Study Person Last Name	"{study_contact[last_name]}"
 Study Person First Name	"{study_contact[first_name]}"
-Study Person Mid Initials	"{study_contact[mid_initials]}"
+Study Person Mid Initials	"{study_contact[mid]}"
 Study Person Email	"{study_contact[email]}"
 Study Person Phone	"{study_contact[phone]}"
 Study Person Fax	"{study_contact[fax]}"

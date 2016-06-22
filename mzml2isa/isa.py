@@ -27,8 +27,8 @@ from mzml2isa.versionutils import RMODE, WMODE, iterdict, dict_update
 
 
 USERMETA = {'characteristics':           {'organism': {'value':'', 'accession':'', 'ref':''},
-                                          'variant':  {'value':'', 'accession':'', 'ref':''},
-                                          'part':     {'value':'', 'accession':'', 'ref':''},
+                                          'organism_variant':  {'value':'', 'accession':'', 'ref':''},
+                                          'organism_part':     {'value':'', 'accession':'', 'ref':''},
                                          },
             'investigation':             {'identifier': '', 'title': 'Investigation', 'description': '',
                                           'submission_date':'', 'release_date':''
@@ -53,14 +53,14 @@ USERMETA = {'characteristics':           {'organism': {'value':'', 'accession':'
 
             #Multiple Values Parameters
             'study_contacts':            [
-                                            {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
+                                            {'first_name': '', 'last_name': '', 'mid':'', 'email':'', 
                                              'fax': '', 'phone':'', 'adress':'', 'affiliation':'',
                                              'roles': {'value':'', 'accession':'', 'ref':''},
                                             },                                         
                                          ],
             
             'investigation_contacts':    [
-                                            {'first_name': '', 'last_name': '', 'mid_initials':'', 'email':'', 
+                                            {'first_name': '', 'last_name': '', 'mid':'', 'email':'', 
                                              'fax': '', 'phone':'', 'adress':'', 'affiliation':'',
                                              'roles': {'value':'', 'accession':'', 'ref':''},
                                             },                                         

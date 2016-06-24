@@ -143,11 +143,17 @@ class ISA_Tab(object):
         instruments = []
         accession = []
         for meta in metalist:
-            try: 
+            
+            #try:
+            if 'Parameter Value[Instrument]' in meta.keys():
                 instruments.append(meta['Parameter Value[Instrument]']['name'])
                 accession.append(meta['Parameter Value[Instrument]']['accession'])
+            elif 'Parameter Value[Instrument serial number]' in meta.keys():
+                instruments.append(meta['Parameter Value[Instrument serial number]']['value'])
+                #accession.append(meta['Parameter Value[Instrument serial number]']['accession'])
 
-            except KeyError: # Missing Instrument (quite often with Waters Models)
+            #except KeyError: # Missing Instrument (quite often with Waters Models)
+            else:
                 warnings.warn("No instrument was found in the source file.", UserWarning)
             
 

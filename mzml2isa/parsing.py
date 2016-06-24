@@ -57,6 +57,8 @@ def run():
     p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
     p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
+    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
+                         required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
 	
     if PB_AVAILABLE:	
         p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
@@ -71,9 +73,12 @@ def run():
         print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
         print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
 
-    full_parse(args.in_dir, args.out_dir, args.study_name, 
-               args.usermeta if args.usermeta else {}, 
-               args.split, args.verbose)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(args.wrng_ctrl)
+
+        full_parse(args.in_dir, args.out_dir, args.study_name, 
+                   args.usermeta if args.usermeta else {}, 
+                   args.split, args.verbose)
 
 
 def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbose=False):
@@ -88,12 +93,11 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
     """
 
     # get mzML file in the example_files folder
-    mzml_path = os.path.join(in_dir, "*.mzML")
+    mzml_path = os.path.join(in_dir, "*mzML")
     
     if verbose:
     	print(mzml_path)
 
-    
     mzml_files = [mzML for mzML in glob.glob(mzml_path)]
     #mzml_files.sort()
 
@@ -116,9 +120,10 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
                 metalist.append(mzml.mzMLmeta(i).meta_isa)
 
         # update isa-tab file
-        if verbose:
-            print("Parse mzML meta information into ISA-Tab structure")
-        isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer, usermeta, split)
+        if metalist:
+            if verbose:
+                print("Parse mzML meta information into ISA-Tab structure")
+            isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer, usermeta, split)
     
     else:
     	warnings.warn("No files were found in directory."), UserWarning

@@ -355,7 +355,9 @@ class mzMLmeta(object):
             # Get associated software
             self.software(soft_ref, 'Instrument')
         except (IndexError, KeyError): #Sometimes <Instrument> contains no Software tag
-            warnings.warn("Instrument {} does not have a software tag.".format(self.meta['Instrument']['name'] ),
+            warnings.warn("Instrument {} does not have a software tag.".format( self.meta['Instrument']['name'] 
+                                                                                if 'Instrument' in self.meta.keys()
+                                                                                else "<"+self.meta['Instrument serial number']+">"),
                            UserWarning)
 
 
@@ -453,7 +455,8 @@ class mzMLmeta(object):
             timerange = minrt + " - " + maxrt
         
         except ValueError:
-            warnings.warn("Could not find any time range.", UserWarning)
+            # THIS IS NOT SOMETHING TO BE WARNED ABOUT
+            # warnings.warn("Could not find any time range.", UserWarning)
             timerange = ''
         
         self.meta['Time range'] = {'value': timerange}
@@ -573,7 +576,6 @@ class mzMLmeta(object):
         else:
             self.instrument = self._instrument_nested
         
-        #print(self.env)
         
 
 

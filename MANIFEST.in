@@ -1,2 +1,3 @@
 include mzml2isa/psi-ms.obo
 include mzml2isa/default/*.txt
+include README.md

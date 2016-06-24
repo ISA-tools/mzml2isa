@@ -14,7 +14,7 @@ Currently the program does the following
 ### With PIP
 If `pip` is installed, it can be used to easily install the parser (this may need to be run as administrator depending on the machine's architecture):
 ```bash
-pip3 install git+git://github.com/althonos/mzml2isa
+pip3 install mzml2isa
 ```
 
 ### Without PIP
@@ -32,7 +32,7 @@ pip3 install lxml progressbar2
 ## Use
 
 ### CLI
-The parser comes with a slick one-liner:
+The parser comes with a simple one-liner:
 ```bash
 mzml2isa -i /path/to/mzml_files/ -o /path/to/out_folder/ -s name_of_study
 ```

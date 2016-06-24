@@ -40,5 +40,5 @@ __author__ = 'Thomas Lawson, Martin Larralde'
 
 __credits__ = 'Thomas Lawson, Martin Larralde, Reza Salek, Ken Haug, Christoph Steinbeck'
 
-__version__ = '0.3.1'
+__version__ = '0.4.3'
 

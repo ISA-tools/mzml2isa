@@ -109,8 +109,7 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
 	        pbar = pb.ProgressBar(widgets=['Parsing: ',
                                            pb.Counter(), '/', str(len(mzml_files)), 
                                            pb.Bar(marker="█", left=" |", right="| "),  
-                                           pb.Timer(), ' | ',
-                                           pb.AdaptiveETA()])
+                                           pb.ETA()])
 	        for i in pbar(mzml_files):
 	        	metalist.append(mzml.mzMLmeta(i).meta_isa)
 

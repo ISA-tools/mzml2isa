@@ -452,7 +452,7 @@ class mzMLmeta(object):
 
             minrt = str(round(min(time),4))
             maxrt = str(round(max(time),4))
-            timerange = minrt + " - " + maxrt
+            timerange = minrt + "-" + maxrt
         
         except ValueError:
             # THIS IS NOT SOMETHING TO BE WARNED ABOUT
@@ -476,7 +476,7 @@ class mzMLmeta(object):
             
             minmz = str(int(min(minmz_l)))
             maxmz = str(int(max(maxmz_l)))
-            mzrange = minmz + " - " + maxmz
+            mzrange = minmz + "-" + maxmz
         
         except ValueError: #Case with windowed target
             warnings.warn("Could not find any m/z range.", UserWarning)

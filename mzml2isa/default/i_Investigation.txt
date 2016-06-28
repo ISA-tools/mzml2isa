@@ -4,7 +4,7 @@ Term Source File	"http://data.bioontology.org/ontologies/MS"	"http://data.bioont
 Term Source Version	"103"	"2"	"4"	"132"	"26"	"16"	"40"	"43"	"25"	""	""	""
 Term Source Description	"Mass Spectrometry Ontology"	"Cigarette Smoke Exposure Ontology"	"National Center for Biotechnology Information (NCBI) Organismal Classification"	"Experimental Factor Ontology"	"BRENDA Tissue and Enzyme Source Ontology"	"Chemical Methods Ontology"	"National Cancer Institute Thesaurus"	"Units of Measurement Ontology"	"Ontology for Biomedical Investigations"	"Publishing Status Ontology"	"Publishing Roles Ontology"	
 INVESTIGATION
-Investigation Identifier	"{investigation[identifier]}"
+Investigation Identifier	"{study_identifier}"
 Investigation Title	"{investigation[title]}"
 Investigation Description	"{investigation[description]}"
 Investigation Submission Date	"{investigation[submission_date]}"

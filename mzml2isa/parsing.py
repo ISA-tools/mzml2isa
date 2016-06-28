@@ -39,12 +39,16 @@ import mzml2isa.mzml as mzml
 
 
 
+PARSERS = {'.MZML': mzml.mzMLmeta,
+           '.IMZML': mzml.imzMLmeta}
+
+
 
 def run():
     """ Runs **mzml2isa** from the command line"""
     p = argparse.ArgumentParser(prog='PROG',
 	                        formatter_class=argparse.RawDescriptionHelpFormatter,
-	                        description='''Extract meta information from mzML files and create ISA-tab structure''',
+	                        description='''Extract meta information from (i)mzML files and create ISA-tab structure''',
 	                        epilog=textwrap.dedent('''\
 	                        -------------------------------------------------------------------------
 
@@ -106,17 +110,23 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
 
         # get meta information for all files
         if not verbose:
-	        pbar = pb.ProgressBar(widgets=['Parsing: ',
+            pbar = pb.ProgressBar(widgets=['Parsing: ',
                                            pb.Counter(), '/', str(len(mzml_files)), 
                                            pb.Bar(marker="█", left=" |", right="| "),  
                                            pb.ETA()])
-	        for i in pbar(mzml_files):
-	        	metalist.append(mzml.mzMLmeta(i).meta_isa)
+            for i in pbar(mzml_files):
+
+                parser = PARSERS[os.path.splitext(i)[1].upper()]
+
+                metalist.append(parser(i).meta_isa)
 
         else:
             for i in mzml_files:
-                print("Parsing mzml file: {}".format(i))
-                metalist.append(mzml.mzMLmeta(i).meta_isa)
+                
+                parser = PARSERS[os.path.splitext(i)[1].upper()]
+                
+                print("Parsing file: {}".format(i))
+                metalist.append(parser(i).meta_isa)
 
         # update isa-tab file
         if metalist:

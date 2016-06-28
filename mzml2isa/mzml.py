@@ -61,6 +61,10 @@ XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:refe
 
 
 
+
+
+
+
 class mzMLmeta(object):
     """ Class to store and obtain the meta information from the mzML file
 
@@ -108,8 +112,6 @@ class mzMLmeta(object):
 
         #initalize the meta variables
         self.meta = collections.OrderedDict()
-        self.meta_isa = collections.OrderedDict()
-        self.meta_json = ""
 
         # xpaths for the mzML locations that we want the meta information from any cvParam elements
         xpaths_meta = XPATHS_META
@@ -131,7 +133,7 @@ class mzMLmeta(object):
         terms['source_file'] = {
             'MS:1000767': {'attribute': False, 'name':'Native spectrum identifier format', 'plus1': False, 'value':False, 'soft': False},
         #!# 'MS:1000561': {'attribute': False, 'name':'data file checksum type', 'plus1': True, 'value':True, 'soft': False},
-            'MS:1000560': {'attribute': False, 'name':'Raw data file format', 'plus1': False, 'value':False, 'soft': False}
+            'MS:1000560': {'attribute': False, 'name':'Raw data file format', 'plus1': False, 'value':False, 'soft': False},
         }
 
         terms['ionization'] = {
@@ -142,7 +144,7 @@ class mzMLmeta(object):
 
         terms['analyzer'] = {
                 'MS:1000480': {'attribute': True, 'name':'analyzer_attribute', 'plus1': True, 'value':True, 'soft': False},
-                'MS:1000443': {'attribute': False, 'name':'Mass analyzer', 'plus1': False, 'value':False, 'soft': False}
+                'MS:1000443': {'attribute': False, 'name':'Mass analyzer', 'plus1': False, 'value':False, 'soft': False},
         }
 
         terms['detector'] = {
@@ -183,9 +185,6 @@ class mzMLmeta(object):
         # Get the isa_tab compatible meta dictionary
         self.isa_tab_compatible()
 
-        # get meta information in json format
-        self.meta_json = json.dumps(self.meta, indent=2)
-
     def extract_meta(self, terms, xpaths):
         """ Extract meta information for CV terms based on their location in the xml file
 
@@ -225,12 +224,12 @@ class mzMLmeta(object):
         for e in elements:
             # go through the terms available for this location
             for accession, info in iterdict(terms[location_name]):
+
                 # check if the element is one of the terms we are looking for
                 if e.attrib['accession'] in descendents[accession]:
-                    if(info['attribute']):
-                        meta_name = e.tag
-                    else:
-                        meta_name = info['name']
+                    
+                    meta_name = info['name']
+                    
                     # Check if there can be more than one of the same term
                     if(info['plus1']):
                         # Setup the dictionary for multiple entries
@@ -243,11 +242,18 @@ class mzMLmeta(object):
                             self.meta[meta_name]['entry_list'][c]['value'] = e.attrib['value']
                         c += 1
                     else:
-                        # Standard CV with only with entry
-                        self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name']}
-                        # Check if value associated
-                        if (info['value']):
-                            self.meta[meta_name]['value'] = e.attrib['value']
+
+                        if 'name' in info.keys():
+                            # Standard CV with only with entry
+                            self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name']}
+                            # Check if value associated
+                            if (info['value']):
+                                self.meta[meta_name]['value'] = e.attrib['value']
+                                # remove name and accession if only the value is interesting
+                                if self.meta[meta_name]['name'] == meta_name:
+                                    del self.meta[meta_name]['name']
+                                    del self.meta[meta_name]['accession']
+
                     # Check if there is expected associated software
                     if (info['soft']):
                         
@@ -357,7 +363,9 @@ class mzMLmeta(object):
         except (IndexError, KeyError): #Sometimes <Instrument> contains no Software tag
             warnings.warn("Instrument {} does not have a software tag.".format( self.meta['Instrument']['name'] 
                                                                                 if 'Instrument' in self.meta.keys()
-                                                                                else "<"+self.meta['Instrument serial number']+">"),
+                                                                                else "<"+self.meta['Instrument serial number']+">"
+                                                                                if 'Instrument serial number' in self.meta.keys()
+                                                                                else '?'),
                            UserWarning)
 
 
@@ -416,7 +424,7 @@ class mzMLmeta(object):
         
         self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
         self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
-        self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name
+        self.meta['Sample Name'] = {p} # mzML file name
 
     def polarity(self):
 
@@ -479,7 +487,8 @@ class mzMLmeta(object):
             mzrange = minmz + "-" + maxmz
         
         except ValueError: #Case with windowed target
-            warnings.warn("Could not find any m/z range.", UserWarning)
+            if isinstance(self, mzMLmeta): #Warn only if parsing a mzML file
+                warnings.warn("Could not find any m/z range.", UserWarning)
             mzrange = ''
 
         self.meta['Scan m/z range'] = {'value': mzrange}
@@ -505,13 +514,16 @@ class mzMLmeta(object):
 
 
     def urlize(self):
-        """Turns MS:XXXXXXX accession number into an url to http://purl.obolibrary.org/obo/MS_XXXXXXX"""
+        """Turns YY:XXXXXXX accession number into an url to http://purl.obolibrary.org/obo/MS_XXXXXXX"""
         for meta_name in self.meta:
-            if 'accession' in self.meta[meta_name]:
-                self.meta[meta_name]['accession'] = "http://purl.obolibrary.org/obo/" + self.meta[meta_name]['accession'].replace(':', '_')
-            elif 'entry_list' in self.meta[meta_name]:
-                if 'accession' in self.meta[meta_name]['entry_list']:
-                    self.meta[meta_name]['entry_list']['accession'] = "http://purl.obolibrary.org/obo/" + self.meta[meta_name]['accession'].replace(':', '_')                
+            if 'accession' in self.meta[meta_name].keys():
+                if self.meta[meta_name]['accession'].startswith('MS'):
+                    self.meta[meta_name]['accession'] = "http://purl.obolibrary.org/obo/" + self.meta[meta_name]['accession'].replace(':', '_')
+            elif 'entry_list' in self.meta[meta_name].keys():
+                for index, entry in iterdict(self.meta[meta_name]['entry_list']):
+                    if 'accession' in entry.keys():
+                        if entry['accession'].startswith('MS'):
+                            entry['accession'] = "http://purl.obolibrary.org/obo/" + entry['accession'].replace(':', '_')                
             
 
     def build_env(self):
@@ -577,5 +589,75 @@ class mzMLmeta(object):
             self.instrument = self._instrument_nested
         
         
+    @property
+    def meta_json(self):
+        return json.dumps(self.meta, indent=4, sort_keys=True)
+    
+    @property
+    def meta_isa(self):
+        keep = ["data transformation", "data transformation software version", "data transformation software",
+                "term_source", "Raw Spectral Data File", "MS Assay Name", "Derived Spectral Data File", "Sample Name"]
+
+        meta_isa = collections.OrderedDict()
+
+        for meta_name in self.meta:
+            if meta_name in keep:
+                meta_isa[meta_name] = self.meta[meta_name]
+            else:
+                #print(meta_name)
+                meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]
+        
+        return meta_isa
+    
+    @property
+    def meta_isa_json(self):
+        return json.dumps(self.meta_isa, indent=4, sort_keys=True)
+    
+
+
+XPATHS_I_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cvParam',                 
+                 'scan_settings':     '{root}/s:scanSettingsList/s:scanSettings/s:cvParam',
+                }
+
+XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
+                }
+
+
+class imzMLmeta(mzMLmeta):
+
+    def __init__(self, in_file):
+        # Extract same informations as mzml file
+        super(imzMLmeta, self).__init__(in_file)
+
+        # change the ontology and start extracting imaging specific metadata
+        dirname = os.path.dirname(os.path.realpath(__file__))
+        obo_path = os.path.join(dirname, "imagingMS.obo")
+        self.obo = oboparse(obo_path)
+
+        xpaths_meta = XPATHS_I_META
+
+        terms = collections.OrderedDict()
+        terms['file_content'] = {
+                'IMS:1000080': {'attribute': False, 'name': 'universally unique identifier', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000009': {'attribute': False, 'name': 'binary file checksum type', 'plus1': False, 'value':False, 'soft': False},
+                'IMS:1000003': {'attribute': False, 'name': 'ibd binary type', 'plus1': True, 'value': True, 'soft':False},
+        }
+
+        terms['scan_settings'] = {
+                'IMS:1000042': {'attribute': False, 'name': 'max count of pixel x', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000043': {'attribute': False, 'name': 'max count of pixel y', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000040': {'attribute': False, 'name': 'linescan sequence', 'plus1': False, 'value': True, 'soft': False},
+                'IMS:1000041': {'attribute': False, 'name': 'scan pattern', 'plus1': False, 'value': True, 'soft': False},
+                'IMS:1000048': {'attribute': False, 'name': 'scan type', 'plus1': False, 'value': True, 'soft': False},
+                'IMS:1000049': {'attribute': False, 'name': 'line scan direction', 'plus1': False, 'value': True, 'soft': False},
+
+        }
+
+        self.extract_meta(terms, xpaths_meta)
+        
+        self.meta['Raw Spectral Data File'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0] \
+                                                            + os.path.extsep + 'ibd'}
+        self.meta['Low-res image'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0] \
+                                                            + os.path.extsep + 'tif'}
 
 

@@ -218,13 +218,6 @@ class ISA_Tab(object):
                             l +=  '\t' + person_row[1].format(study_design=design)
                         l += '\n'    
 
-                    elif l[:12] == 'Study Factors':
-                        person_row = l.strip().split('\t')
-                        l = person_row[0]
-                        for factor in self.usermeta['study_factors']:
-                            l +=  '\t' + person_row[1].format(study_factor=person)
-                        l += '\n'
-
                     elif l[:20] == 'Investigation Person':
                         person_row = l.strip().split('\t')
                         l = person_row[0]

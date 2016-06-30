@@ -424,7 +424,7 @@ class mzMLmeta(object):
         
         self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
         self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
-        self.meta['Sample Name'] = {p} # mzML file name
+        self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name
 
     def polarity(self):
 
@@ -487,7 +487,7 @@ class mzMLmeta(object):
             mzrange = minmz + "-" + maxmz
         
         except ValueError: #Case with windowed target
-            if isinstance(self, mzMLmeta): #Warn only if parsing a mzML file
+            if not isinstance(self, imzMLmeta): #Warn only if parsing a mzML file
                 warnings.warn("Could not find any m/z range.", UserWarning)
             mzrange = ''
 
@@ -528,14 +528,23 @@ class mzMLmeta(object):
 
     def build_env(self):
 
-        self.ns = {'s': self.tree.getroot().tag[1:].split("}")[0]} # namespace
-        self.env = {}
+        self.env = collections.OrderedDict()
 
+        self.ns = self.tree.getroot().nsmap
+        self.ns['s'] = self.ns[None] #{'s': self.tree.getroot().tag[1:].split("}")[0]} # namespace
+        del self.ns[None]
+        
         # Check if indexedmzML/mzML or mzML
-        if self.tree.find('./s:mzML', self.ns) is None:
-            self.env['root'] = '.'
+        if isinstance(self, mzMLmeta):
+            if self.tree.find('./s:mzML', self.ns) is None :
+                self.env['root'] = '.'
+            else:
+                self.env['root'] = './s:mzML'
         else:
-            self.env['root'] = './s:mzML'
+            if self.tree.find('./s:imzML', self.ns) is None :
+                self.env['root'] = '.'
+            else:
+                self.env['root'] = './s:imzML'
 
         # check if spectrum or chromatogram
         if self.tree.find('{root}/s:run/s:spectrumList/s:spectrum/'.format(**self.env), self.ns) is not None:
@@ -661,3 +670,10 @@ class imzMLmeta(mzMLmeta):
                                                             + os.path.extsep + 'tif'}
 
 
+if __name__ == '__main__':
+    import sys
+    
+    if sys.argv[-1].endswith('.imzML'):
+        print(imzMLmeta(sys.argv[-1]).meta_json)
+    else:
+        print(mzMLmeta(sys.argv[-1]).meta_json)

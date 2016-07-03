@@ -1,30 +1,44 @@
 language: python
 
 python:
-  - "2.7"
   - "3.5"
-  - "pypy"
-  - "pypy3"
-
-matrix:
-  allow_failures:
-    - python: "2.7"
-    - python: "pypy"
-    - python: "pypy3"
+env:
+  - STUDY=MTBLS267
+  - STUDY=MTBLS266
+  - STUDY=MTBLS273
+  - STUDY=MTBLS32
+  - STUDY=MTBLS127
+  - STUDY=MTBLS289
+  - STUDY=MTBLS263
+  - STUDY=MTBLS87
+  - STUDY=MTBLS36
+  - STUDY=MTBLS140
+  - STUDY=MTBLS229
+  - STUDY=MTBLS265
+  - STUDY=MTBLS228
+  - STUDY=MTBLS67
+  - STUDY=MTBLS125
+  - STUDY=MTBLS126
+  - STUDY=MTBLS88
+  - STUDY=MTBLS38
+  - STUDY=MTBLS137
+  - STUDY=MTBLS315
 
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libxml2-dev 
   - sudo apt-get install -y curlftpfs
-  - mkdir example_files/metabolights
 
 install:
   - pip install lxml
   - pip install .
 
-script:
+before_script:
+  - mkdir example_files/metabolights
   - curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
-  - while read study; do mzml2isa -i example_files/metabolights/$study -o out_folder/metabolights -s $study; done < example_files/.mzml_studies.txt
+
+script:
+  - mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
 
 after_script:
   - fusermount -u example_files/metabolights

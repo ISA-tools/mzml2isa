@@ -10,7 +10,7 @@ echo "                                                          ";
 
 
 ## Get a list of MetaboLights Studies containing .mzML files
-/usr/bin/python3 -c "
+/usr/bin/python -c "
 import json
 import urllib.request as rq
 study_url = 'http://ftp.ebi.ac.uk/pub/databases/metabolights/study_file_extensions/ml_file_extension.json'
@@ -39,12 +39,14 @@ while read study; do
 	else
 		## Run mzml2isa parser
 		mzml2isa -i example_files/metabolights/$study -o out_folder/metabolights -s $study
-
+		
+		[ ! $? -eq 0 ] && exit 1 
+		
 		## Check if parser worked (look for generated files)
-		[ -f out_folder/metabolights/${study}/s_$study.txt ] \
-		&& [ -f out_folder/metabolights/${study}/i_$study.txt ] \
-		&& [ -f out_folder/metabolights/${study}/a_$study_*.txt ] \
-		|| echo $study >> fails.txt
+		#[ -f out_folder/metabolights/${study}/s_$study.txt ] \
+		#&& [ -f out_folder/metabolights/${study}/i_$study.txt ] \
+		#&& [ -f out_folder/metabolights/${study}/a_$study_*.txt ] \
+		#|| echo $study >> fails.txt
 	fi
 
 done < scripts/mzml_studies.txt

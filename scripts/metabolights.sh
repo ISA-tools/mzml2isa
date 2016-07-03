@@ -18,7 +18,7 @@ req = rq.Request(study_url)
 con = rq.urlopen(req)
 e = json.JSONDecoder()
 study = e.decode(con.read().decode('utf-8'))
-mzml_studies = [k['id'] for k in study if '.imzML' in k['extensions']]
+mzml_studies = [k['id'] for k in study if '.imzML' in k['extensions'] or '.imzML' in k['extensions']]
 for study in mzml_studies:
     print(study)
 " > scripts/mzml_studies.txt
@@ -49,6 +49,4 @@ while read study; do
 
 done < scripts/mzml_studies.txt
 
-echo "Completed parsing... Press ENTER to unmount fuse MetaboLights"
-read
 fusermount -u example_files/metabolights

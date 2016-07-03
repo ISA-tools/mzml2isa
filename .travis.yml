@@ -1,0 +1,25 @@
+language: python
+
+python:
+  - "2.7"
+  - "3.5"
+  - "pypy"
+  - "pypy3"
+
+matrix:
+  allow_failures:
+    - python: "2.7"
+    - python: "pypy"
+    - python: "pypy3"
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libxml2-dev 
+  - sudo apt-get install -y curlftpfs
+
+install:
+  - pip install lxml
+  - pip install .
+
+script:
+  - scripts/metabolights.sh

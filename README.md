@@ -1,5 +1,6 @@
 # mzml2isa
 #####Parser to get meta information from mzML file and parse relevant information to a ISA-Tab structure
+[![Build Status](https://travis-ci.org/althonos/mzml2isa.svg?branch=master)](https://travis-ci.org/althonos/mzml2isa)
 
 ## Overview
 mzml2isa is a Python3 program that can be used to generate an ISA-Tab structure out of mzML files, providing the backbone of a study which can then be edited with an ISA editing tool (see [Metabolight pre-packaged ISA Creator](http://www.ebi.ac.uk/metabolights/))

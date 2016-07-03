@@ -28,6 +28,8 @@ import textwrap
 import warnings
 import json
 
+from multiprocessing.pool import Pool
+
 try:
     import progressbar as pb
     PB_AVAILABLE = True
@@ -42,6 +44,11 @@ import mzml2isa.mzml as mzml
 PARSERS = {'.MZML': mzml.mzMLmeta,
            '.IMZML': mzml.imzMLmeta}
 
+
+def _multiparse(filepath):
+            print('Parsing file: {}'.format(filepath))
+            parser = PARSERS[os.path.splitext(filepath)[1].upper()]
+            return parser(filepath).meta_isa
 
 
 def run():
@@ -60,6 +67,7 @@ def run():
     p.add_argument('-o', dest='out_dir', help='out folder, new directory will be created here', required=True)
     p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
     p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
+    p.add_argument('-M', dest='multip', help='launch different processes for parsing', required=False, default=0, type=int)
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
                          required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
@@ -82,10 +90,10 @@ def run():
 
         full_parse(args.in_dir, args.out_dir, args.study_name, 
                    args.usermeta if args.usermeta else {}, 
-                   args.split, args.verbose)
+                   args.split, args.verbose, args.multip)
 
 
-def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbose=False):
+def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbose=False, multip=False):
     """ Parses every study from *in_dir* and then creates ISA files.
 
 	A new folder is created in the out directory bearing the name of
@@ -105,11 +113,20 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
     mzml_files = [mzML for mzML in glob.glob(mzml_path)]
     #mzml_files.sort()
 
+    if multip:
+        pool = Pool(multip)
+        
     metalist = []
     if mzml_files:
 
+        if multip:
+            metalist = pool.map(_multiparse, mzml_files)
+            pool.close()
+            pool.join()
+
+
         # get meta information for all files
-        if not verbose:
+        elif not verbose:
             pbar = pb.ProgressBar(widgets=['Parsing: ',
                                            pb.Counter(), '/', str(len(mzml_files)), 
                                            pb.Bar(marker="█", left=" |", right="| "),  
@@ -137,3 +154,6 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
     else:
     	warnings.warn("No files were found in directory."), UserWarning
     	#print("No files were found.")	
+
+if __name__ == '__main__':
+    run()

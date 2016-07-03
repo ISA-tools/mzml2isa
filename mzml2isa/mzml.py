@@ -99,7 +99,7 @@ class mzMLmeta(object):
 
         # setup lxml parsing
         self.in_file = in_file
-        self.tree = etree.parse(in_file)
+        self.tree = etree.parse(in_file, etree.XMLParser())
 
         self.build_env()
       

@@ -17,13 +17,13 @@ before_install:
   - sudo apt-get install -y libxml2-dev 
   - sudo apt-get install -y curlftpfs
   - mkdir example_files/metabolights
-  - curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
 
 install:
   - pip install lxml
   - pip install .
 
 script:
+  - curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
   - while read study; do mzml2isa -i example_files/metabolights/$study -o out_folder/metabolights -s $study; done < example_files/.mzml_studies.txt
 
 after_script:

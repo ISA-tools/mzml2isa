@@ -84,16 +84,8 @@ class mzMLmeta(object):
             "name": "electrospray ionization"
         }
     """
-    try:
-        warnings.filterwarnings('ignore')
-        obo = Ontology('http://www.berkeleybop.org/ontologies/ms.obo', False)
-    except:
-        warnings.filterwarnings('ignore')
-        obo = Ontology(os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), 
-                "psi-ms.obo"))
 
-    def __init__(self, in_file):
+    def __init__(self, in_file, ontology=None):
         """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
 
         :param str in_file: path to mzML file
@@ -103,7 +95,19 @@ class mzMLmeta(object):
         :ivar obj self.meta: Meta information in python dictionary
         :ivar obj self.meta_json: Meta information in json format
         :ivar obj self.meta_isa: Meta information with names compatible with ISA-Tab
-        """            
+        """
+        
+        if ontology is None:
+            try:
+                warnings.filterwarnings('ignore')
+                self.obo = Ontology('http://www.berkeleybop.org/ontologies/ms.obo', False)
+            except:
+                warnings.filterwarnings('ignore')
+                self.obo = Ontology(os.path.join(
+                                   os.path.dirname(os.path.realpath(__file__)), 
+                                  "psi-ms.obo"))
+        else:
+            self.obo = ontology
 
         # setup lxml parsing
         self.in_file = in_file
@@ -632,24 +636,25 @@ class imzMLmeta(mzMLmeta):
 
     
 
-    try:
-        obo = Ontology("https://raw.githubusercontent.com/beny/imzml/master/data/imagingMS.obo", True, 1)
-    except:
-        obo = Ontology(os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), 
-                "imagingMS.obo"))
 
-    def __init__(self, in_file):
+
+    def __init__(self, in_file, ontology=None):
         # Extract same informations as mzml file
-        super(imzMLmeta, self).__init__(in_file)        
 
-        #try:
-        #    self.obo = Ontology("https://raw.githubusercontent.com/beny/imzml/master/data/imagingMS.obo")
-        #except:
-        #    # change the ontology and start extracting imaging specific metadata
-        #    dirname = os.path.dirname(os.path.realpath(__file__))
-        #    obo_path = os.path.join(dirname, "imagingMS.obo")
-        #    self.obo = Ontology(obo_path)
+        if ontology is None:
+            try:
+                obo = Ontology("https://raw.githubusercontent.com/beny/imzml/master/data/imagingMS.obo", True, 1)
+            except:
+                # change the ontology and start extracting imaging specific metadata
+                dirname = os.path.dirname(os.path.realpath(__file__))
+                obo_path = os.path.join(dirname, "imagingMS.obo")
+                obo = Ontology(obo_path)
+        else:
+            obo = ontology
+
+
+        super(imzMLmeta, self).__init__(in_file, obo)        
+
 
         xpaths_meta = XPATHS_I_META
 

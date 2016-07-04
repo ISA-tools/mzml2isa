@@ -29,6 +29,7 @@ import warnings
 import json
 
 from multiprocessing.pool import Pool
+from pronto import Ontology
 
 try:
     import progressbar as pb
@@ -44,11 +45,20 @@ import mzml2isa.mzml as mzml
 PARSERS = {'.MZML': mzml.mzMLmeta,
            '.IMZML': mzml.imzMLmeta}
 
+# change the ontology and start extracting imaging specific metadata
+warnings.simplefilter('ignore')
+dirname = os.path.dirname(os.path.realpath(__file__))
+ONTOLOGIES = {'.MZML': Ontology(os.path.join(dirname, "psi-ms.obo")), 
+              '.IMZML': Ontology(os.path.join(dirname, "imagingMS.obo"))}
+
+
+
 
 def _multiparse(filepath):
             print('Parsing file: {}'.format(filepath))
             parser = PARSERS[os.path.splitext(filepath)[1].upper()]
-            return parser(filepath).meta_isa
+            ont = ONTOLOGIES[os.path.splitext(filepath)[1].upper()]
+            return parser(filepath, ont).meta_isa
 
 
 def run():
@@ -134,16 +144,18 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
             for i in pbar(mzml_files):
 
                 parser = PARSERS[os.path.splitext(i)[1].upper()]
+                ont = ONTOLOGIES[os.path.splitext(i)[1].upper()]
 
-                metalist.append(parser(i).meta_isa)
+                metalist.append(parser(i, ont).meta_isa)
 
         else:
             for i in mzml_files:
                 
                 parser = PARSERS[os.path.splitext(i)[1].upper()]
+                ont = ONTOLOGIES[os.path.splitext(i)[1].upper()]
                 
                 print("Parsing file: {}".format(i))
-                metalist.append(parser(i).meta_isa)
+                metalist.append(parser(i, ont).meta_isa)
 
         # update isa-tab file
         if metalist:

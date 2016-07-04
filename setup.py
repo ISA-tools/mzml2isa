@@ -31,13 +31,14 @@ setup(
     url='http://www.biosciences.bham.ac.uk/labs/viant/',
 
     classifiers=[
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
     "Topic :: Text Processing :: Markup :: XML",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
-    "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
+    "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Utilities",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
     ],
 

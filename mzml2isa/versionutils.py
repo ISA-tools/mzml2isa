@@ -74,6 +74,7 @@ if sys.version_info == 2:
 
 
 else:
+
     try:
         from lxml import etree
     except ImportError:

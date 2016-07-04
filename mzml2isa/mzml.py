@@ -32,7 +32,7 @@ import json
 import os
 import warnings
 
-from mzml2isa.obo import oboparse, oboTranslator
+from pronto import Ontology
 from mzml2isa.versionutils import *
 
 
@@ -84,6 +84,14 @@ class mzMLmeta(object):
             "name": "electrospray ionization"
         }
     """
+    try:
+        warnings.filterwarnings('ignore')
+        obo = Ontology('http://www.berkeleybop.org/ontologies/ms.obo', False)
+    except:
+        warnings.filterwarnings('ignore')
+        obo = Ontology(os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), 
+                "psi-ms.obo"))
 
     def __init__(self, in_file):
         """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
@@ -103,13 +111,6 @@ class mzMLmeta(object):
 
         self.build_env()
       
-
-
-        # Get controlled vocb from the obo ontology file
-        dirname = os.path.dirname(os.path.realpath(__file__))
-        obo_path = os.path.join(dirname, "psi-ms.obo")
-        self.obo = oboparse(obo_path)
-
         #initalize the meta variables
         self.meta = collections.OrderedDict()
 
@@ -199,6 +200,7 @@ class mzMLmeta(object):
         # loop though the xpaths
         for location_name, xpath in iterdict(xpaths):
 
+
             # get the elements from the xpath
             elements = pyxpath(self, xpath)
 
@@ -215,9 +217,8 @@ class mzMLmeta(object):
         :param dict terms: CV terms we want
         """
         # get associated meta information from each file
-        descendents = {k:self.obo.getDescendents(k) for k in terms[location_name]}
+        descendents = {k: self.obo[k].rchildren().id for k in terms[location_name]} #{k:self.obo.getDescendents(k) for k in terms[location_name]}
 
-        #print descendents
         c = 1
 
         # go through every cvParam element
@@ -271,9 +272,7 @@ class mzMLmeta(object):
 
         Requires looking at the hierarchy of ontological terms to get all the instrument information
         """
-        # To convert accession number to name
-        translator = oboTranslator()
-
+        
         # gets the first Instrument config (something to watch out for)
         ic_ref = pyxpath(self, XPATHS['ic_ref'])[0].attrib["ref"]
 
@@ -288,24 +287,20 @@ class mzMLmeta(object):
                 for ie in instrument_e:
 
                     # Get the instrument manufacturer
-                    if ie.attrib['accession'] in self.obo.getDescendents('MS:1000031'):
+                    if ie.attrib['accession'] in self.obo['MS:1000031'].rchildren().id:  
                         self.meta['Instrument'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name']}
 
                         # get manufacturer (actually just derived from instrument model). Want to get the top level
-                        # so have to go up (should only be a maximum of 3 steps above in the heirachy but do up 10 to be
+                        # so have to go up (should only be a maximum of 3 steps above in the heirachy but do up 8 to be
                         # sure.
                         # directly related children of the instrument model
-                        direct_c = self.obo.terms['MS:1000031']['c']
+                        direct_c = self.obo['MS:1000031'].children  
 
-                        parent = self.obo.terms[ie.attrib['accession']]['p']
+                        parents = self.obo[ie.attrib['accession']].rparents(8, True)
+                        manufacturer = next(parent for parent in parents if parent in direct_c)
 
-                        for i in range(10):
-                            # first get direct parent of the current instrument element
-                            if parent[0] in direct_c:
-                                self.meta['Instrument manufacturer'] = {'accession': parent[0], 'name':translator[parent[0]]}
-                                break
-                            else:
-                                parent = self.obo.terms[parent[0]]['p']
+                        self.meta['Instrument manufacturer'] = {'accession': manufacturer.id, 'name': manufacturer.name}
+
 
                     # get serial number
                     elif ie.attrib['accession'] == 'MS:1000529':
@@ -323,8 +318,6 @@ class mzMLmeta(object):
         in instrument/cvParam
         """
 
-        translator = oboTranslator()
-
         elements = pyxpath(self, XPATHS['ic_nest'])
 
         for i, e in enumerate(elements):
@@ -332,21 +325,21 @@ class mzMLmeta(object):
             if e.attrib['accession'] == 'MS:1000031':
                 break
 
-            elif e.attrib['accession'] in self.obo.getDescendents('MS:1000031'):
+            elif e.attrib['accession'] in self.obo['MS:1000031'].rchildren():
                 self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name']}
 
-                parent = self.obo.terms[e.attrib['accession']]['p']
+                parent = self.obo[e.attrib['accession']].parents
 
                 if parent[0] == 'MS:1000031': #case accession is just manufacturer
-                    self.meta['Instrument manufacturer'] = {'accession': e.attrib['accession'], 'name':translator[e.attrib['accession']]}
+                    self.meta['Instrument manufacturer'] = {'accession': e.attrib['accession'], 'name':self.obo[e.attrib['accession']].name}
 
                 else: #case accession is instrument model
-                    direct_c = self.obo.terms['MS:1000031']['c']
+                    direct_c = self.obo['MS:1000031'].children
 
                     for i in range(10):
                         # first get direct parent of the current instrument element
                         if parent[0] in direct_c:
-                            self.meta['Instrument manufacturer'] = {'accession': parent[0], 'name':translator[parent[0]]}
+                            self.meta['Instrument manufacturer'] = {'accession': parent[0], 'name': self.obo[parent[0]].name}
                             break
                         else:
                             #print(self.obo.terms)
@@ -530,9 +523,12 @@ class mzMLmeta(object):
 
         self.env = collections.OrderedDict()
 
-        self.ns = self.tree.getroot().nsmap
-        self.ns['s'] = self.ns[None] #{'s': self.tree.getroot().tag[1:].split("}")[0]} # namespace
-        del self.ns[None]
+        try: #lxml
+            self.ns = self.tree.getroot().nsmap
+            self.ns['s'] = self.ns[None] # namespace
+            del self.ns[None]
+        except AttributeError: #xml.(c)ElementTree
+            self.ns = {'s': self.tree.getroot().tag[1:].split("}")[0]}
         
         # Check if indexedmzML/mzML or mzML
         if isinstance(self, mzMLmeta):
@@ -634,14 +630,26 @@ XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{s
 
 class imzMLmeta(mzMLmeta):
 
+    
+
+    try:
+        obo = Ontology("https://raw.githubusercontent.com/beny/imzml/master/data/imagingMS.obo", True, 1)
+    except:
+        obo = Ontology(os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), 
+                "imagingMS.obo"))
+
     def __init__(self, in_file):
         # Extract same informations as mzml file
-        super(imzMLmeta, self).__init__(in_file)
+        super(imzMLmeta, self).__init__(in_file)        
 
-        # change the ontology and start extracting imaging specific metadata
-        dirname = os.path.dirname(os.path.realpath(__file__))
-        obo_path = os.path.join(dirname, "imagingMS.obo")
-        self.obo = oboparse(obo_path)
+        #try:
+        #    self.obo = Ontology("https://raw.githubusercontent.com/beny/imzml/master/data/imagingMS.obo")
+        #except:
+        #    # change the ontology and start extracting imaging specific metadata
+        #    dirname = os.path.dirname(os.path.realpath(__file__))
+        #    obo_path = os.path.join(dirname, "imagingMS.obo")
+        #    self.obo = Ontology(obo_path)
 
         xpaths_meta = XPATHS_I_META
 

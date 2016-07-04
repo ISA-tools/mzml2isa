@@ -21,9 +21,9 @@ setup(
     author_email= 'tnl495@bham.ac.uk',
 
     description="mzml2isa - mzML to ISA-tab parsing tool",
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     
-    install_requires=[],
+    install_requires=['pronto'],
     extras_require={ 'extras': ['lxml', 'progressbar2'] },
 
     include_package_data=True,

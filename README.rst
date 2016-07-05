@@ -4,7 +4,7 @@ mzml2isa
 Parser to get meta information from mzML file and parse relevant information to a ISA-Tab structure
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-|Version| |Build Status| |Py versions| |License|
+|Version| |Py versions| |Git| |Build Status| |License|
 
 Overview
 --------
@@ -42,7 +42,7 @@ source :
 
 .. code:: bash
 
-    git clone git://github.com/althonos/mzml2isa && cd mzml2isa 
+    git clone git://github.com/althonos/mzml2isa && cd mzml2isa
     python3 setup.py install
 
 mzml2isa has 2 optional dependencies: ``progressbar2`` and ``lxml``, the
@@ -127,30 +127,32 @@ studies.
 Workflow
 --------
 
-.. figure:: https://github.com/Tomnl/mzml_2_isa/blob/master/isa_config/mzml2isa.png
-   :alt: alt tag
-
-   alt tag
+.. figure:: https://raw.githubusercontent.com/Tomnl/mzml2isa/master/isa_config/mzml2isa.png
+   :alt: workflow
 
 Ref
 ---
 
-A modified version of the ontology extraction from this blog[1] was
-used, and a slightly modified class from pymzml[2]
+A modified version of the ontology extraction from this blog[1]_ was
+used, and a slightly modified class from pymzml[2]_
 
-[1] http://blog.nextgenetics.net/?e=6 
-[2] http://pymzml.github.io/
+.. [#] http://blog.nextgenetics.net/?e=6
+.. [#] http://pymzml.github.io/
 
 
-.. |Build Status| image:: https://img.shields.io/travis/althonos/mzml2isa.svg?style=flat&maxAge=3600
+.. |Build Status| image:: https://img.shields.io/travis/althonos/mzml2isa.svg?style=flat&maxAge=2592000
    :target: https://travis-ci.org/althonos/mzml2isa
 
-.. |Py versions| image:: https://img.shields.io/pypi/pyversions/mzml2isa.svg?style=flat&maxAge=3600
-   :target: https://pypi.python.org/pypi/pronto/
+.. |Py versions| image:: https://img.shields.io/pypi/pyversions/mzml2isa.svg?style=flat&maxAge=2592000
+   :target: https://pypi.python.org/pypi/mzml2isa/
 
-.. |Version| image:: https://img.shields.io/pypi/v/mzml2isa.svg?style=flat&maxAge=3600
+.. |Version| image:: https://img.shields.io/pypi/v/mzml2isa.svg?style=flat&maxAge=2592000
+   :target: https://pypi.python.org/pypi/mzml2isa/
 
-.. |License| image:: https://img.shields.io/pypi/l/mzml2isa.svg&maxAge=3600
+.. |Git| image:: https://img.shields.io/badge/repository-GitHub-blue.svg?style=flat&maxAge=2592000
+   :target: https://github.com/althonos/mzml2isa
+
+.. |License| image:: https://img.shields.io/pypi/l/mzml2isa.svg?style=flat&maxAge=2592000
    :target: https://www.gnu.org/licenses/gpl-3.0.html
 
 

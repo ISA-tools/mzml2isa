@@ -1,8 +1,8 @@
 """
 Content
 -----------------------------------------------------------------------------
-This module contains a single class, mzMLmeta, which is used to parse and 
-serialize an mzML file into a Python dictionnary. This class was slightly 
+This module contains a single class, mzMLmeta, which is used to parse and
+serialize an mzML file into a Python dictionnary. This class was slightly
 modified from the pymzml implementation[1]_.
 
 Following features are implemented but were commented out:
@@ -17,9 +17,9 @@ Reference:
 
 About
 -----------------------------------------------------------------------------
-The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK) 
+The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
 as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and small enhancements were carried out by Martin Larralde (ENS Cachan, 
+port and small enhancements were carried out by Martin Larralde (ENS Cachan,
 France) in June 2016 during an internship at the EBI Cambridge.
 
 License
@@ -68,10 +68,10 @@ XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:refe
 class mzMLmeta(object):
     """ Class to store and obtain the meta information from the mzML file
 
-    The class uses the xpaths of mzML locations and then extracts meta 
-    information at these locations. The meta info taken is determined by the 
-    ontology terms and a set of rules associated with that term e.g. if it 
-    can be repeated, if has associated software if it has a value as well 
+    The class uses the xpaths of mzML locations and then extracts meta
+    information at these locations. The meta info taken is determined by the
+    ontology terms and a set of rules associated with that term e.g. if it
+    can be repeated, if has associated software if it has a value as well
     as name.
 
     Creates a dictionary of meta information and a JSON structure e.g::
@@ -96,7 +96,7 @@ class mzMLmeta(object):
         :ivar obj self.meta_json: Meta information in json format
         :ivar obj self.meta_isa: Meta information with names compatible with ISA-Tab
         """
-        
+
         if ontology is None:
             try:
                 warnings.filterwarnings('ignore')
@@ -104,7 +104,7 @@ class mzMLmeta(object):
             except:
                 warnings.filterwarnings('ignore')
                 self.obo = Ontology(os.path.join(
-                                   os.path.dirname(os.path.realpath(__file__)), 
+                                   os.path.dirname(os.path.realpath(__file__)),
                                   "psi-ms.obo"))
         else:
             self.obo = ontology
@@ -114,7 +114,7 @@ class mzMLmeta(object):
         self.tree = etree.parse(in_file, etree.XMLParser())
 
         self.build_env()
-      
+
         #initalize the meta variables
         self.meta = collections.OrderedDict()
 
@@ -181,7 +181,7 @@ class mzMLmeta(object):
         #
         self.scan_num()
 
-        # 
+        #
         self.derived()
 
         #
@@ -232,9 +232,9 @@ class mzMLmeta(object):
 
                 # check if the element is one of the terms we are looking for
                 if e.attrib['accession'] in descendents[accession]:
-                    
+
                     meta_name = info['name']
-                    
+
                     # Check if there can be more than one of the same term
                     if(info['plus1']):
                         # Setup the dictionary for multiple entries
@@ -261,7 +261,7 @@ class mzMLmeta(object):
 
                     # Check if there is expected associated software
                     if (info['soft']):
-                        
+
                         try: # softwareRef in <Processing Method>
                             soft_ref = getparent(e, self.tree).attrib['softwareRef']
                         except KeyError: # softwareRef in <DataProcessing>
@@ -276,12 +276,12 @@ class mzMLmeta(object):
 
         Requires looking at the hierarchy of ontological terms to get all the instrument information
         """
-        
+
         # gets the first Instrument config (something to watch out for)
         ic_ref = pyxpath(self, XPATHS['ic_ref'])[0].attrib["ref"]
 
         elements = pyxpath(self, XPATHS['ic_elements'])
-        
+
         # Loop through xml elements
         for e in elements:
             # get all CV information from the instrument config
@@ -291,17 +291,16 @@ class mzMLmeta(object):
                 for ie in instrument_e:
 
                     # Get the instrument manufacturer
-                    if ie.attrib['accession'] in self.obo['MS:1000031'].rchildren().id:  
+                    if ie.attrib['accession'] in self.obo['MS:1000031'].rchildren().id:
                         self.meta['Instrument'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name']}
 
                         # get manufacturer (actually just derived from instrument model). Want to get the top level
                         # so have to go up (should only be a maximum of 3 steps above in the heirachy but do up 8 to be
                         # sure.
                         # directly related children of the instrument model
-                        direct_c = self.obo['MS:1000031'].children  
 
-                        parents = self.obo[ie.attrib['accession']].rparents(8, True)
-                        manufacturer = next(parent for parent in parents if parent in direct_c)
+                        parents = self.obo[ie.attrib['accession']].rparents()#8, True)
+                        manufacturer = next(parent for parent in parents if parent in self.obo['MS:1000031'].children)
 
                         self.meta['Instrument manufacturer'] = {'accession': manufacturer.id, 'name': manufacturer.name}
 
@@ -310,9 +309,9 @@ class mzMLmeta(object):
                     elif ie.attrib['accession'] == 'MS:1000529':
                         self.meta['Instrument serial number'] = {'value': ie.attrib['value']}
 
-        
+
         soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib[self.env['softwareRef']]
-        
+
         # Get associated software
         self.software(soft_ref, 'Instrument')
 
@@ -325,7 +324,7 @@ class mzMLmeta(object):
         elements = pyxpath(self, XPATHS['ic_nest'])
 
         for i, e in enumerate(elements):
-            
+
             if e.attrib['accession'] == 'MS:1000031':
                 break
 
@@ -353,12 +352,12 @@ class mzMLmeta(object):
                 self.meta['Instrument serial number'] = {'value': e.attrib['value']}
 
 
-        try: 
+        try:
             soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib[self.env['softwareRef']]
             # Get associated software
             self.software(soft_ref, 'Instrument')
         except (IndexError, KeyError): #Sometimes <Instrument> contains no Software tag
-            warnings.warn("Instrument {} does not have a software tag.".format( self.meta['Instrument']['name'] 
+            warnings.warn("Instrument {} does not have a software tag.".format( self.meta['Instrument']['name']
                                                                                 if 'Instrument' in self.meta.keys()
                                                                                 else "<"+self.meta['Instrument serial number']+">"
                                                                                 if 'Instrument serial number' in self.meta.keys()
@@ -382,13 +381,13 @@ class mzMLmeta(object):
             if e.attrib['id'] == soft_ref:
 
                 try: # <Softwarelist <Software <cvParam>>>
-                   
+
                     #!# if e.attrib['version']:
                     #!#     self.meta[name+' software version'] = {'value': e.attrib['version']}
                     software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
                     for ie in software_cvParam:
                         self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
-                
+
                 except KeyError:  # <SoftwareList <software <softwareParam>>>
 
                     params = e.find('s:softwareParam', namespaces=self.ns)
@@ -400,7 +399,7 @@ class mzMLmeta(object):
     def derived(self):
         """ Get the derived meta information. Updates the self.meta dictionary"""
 
-        cv = pyxpath(self, XPATHS['cv'])[0].attrib[self.env["cvLabel"]]            
+        cv = pyxpath(self, XPATHS['cv'])[0].attrib[self.env["cvLabel"]]
 
         if not 'MS' in cv:
             warnings.warn("Standard controlled vocab not available. Can not parse.", UserWarning)
@@ -418,7 +417,7 @@ class mzMLmeta(object):
 
         in_dir = os.path.dirname(self.in_file)
 
-        
+
         self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
         self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
         self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name
@@ -449,7 +448,7 @@ class mzMLmeta(object):
 
 
     def timerange(self):
-        
+
         try:
             scan_cv =  pyxpath(self, XPATHS['scan_cv'])
 
@@ -458,12 +457,12 @@ class mzMLmeta(object):
             minrt = str(round(min(time),4))
             maxrt = str(round(max(time),4))
             timerange = minrt + "-" + maxrt
-        
+
         except ValueError:
             # THIS IS NOT SOMETHING TO BE WARNED ABOUT
             # warnings.warn("Could not find any time range.", UserWarning)
             timerange = ''
-        
+
         self.meta['Time range'] = {'value': timerange}
 
 
@@ -478,11 +477,11 @@ class mzMLmeta(object):
                     minmz_l.append(float(i.attrib['value']))
                 if i.attrib['accession'] == 'MS:1000500':
                     maxmz_l.append(float(i.attrib['value']))
-            
+
             minmz = str(int(min(minmz_l)))
             maxmz = str(int(max(maxmz_l)))
             mzrange = minmz + "-" + maxmz
-        
+
         except ValueError: #Case with windowed target
             if not isinstance(self, imzMLmeta): #Warn only if parsing a mzML file
                 warnings.warn("Could not find any m/z range.", UserWarning)
@@ -520,8 +519,8 @@ class mzMLmeta(object):
                 for index, entry in iterdict(self.meta[meta_name]['entry_list']):
                     if 'accession' in entry.keys():
                         if entry['accession'].startswith('MS'):
-                            entry['accession'] = "http://purl.obolibrary.org/obo/" + entry['accession'].replace(':', '_')                
-            
+                            entry['accession'] = "http://purl.obolibrary.org/obo/" + entry['accession'].replace(':', '_')
+
 
     def build_env(self):
 
@@ -533,7 +532,7 @@ class mzMLmeta(object):
             del self.ns[None]
         except AttributeError: #xml.(c)ElementTree
             self.ns = {'s': self.tree.getroot().tag[1:].split("}")[0]}
-        
+
         # Check if indexedmzML/mzML or mzML
         if isinstance(self, mzMLmeta):
             if self.tree.find('./s:mzML', self.ns) is None :
@@ -589,19 +588,19 @@ class mzMLmeta(object):
         elif self.tree.find('{root}/{instrument}List/{instrument}/s:instrumentSoftwareRef[@ref]'.format(**self.env), self.ns) is not None:
             self.env['software'] = 's:instrumentSoftwareRef'
             self.env['softwareRef'] = 'ref'
-      
+
         # check if instrument serial is in instrument or refereceableParam
         if self.tree.find('{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@accession="MS:1000529"]'.format(**self.env), self.ns) is not None:
             self.instrument = self._instrument_byref
         #if self.tree.find('{root}/{instrument}List/{instrument}/s:cvParam[@accession="MS:1000529"]'.format(**self.env), self.ns) is not None:
         else:
             self.instrument = self._instrument_nested
-        
-        
+
+
     @property
     def meta_json(self):
         return json.dumps(self.meta, indent=4, sort_keys=True)
-    
+
     @property
     def meta_isa(self):
         keep = ["data transformation", "data transformation software version", "data transformation software",
@@ -615,16 +614,16 @@ class mzMLmeta(object):
             else:
                 #print(meta_name)
                 meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]
-        
+
         return meta_isa
-    
+
     @property
     def meta_isa_json(self):
         return json.dumps(self.meta_isa, indent=4, sort_keys=True)
-    
 
 
-XPATHS_I_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cvParam',                 
+
+XPATHS_I_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cvParam',
                  'scan_settings':     '{root}/s:scanSettingsList/s:scanSettings/s:cvParam',
                 }
 
@@ -634,7 +633,7 @@ XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{s
 
 class imzMLmeta(mzMLmeta):
 
-    
+
 
 
 
@@ -653,7 +652,7 @@ class imzMLmeta(mzMLmeta):
             obo = ontology
 
 
-        super(imzMLmeta, self).__init__(in_file, obo)        
+        super(imzMLmeta, self).__init__(in_file, obo)
 
 
         xpaths_meta = XPATHS_I_META
@@ -676,7 +675,7 @@ class imzMLmeta(mzMLmeta):
         }
 
         self.extract_meta(terms, xpaths_meta)
-        
+
         self.meta['Raw Spectral Data File'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0] \
                                                             + os.path.extsep + 'ibd'}
         self.meta['Low-res image'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0] \
@@ -685,7 +684,7 @@ class imzMLmeta(mzMLmeta):
 
 if __name__ == '__main__':
     import sys
-    
+
     if sys.argv[-1].endswith('.imzML'):
         print(imzMLmeta(sys.argv[-1]).meta_json)
     else:

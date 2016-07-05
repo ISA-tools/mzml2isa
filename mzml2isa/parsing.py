@@ -8,9 +8,9 @@ Python program via the **full_parse** function which works the same.
 
 About
 -----------------------------------------------------------------------------
-The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK) 
+The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
 as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and small enhancements were carried out by Martin Larralde (ENS Cachan, 
+port and small enhancements were carried out by Martin Larralde (ENS Cachan,
 France) in June 2016 during an internship at the EBI Cambridge.
 
 License
@@ -42,16 +42,16 @@ import mzml2isa.mzml as mzml
 
 
 
-PARSERS = {'.MZML': mzml.mzMLmeta,
+_PARSERS = {'.MZML': mzml.mzMLmeta,
            '.IMZML': mzml.imzMLmeta}
 
 # change the ontology and start extracting imaging specific metadata
 warnings.simplefilter('ignore')
 dirname = os.path.dirname(os.path.realpath(__file__))
-ONTOLOGIES = {'.MZML': Ontology(os.path.join(dirname, "psi-ms.obo")), 
-              '.IMZML': Ontology(os.path.join(dirname, "imagingMS.obo"))}
-
-
+_ONTOLOGIES = {'.MZML': Ontology(os.path.join(dirname, "psi-ms.obo"), False),
+               '.IMZML': Ontology(os.path.join(dirname, "imagingMS.obo"), False)}
+_ONTOLOGIES['.IMZML'].merge(_ONTOLOGIES['.MZML'])
+del dirname
 
 
 def _multiparse(filepath):
@@ -81,12 +81,12 @@ def run():
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
                          required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
-	
-    if PB_AVAILABLE:	
+
+    if PB_AVAILABLE:
         p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
 
     args = p.parse_args()
-    
+
     if not PB_AVAILABLE:
         setattr(args, 'verbose', True)
 
@@ -98,8 +98,8 @@ def run():
     with warnings.catch_warnings():
         warnings.filterwarnings(args.wrng_ctrl)
 
-        full_parse(args.in_dir, args.out_dir, args.study_name, 
-                   args.usermeta if args.usermeta else {}, 
+        full_parse(args.in_dir, args.out_dir, args.study_name,
+                   args.usermeta if args.usermeta else {},
                    args.split, args.verbose, args.multip)
 
 
@@ -107,7 +107,7 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
     """ Parses every study from *in_dir* and then creates ISA files.
 
 	A new folder is created in the out directory bearing the name of
-	the study identifier. 
+	the study identifier.
 
     :param str in_dir: 			 path to directory containing studies
     :param str out_dir:          path to out directory
@@ -116,7 +116,7 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
 
     # get mzML file in the example_files folder
     mzml_path = os.path.join(in_dir, "*mzML")
-    
+
     if verbose:
     	print(mzml_path)
 
@@ -125,7 +125,7 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
 
     if multip:
         pool = Pool(multip)
-        
+
     metalist = []
     if mzml_files:
 
@@ -138,22 +138,22 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
         # get meta information for all files
         elif not verbose:
             pbar = pb.ProgressBar(widgets=['Parsing: ',
-                                           pb.Counter(), '/', str(len(mzml_files)), 
-                                           pb.Bar(marker="█", left=" |", right="| "),  
+                                           pb.Counter(), '/', str(len(mzml_files)),
+                                           pb.Bar(marker="█", left=" |", right="| "),
                                            pb.ETA()])
             for i in pbar(mzml_files):
 
-                parser = PARSERS[os.path.splitext(i)[1].upper()]
-                ont = ONTOLOGIES[os.path.splitext(i)[1].upper()]
+                parser = _PARSERS[os.path.splitext(i)[1].upper()]
+                ont = _ONTOLOGIES[os.path.splitext(i)[1].upper()]
 
                 metalist.append(parser(i, ont).meta_isa)
 
         else:
             for i in mzml_files:
-                
-                parser = PARSERS[os.path.splitext(i)[1].upper()]
-                ont = ONTOLOGIES[os.path.splitext(i)[1].upper()]
-                
+
+                parser = _PARSERS[os.path.splitext(i)[1].upper()]
+                ont = _ONTOLOGIES[os.path.splitext(i)[1].upper()]
+
                 print("Parsing file: {}".format(i))
                 metalist.append(parser(i, ont).meta_isa)
 
@@ -162,10 +162,10 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
             if verbose:
                 print("Parse mzML meta information into ISA-Tab structure")
             isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer, usermeta, split)
-    
+
     else:
     	warnings.warn("No files were found in directory."), UserWarning
-    	#print("No files were found.")	
+    	#print("No files were found.")
 
 if __name__ == '__main__':
     run()

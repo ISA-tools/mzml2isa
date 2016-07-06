@@ -98,11 +98,10 @@ class mzMLmeta(object):
         """
 
         if ontology is None:
+            warnings.simplefilter('ignore')
             try:
-                warnings.filterwarnings('ignore')
                 self.obo = Ontology('http://www.berkeleybop.org/ontologies/ms.obo', False)
             except:
-                warnings.filterwarnings('ignore')
                 self.obo = Ontology(os.path.join(
                                    os.path.dirname(os.path.realpath(__file__)),
                                   "psi-ms.obo"))
@@ -137,7 +136,7 @@ class mzMLmeta(object):
 
         terms['source_file'] = {
             'MS:1000767': {'attribute': False, 'name':'Native spectrum identifier format', 'plus1': False, 'value':False, 'soft': False},
-        #!# 'MS:1000561': {'attribute': False, 'name':'data file checksum type', 'plus1': True, 'value':True, 'soft': False},
+            'MS:1000561': {'attribute': False, 'name':'data file checksum type', 'plus1': True, 'value':True, 'soft': False},
             'MS:1000560': {'attribute': False, 'name':'Raw data file format', 'plus1': False, 'value':False, 'soft': False},
         }
 
@@ -382,8 +381,8 @@ class mzMLmeta(object):
 
                 try: # <Softwarelist <Software <cvParam>>>
 
-                    #!# if e.attrib['version']:
-                    #!#     self.meta[name+' software version'] = {'value': e.attrib['version']}
+                    if e.attrib['version']:
+                        self.meta[name+' software version'] = {'value': e.attrib['version']}
                     software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
                     for ie in software_cvParam:
                         self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
@@ -391,8 +390,8 @@ class mzMLmeta(object):
                 except KeyError:  # <SoftwareList <software <softwareParam>>>
 
                     params = e.find('s:softwareParam', namespaces=self.ns)
-                    #!# if params.attrib['version']:
-                    #!#     self.meta[name+' software version'] = {'value': params.attrib['version']}
+                    if params.attrib['version']:
+                        self.meta[name+' software version'] = {'value': params.attrib['version']}
                     self.meta[name+' software'] = {'accession':params.attrib['accession'], 'name':params.attrib['name']}
 
 
@@ -641,18 +640,19 @@ class imzMLmeta(mzMLmeta):
         # Extract same informations as mzml file
 
         if ontology is None:
+            warnings.simplefilter('ignore')
             try:
-                obo = Ontology("https://raw.githubusercontent.com/beny/imzml/master/data/imagingMS.obo", True, 1)
+                self.obo = Ontology("https://raw.githubusercontent.com/beny/imzml/master/data/imagingMS.obo")
             except:
+                print('yogi')
                 # change the ontology and start extracting imaging specific metadata
                 dirname = os.path.dirname(os.path.realpath(__file__))
                 obo_path = os.path.join(dirname, "imagingMS.obo")
-                obo = Ontology(obo_path)
+                self.obo = Ontology(obo_path)
         else:
-            obo = ontology
+            self.obo = ontology
 
-
-        super(imzMLmeta, self).__init__(in_file, obo)
+        super(imzMLmeta, self).__init__(in_file, self.obo)
 
 
         xpaths_meta = XPATHS_I_META

@@ -48,9 +48,16 @@ _PARSERS = {'.MZML': mzml.mzMLmeta,
 # change the ontology and start extracting imaging specific metadata
 warnings.simplefilter('ignore')
 dirname = os.path.dirname(os.path.realpath(__file__))
-_ONTOLOGIES = {'.MZML': Ontology(os.path.join(dirname, "psi-ms.obo"), False),
-               '.IMZML': Ontology(os.path.join(dirname, "imagingMS.obo"), False)}
-_ONTOLOGIES['.IMZML'].merge(_ONTOLOGIES['.MZML'])
+
+
+_ms = Ontology(os.path.join(dirname, "psi-ms.obo"), False)
+_ims = Ontology(os.path.join(dirname, "imagingMS.obo"), False)
+_ims.merge(_ms)
+
+
+_ONTOLOGIES = {'.MZML': _ms,
+               '.IMZML': _ims }
+#_ONTOLOGIES['.IMZML'].merge(_ONTOLOGIES['.MZML'])
 del dirname
 
 
@@ -142,17 +149,19 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
                                            pb.Bar(marker="█", left=" |", right="| "),
                                            pb.ETA()])
             for i in pbar(mzml_files):
-
-                parser = _PARSERS[os.path.splitext(i)[1].upper()]
-                ont = _ONTOLOGIES[os.path.splitext(i)[1].upper()]
-
+                ext = os.path.splitext(i)[1].upper()
+		
+                parser = _PARSERS[ext]
+                ont = _ONTOLOGIES[ext]
+		
                 metalist.append(parser(i, ont).meta_isa)
 
         else:
             for i in mzml_files:
+                ext = os.path.splitext(i)[1].upper()
 
-                parser = _PARSERS[os.path.splitext(i)[1].upper()]
-                ont = _ONTOLOGIES[os.path.splitext(i)[1].upper()]
+                parser = _PARSERS[ext]
+                ont = _ONTOLOGIES[ext]
 
                 print("Parsing file: {}".format(i))
                 metalist.append(parser(i, ont).meta_isa)

@@ -435,13 +435,13 @@ class mzMLmeta(object):
                 neg = True
 
         if pos & neg:
-            polarity = "positive/negative"
+            polarity = "alternating"
         elif pos:
             polarity = "positive"
         elif neg:
             polarity = "negative"
         else:
-            polarity = "Not determined"
+            polarity = "n/a"
 
         self.meta['Scan polarity'] = {'value': polarity}
 

@@ -3,7 +3,7 @@ language: python
 python:
   - "3.5"
 env:
-  - STUDY=MTBLS267    TYPE=
+  - STUDY=MTBLS267
   - STUDY=MTBLS266
   - STUDY=MTBLS273
   - STUDY=MTBLS32
@@ -45,9 +45,9 @@ before_script:
 script:
   - mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
   - >
-  java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp "ISA-validator-1.6.5/isatools_deps.jar"
-  org.isatools.isatab.manager.SimpleManager "validate" "out_folder/metabolights/${STUDY}"
-  "ISAcreatorMetaboLights/Configurations/MetaboLightsConfig20140506/"
+    java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp "ISA-validator-1.6.5/isatools_deps.jar"
+    org.isatools.isatab.manager.SimpleManager "validate" "out_folder/metabolights/${STUDY}"
+    "ISAcreatorMetaboLights/Configurations/MetaboLightsConfig20140506/"
 
 after_script:
   - fusermount -u example_files/metabolights

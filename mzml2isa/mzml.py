@@ -43,6 +43,7 @@ XPATHS_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cv
                'analyzer':          '{root}/{instrument}List/{instrument}/s:componentList/s:analyzer/s:cvParam',
                'detector':          '{root}/{instrument}List/{instrument}/s:componentList/s:detector/s:cvParam',
                'data_processing':   '{root}/s:dataProcessingList/s:dataProcessing/s:processingMethod/s:cvParam',
+               'contact':           '{root}/s:fileDescription/s:contact/s:cvParam',
               }
 
 
@@ -58,10 +59,6 @@ XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:refe
                'cv':                '{root}/s:cvList/s:cv[@{cvLabel}]',
                'raw_file':          '{root}/s:fileDescription/s:sourceFileList/s:sourceFile[@{filename}]',
               }
-
-
-
-
 
 
 
@@ -110,6 +107,7 @@ class mzMLmeta(object):
 
         # setup lxml parsing
         self.in_file = in_file
+        self.in_dir = os.path.dirname(in_file)
         self.tree = etree.parse(in_file, etree.XMLParser())
 
         self.build_env()
@@ -140,6 +138,14 @@ class mzMLmeta(object):
             'MS:1000560': {'attribute': False, 'name':'Raw data file format', 'plus1': False, 'value':False, 'soft': False},
         }
 
+        terms['contact'] = {
+            'MS:1000586': {'attribute': False, 'name': 'Contact name', 'plus1':False, 'value':True, 'soft':False},
+            'MS:1000587': {'attribute': False, 'name': 'Contact adress', 'plus1':False, 'value':True, 'soft':False},
+            'MS:1000588': {'attribute': False, 'name': 'Contact url', 'plus1':False, 'value':True, 'soft':False},
+            'MS:1000589': {'attribute': False, 'name': 'Contact email', 'plus1':False, 'value':True, 'soft':False},
+            'MS:1000590': {'attribute': False, 'name': 'Contact affiliation', 'plus1':False, 'value':True, 'soft':False},
+        }
+
         terms['ionization'] = {
                 'MS:1000482': {'attribute': True, 'name':'source_attribute', 'plus1': True, 'value':True, 'soft': False},
                 'MS:1000008': {'attribute': False, 'name':'Ion source', 'plus1': False, 'value':False, 'soft': False},
@@ -159,7 +165,7 @@ class mzMLmeta(object):
 
         terms['data_processing'] = {
                 'MS:1000630': {'attribute': True, 'name':'data_processing_parameter', 'plus1': True, 'value': True, 'soft': True},
-                'MS:1000452': {'attribute': False, 'name':'data transformation', 'plus1': True, 'value': False, 'soft': True},
+                'MS:1000452': {'attribute': False, 'name':'Data Transformation', 'plus1': True, 'value': False, 'soft': True},
         }
 
         # update self.meta with the relevant meta infromation
@@ -187,7 +193,9 @@ class mzMLmeta(object):
         self.urlize()
 
         # Get the isa_tab compatible meta dictionary
-        self.isa_tab_compatible()
+
+        self.meta['Data Transformation Name'] = self.meta['Data Transformation']
+        del self.meta['Data Transformation']
 
     def extract_meta(self, terms, xpaths):
         """ Extract meta information for CV terms based on their location in the xml file
@@ -210,8 +218,6 @@ class mzMLmeta(object):
             # loop through the elements and see if the terms are found
             self.cvParam_loop(elements, location_name, terms)
 
-
-
     def cvParam_loop(self, elements, location_name, terms):
         """ loop through the elements and see if the terms are found. If they are update the self.meta dict
 
@@ -220,9 +226,9 @@ class mzMLmeta(object):
         :param dict terms: CV terms we want
         """
         # get associated meta information from each file
-        descendents = {k: self.obo[k].rchildren().id for k in terms[location_name]} #{k:self.obo.getDescendents(k) for k in terms[location_name]}
+        descendents = {k: self.obo[k].rchildren().id for k in terms[location_name]}
 
-        c = 1
+        c = 0
 
         # go through every cvParam element
         for e in elements:
@@ -230,17 +236,22 @@ class mzMLmeta(object):
             for accession, info in iterdict(terms[location_name]):
 
                 # check if the element is one of the terms we are looking for
-                if e.attrib['accession'] in descendents[accession]:
+                if e.attrib['accession'] in descendents[accession] or e.attrib['accession']==accession:
 
                     meta_name = info['name']
 
                     # Check if there can be more than one of the same term
                     if(info['plus1']):
                         # Setup the dictionary for multiple entries
-                        try:
-                            self.meta[meta_name]['entry_list'][c] = {'accession':e.attrib['accession'], 'name':e.attrib['name']}
-                        except KeyError:
-                            self.meta[meta_name] = {'entry_list':{c:{'accession':e.attrib['accession'], 'name':e.attrib['name']}}}
+                        if not meta_name in self.meta.keys():
+                            self.meta[meta_name] = {'entry_list': []}
+                        self.meta[meta_name]['entry_list'].append( {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']} )
+
+                        if 'unitName' in e.attrib:
+                            self.meta[meta_name]['entry_list'][-1]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
+                                                                                'accession': e.attrib['unitAccession']}
+
+
                         # Check if a value is associated with this CV
                         if (info['value']):
                             self.meta[meta_name]['entry_list'][c]['value'] = e.attrib['value']
@@ -249,14 +260,22 @@ class mzMLmeta(object):
 
                         if 'name' in info.keys():
                             # Standard CV with only with entry
-                            self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name']}
+                            self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']}
+
+
+                            if 'unitName' in e.attrib:
+                                self.meta[meta_name]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
+                                                                'accession': e.attrib['unitAccession']}
+
                             # Check if value associated
                             if (info['value']):
                                 self.meta[meta_name]['value'] = e.attrib['value']
                                 # remove name and accession if only the value is interesting
-                                if self.meta[meta_name]['name'] == meta_name:
-                                    del self.meta[meta_name]['name']
-                                    del self.meta[meta_name]['accession']
+                                #if self.meta[meta_name]['name'].upper() == meta_name.upper():
+                                #    del self.meta[meta_name]['name']
+                                #    del self.meta[meta_name]['accession']
+
+
 
                     # Check if there is expected associated software
                     if (info['soft']):
@@ -291,18 +310,20 @@ class mzMLmeta(object):
 
                     # Get the instrument manufacturer
                     if ie.attrib['accession'] in self.obo['MS:1000031'].rchildren().id:
-                        self.meta['Instrument'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name']}
+                        self.meta['Instrument'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name'],
+                                                   'ref':ie.attrib['cvRef']}
 
                         # get manufacturer (actually just derived from instrument model). Want to get the top level
                         # so have to go up (should only be a maximum of 3 steps above in the heirachy but do up 8 to be
                         # sure.
                         # directly related children of the instrument model
 
-                        parents = self.obo[ie.attrib['accession']].rparents()#8, True)
+                        parents = self.obo[ie.attrib['accession']].rparents()
+                        parents.append(self.obo[ie.attrib['accession']])
                         manufacturer = next(parent for parent in parents if parent in self.obo['MS:1000031'].children)
 
-                        self.meta['Instrument manufacturer'] = {'accession': manufacturer.id, 'name': manufacturer.name}
-
+                        self.meta['Instrument manufacturer'] = {'accession': manufacturer.id, 'name': manufacturer.name,
+                                                                'ref':manufacturer.id.split(':')[0]}
 
                     # get serial number
                     elif ie.attrib['accession'] == 'MS:1000529':
@@ -327,25 +348,17 @@ class mzMLmeta(object):
             if e.attrib['accession'] == 'MS:1000031':
                 break
 
+
             elif e.attrib['accession'] in self.obo['MS:1000031'].rchildren():
-                self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name']}
+                self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name'],
+                                           'ref':e.attrib['cvRef']}
 
-                parent = self.obo[e.attrib['accession']].parents
+                parents = self.obo[e.attrib['accession']].rparents()
+                parents.append(self.obo[e.attrib['accession']])
+                manufacturer = next(parent for parent in parents if parent in self.obo['MS:1000031'].children)
 
-                if parent[0] == 'MS:1000031': #case accession is just manufacturer
-                    self.meta['Instrument manufacturer'] = {'accession': e.attrib['accession'], 'name':self.obo[e.attrib['accession']].name}
-
-                else: #case accession is instrument model
-                    direct_c = self.obo['MS:1000031'].children
-
-                    for i in range(10):
-                        # first get direct parent of the current instrument element
-                        if parent[0] in direct_c:
-                            self.meta['Instrument manufacturer'] = {'accession': parent[0], 'name': self.obo[parent[0]].name}
-                            break
-                        else:
-                            #print(self.obo.terms)
-                            parent = self.obo.terms[parent[0]]['p']
+                self.meta['Instrument manufacturer'] = {'accession': manufacturer.id, 'name': manufacturer.name,
+                                                        'ref':manufacturer.id.split(':')[0]}
 
             elif e.attrib['accession'] == 'MS:1000529':
                 self.meta['Instrument serial number'] = {'value': e.attrib['value']}
@@ -362,8 +375,6 @@ class mzMLmeta(object):
                                                                                 if 'Instrument serial number' in self.meta.keys()
                                                                                 else '?'),
                            UserWarning)
-
-
 
     def software(self, soft_ref, name):
         """ Get associated software of cv term. Updates the self.meta dictionary
@@ -385,15 +396,16 @@ class mzMLmeta(object):
                         self.meta[name+' software version'] = {'value': e.attrib['version']}
                     software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
                     for ie in software_cvParam:
-                        self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name']}
+                        self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name'],
+                                                       'ref': ie.attrib['cvRef']}
 
                 except KeyError:  # <SoftwareList <software <softwareParam>>>
 
                     params = e.find('s:softwareParam', namespaces=self.ns)
                     if params.attrib['version']:
                         self.meta[name+' software version'] = {'value': params.attrib['version']}
-                    self.meta[name+' software'] = {'accession':params.attrib['accession'], 'name':params.attrib['name']}
-
+                    self.meta[name+' software'] = {'accession':params.attrib['accession'], 'name':params.attrib['name'],
+                                                   'ref': params.attrib['cvRef']}
 
     def derived(self):
         """ Get the derived meta information. Updates the self.meta dictionary"""
@@ -414,12 +426,10 @@ class mzMLmeta(object):
         except IndexError:
             warnings.warn("Could not find any metadata about Raw Spectral Data File", UserWarning)
 
-        in_dir = os.path.dirname(self.in_file)
-
 
         self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
-        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)} # mzML file name
-        self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name
+        self.meta['Derived Spectral Data File'] = {'entry_list': [{'value': os.path.basename(self.in_file)}] } # mzML file name
+        self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name w/o extension
 
     def polarity(self):
 
@@ -445,7 +455,6 @@ class mzMLmeta(object):
 
         self.meta['Scan polarity'] = {'value': polarity}
 
-
     def timerange(self):
 
         try:
@@ -463,7 +472,6 @@ class mzMLmeta(object):
             timerange = ''
 
         self.meta['Time range'] = {'value': timerange}
-
 
     def mzrange(self):
         try: #case with detection range
@@ -488,38 +496,21 @@ class mzMLmeta(object):
 
         self.meta['Scan m/z range'] = {'value': mzrange}
 
-
     def scan_num(self):
         scan_num = pyxpath(self, XPATHS['scan_num'])[0].attrib["count"]
         self.meta['Number of scans'] = {'value': int(scan_num)}
-
-
-
-    def isa_tab_compatible(self):
-        """ Get the ISA-tab comptibale meta dictionary. Updates self.meta_isa"""
-        keep = ["data transformation", "data transformation software version", "data transformation software",
-                "term_source", "Raw Spectral Data File", "MS Assay Name", "Derived Spectral Data File", "Sample Name"]
-
-        for meta_name in self.meta:
-            if meta_name in keep:
-                self.meta_isa[meta_name] = self.meta[meta_name]
-            else:
-                #print(meta_name)
-                self.meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]
-
 
     def urlize(self):
         """Turns YY:XXXXXXX accession number into an url to http://purl.obolibrary.org/obo/MS_XXXXXXX"""
         for meta_name in self.meta:
             if 'accession' in self.meta[meta_name].keys():
                 if self.meta[meta_name]['accession'].startswith('MS'):
-                    self.meta[meta_name]['accession'] = "http://purl.obolibrary.org/obo/" + self.meta[meta_name]['accession'].replace(':', '_')
+                    self.meta[meta_name]['accession'] = "http://purl.obolibrary.org/obo/{}".format(self.meta[meta_name]['accession'].replace(':', '_'))
             elif 'entry_list' in self.meta[meta_name].keys():
-                for index, entry in iterdict(self.meta[meta_name]['entry_list']):
+                for index, entry in enumerate(self.meta[meta_name]['entry_list']):
                     if 'accession' in entry.keys():
                         if entry['accession'].startswith('MS'):
-                            entry['accession'] = "http://purl.obolibrary.org/obo/" + entry['accession'].replace(':', '_')
-
+                            entry['accession'] = "http://purl.obolibrary.org/obo/{}".format(entry['accession'].replace(':', '_'))
 
     def build_env(self):
 
@@ -595,14 +586,13 @@ class mzMLmeta(object):
         else:
             self.instrument = self._instrument_nested
 
-
     @property
     def meta_json(self):
         return json.dumps(self.meta, indent=4, sort_keys=True)
 
     @property
     def meta_isa(self):
-        keep = ["data transformation", "data transformation software version", "data transformation software",
+        keep = ["Data Transformation", "Data Transformation software version", "Data Transformation software",
                 "term_source", "Raw Spectral Data File", "MS Assay Name", "Derived Spectral Data File", "Sample Name"]
 
         meta_isa = collections.OrderedDict()
@@ -624,6 +614,7 @@ class mzMLmeta(object):
 
 XPATHS_I_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cvParam',
                  'scan_settings':     '{root}/s:scanSettingsList/s:scanSettings/s:cvParam',
+                 'source':            '{root}/{instrument}List/{instrument}/s:componentList/s:source/s:cvParam',
                 }
 
 XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
@@ -632,11 +623,7 @@ XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{s
 
 class imzMLmeta(mzMLmeta):
 
-
-
-
-
-    def __init__(self, in_file, ontology=None):
+    def __init__(self, in_file, ontology=None, group_spectra=True):
         # Extract same informations as mzml file
 
         if ontology is None:
@@ -644,7 +631,6 @@ class imzMLmeta(mzMLmeta):
             try:
                 self.obo = Ontology("http://www.maldi-msi.org/download/imzml/imagingMS.obo")
             except:
-                print('yogi')
                 # change the ontology and start extracting imaging specific metadata
                 dirname = os.path.dirname(os.path.realpath(__file__))
                 obo_path = os.path.join(dirname, "imagingMS.obo")
@@ -659,27 +645,55 @@ class imzMLmeta(mzMLmeta):
 
         terms = collections.OrderedDict()
         terms['file_content'] = {
-                'IMS:1000080': {'attribute': False, 'name': 'universally unique identifier', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000009': {'attribute': False, 'name': 'binary file checksum type', 'plus1': False, 'value':False, 'soft': False},
-                'IMS:1000003': {'attribute': False, 'name': 'ibd binary type', 'plus1': True, 'value': True, 'soft':False},
+                'MS:1000525' : {'attribute': False, 'name': 'Spectrum representation', 'plus1': False, 'value': False, 'soft': False},
+                'IMS:1000008': {'attribute': False, 'name': 'Universally unique identifier', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000009': {'attribute': False, 'name': 'Binary file checksum type', 'plus1': False, 'value':False, 'soft': False},
+                'IMS:1000003': {'attribute': False, 'name': 'Ibd binary type', 'plus1': False, 'value': False, 'soft':False},
         }
 
         terms['scan_settings'] = {
-                'IMS:1000042': {'attribute': False, 'name': 'max count of pixel x', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000043': {'attribute': False, 'name': 'max count of pixel y', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000040': {'attribute': False, 'name': 'linescan sequence', 'plus1': False, 'value': True, 'soft': False},
-                'IMS:1000041': {'attribute': False, 'name': 'scan pattern', 'plus1': False, 'value': True, 'soft': False},
-                'IMS:1000048': {'attribute': False, 'name': 'scan type', 'plus1': False, 'value': True, 'soft': False},
-                'IMS:1000049': {'attribute': False, 'name': 'line scan direction', 'plus1': False, 'value': True, 'soft': False},
+                'IMS:1000040': {'attribute': False, 'name': 'Linescan sequence', 'plus1': False, 'value': False, 'soft': False},
+                'IMS:1000041': {'attribute': False, 'name': 'Scan pattern', 'plus1': False, 'value': False, 'soft': False},
+                'IMS:1000042': {'attribute': False, 'name': 'Max count of pixel x', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000043': {'attribute': False, 'name': 'Max count of pixel y', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000044': {'attribute': False, 'name': 'Max dimension x', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000045': {'attribute': False, 'name': 'Max dimension y', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000046': {'attribute': False, 'name': 'Pixel size x', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000047': {'attribute': False, 'name': 'Pixel size y', 'plus1': False, 'value': True, 'soft':False},
+                'IMS:1000048': {'attribute': False, 'name': 'Scan type', 'plus1': False, 'value': False, 'soft': False},
+                'IMS:1000049': {'attribute': False, 'name': 'Line scan direction', 'plus1': False, 'value': False, 'soft': False},
+        }
 
+        terms['source'] = {
+                'IMS:1001213': {'attribute': False, 'name': 'Solvent flowrate', 'plus1': False, 'value': True, 'soft':False },
+                'IMS:1001211': {'attribute': False, 'name': 'Solvent', 'plus1': False, 'value': True, 'soft':False },
+                'IMS:1000202': {'attribute': False, 'name': 'Target material', 'plus1': False, 'value': True, 'soft': False},
+                'IMS:1001212': {'attribute': False, 'name': 'Spray voltage', 'plus1': False, 'value': True, 'soft': False},
         }
 
         self.extract_meta(terms, xpaths_meta)
 
+        self.link_files(group_spectra)
+
+    def link_files(self, group_spectra):
         self.meta['Raw Spectral Data File'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0] \
                                                             + os.path.extsep + 'ibd'}
-        self.meta['Low-res image'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0] \
-                                                            + os.path.extsep + 'tif'}
+
+        self.meta['Derived Spectral Data File'] = {'value': self.in_file}
+
+        self.meta['Spectrum representation'] = {'entry_list': [self.meta['Spectrum representation']] }
+
+        if group_spectra:
+            self.meta['MS Assay Name']['value'] = self.meta['MS Assay Name']['value'].split('-')[0] # remove -centroid or -profile suffix
+            self.meta['Sample Name']['value'] = self.meta['Sample Name']['value'].split('-')[0]
+
+        self.meta['High-res image'] = {'value': os.path.extsep.join([self.meta['MS Assay Name']['value'],'ndpi']) }
+
+        for img_format in ('jpg', 'tif'):
+            img_file_low = os.path.join(self.in_dir, os.path.extsep.join([self.meta['MS Assay Name']['value'], img_format]))
+            if os.path.isfile(img_file_low):
+                self.meta['Low-res image'] = {'value': os.path.basename(img_file_low)}
+
 
 
 if __name__ == '__main__':

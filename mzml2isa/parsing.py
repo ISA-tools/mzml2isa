@@ -42,8 +42,8 @@ import mzml2isa.mzml as mzml
 
 
 
-_PARSERS = {'.MZML': mzml.mzMLmeta,
-           '.IMZML': mzml.imzMLmeta}
+_PARSERS = {'mzML': mzml.mzMLmeta,
+           'imzML': mzml.imzMLmeta}
 
 # change the ontology and start extracting imaging specific metadata
 warnings.simplefilter('ignore')
@@ -55,8 +55,8 @@ _ims = Ontology(os.path.join(dirname, "imagingMS.obo"), False)
 _ims.merge(_ms)
 
 
-_ONTOLOGIES = {'.MZML': _ms,
-               '.IMZML': _ims }
+_ONTOLOGIES = {'mzML': _ms,
+               'imzZML': _ims }
 #_ONTOLOGIES['.IMZML'].merge(_ONTOLOGIES['.MZML'])
 del dirname
 
@@ -149,32 +149,31 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
                                            pb.Bar(marker="█", left=" |", right="| "),
                                            pb.ETA()])
             for i in pbar(mzml_files):
-                ext = os.path.splitext(i)[1].upper()
-		
+                ext = i.split(os.path.extsep)[1]
+
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
-		
-                metalist.append(parser(i, ont).meta_isa)
+
+                metalist.append(parser(i, ont).meta)
 
         else:
             for i in mzml_files:
-                ext = os.path.splitext(i)[1].upper()
+                ext = i.split(os.path.extsep)[1]
 
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
 
                 print("Parsing file: {}".format(i))
-                metalist.append(parser(i, ont).meta_isa)
+                metalist.append(parser(i, ont).meta)
 
         # update isa-tab file
         if metalist:
             if verbose:
                 print("Parse mzML meta information into ISA-Tab structure")
-            isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer, usermeta, split)
+            isa_tab_create = isa.ISA_Tab(out_dir, study_identifer).write(metalist, ext)
 
     else:
-    	warnings.warn("No files were found in directory."), UserWarning
-    	#print("No files were found.")
+    	warnings.warn("No files were found in directory.", UserWarning)
 
 if __name__ == '__main__':
     run()

@@ -414,7 +414,6 @@ class mzMLmeta(object):
 
         if not 'MS' in cv:
             warnings.warn("Standard controlled vocab not available. Can not parse.", UserWarning)
-            #print("Standard controlled vocab not available. Can not parse ")
             return
         else:
             self.meta['term_source'] = {'value': 'MS'}
@@ -605,7 +604,6 @@ class mzMLmeta(object):
             if meta_name in keep:
                 meta_isa[meta_name] = self.meta[meta_name]
             else:
-                #print(meta_name)
                 meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]
 
         return meta_isa

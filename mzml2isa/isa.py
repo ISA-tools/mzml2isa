@@ -30,7 +30,7 @@ class ISA_Tab(object):
 
     def write(self, metalist, datatype):
 
-        self.isa_env['Platform'] = metalist[0]['Instrument']
+        self.isa_env['Platform'] = next((meta['Instrument'] for meta in metalist if 'Instrument' in meta), '')
 
         if not os.path.exists(self.isa_env['out_dir']):
             os.makedirs(self.isa_env['out_dir'])

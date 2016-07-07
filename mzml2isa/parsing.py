@@ -64,10 +64,11 @@ del dirname
 
 
 def _multiparse(filepath):
-            print('Parsing file: {}'.format(filepath))
-            parser = PARSERS[os.path.splitext(filepath)[1].upper()]
-            ont = ONTOLOGIES[os.path.splitext(filepath)[1].upper()]
-            return parser(filepath, ont).meta_isa
+    print('Parsing file: {}'.format(filepath))
+    parser = PARSERS[filepath.split(os.path.extsep)[-1]]
+    ont = ONTOLOGIES[filepath.split(os.path.extsep)[-1]]
+    return parser(filepath, ont).meta_isa
+
 
 def longest_substring(string1, string2):
     answer = ""
@@ -202,7 +203,7 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, merge=
                                            pb.Bar(marker=MARKER, left=" |", right="| "),
                                            pb.ETA()])
             for i in pbar(mzml_files):
-                ext = i.split(os.path.extsep)[1]
+                ext = i.split(os.path.extsep)[-1]
 
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
@@ -211,26 +212,25 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, merge=
 
         else:
             for i in mzml_files:
-                ext = i.split(os.path.extsep)[1]
+
+                print("Parsing file: {}".format(i))
+                ext = i.split(os.path.extsep)[-1]
 
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
 
-                print("Parsing file: {}".format(i))
                 metalist.append(parser(i, ont).meta)
 
         # update isa-tab file
 
         if merge and ext=='imzML':
-
+            print('Attempting to merge profile and centroid scans')
             metalist = merge_spectra(metalist)
-
-            print(len(metalist))
 
 
         if metalist:
             if verbose:
-                print("Parse mzML meta information into ISA-Tab structure")
+                print("Parsing mzML meta information into ISA-Tab structure")
             isa_tab_create = isa.ISA_Tab(out_dir, study_identifer).write(metalist, ext)
 
     else:

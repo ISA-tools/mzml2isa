@@ -3,7 +3,7 @@ language: python
 python:
   - "3.5"
 env:
-  - STUDY=MTBLS267
+  - STUDY=MTBLS267    TYPE=
   - STUDY=MTBLS266
   - STUDY=MTBLS273
   - STUDY=MTBLS32

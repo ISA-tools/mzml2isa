@@ -422,7 +422,7 @@ class mzMLmeta(object):
 
         try:
             raw_file = pyxpath(self, XPATHS['raw_file'])[0].attrib[self.env["filename"]]
-            self.meta['Raw Spectral Data File'] = {'value': os.path.basename(raw_file)}
+            self.meta['Raw Spectral Data File'] = {'entry_list': [{'value': os.path.basename(raw_file)}] }
         except IndexError:
             warnings.warn("Could not find any metadata about Raw Spectral Data File", UserWarning)
 
@@ -506,11 +506,15 @@ class mzMLmeta(object):
             if 'accession' in self.meta[meta_name].keys():
                 if self.meta[meta_name]['accession'].startswith('MS'):
                     self.meta[meta_name]['accession'] = "http://purl.obolibrary.org/obo/{}".format(self.meta[meta_name]['accession'].replace(':', '_'))
+                elif self.meta[meta_name]['accession'].startswith('IMS'):
+                    self.meta[meta_name]['accession'] = "http://www.maldi-msi.org/download/imzml/imagingMS.obo#{}".format(self.meta[meta_name]['accession']['accession'])
             elif 'entry_list' in self.meta[meta_name].keys():
                 for index, entry in enumerate(self.meta[meta_name]['entry_list']):
                     if 'accession' in entry.keys():
                         if entry['accession'].startswith('MS'):
                             entry['accession'] = "http://purl.obolibrary.org/obo/{}".format(entry['accession'].replace(':', '_'))
+                        elif entry['accession'].startswith('IMS'):
+                            entry['accession'] = "http://www.maldi-msi.org/download/imzml/imagingMS.obo#{}".format(entry['accession'])
 
     def build_env(self):
 
@@ -676,12 +680,10 @@ class imzMLmeta(mzMLmeta):
         self.link_files(group_spectra)
 
     def link_files(self, group_spectra):
-        self.meta['Raw Spectral Data File'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0] \
-                                                            + os.path.extsep + 'ibd'}
+        self.meta['Raw Spectral Data File'] =  {'entry_list': [{'value': os.path.splitext(os.path.basename(self.in_file))[0] \
+                                                                         + os.path.extsep + 'ibd'}] }
 
-        self.meta['Derived Spectral Data File'] = {'value': self.in_file}
-
-        self.meta['Spectrum representation'] = {'entry_list': [self.meta['Spectrum representation']] }
+        self.meta['Spectrum representation'] = {'entry_list': [ self.meta['Spectrum representation'] ] }
 
         if group_spectra:
             self.meta['MS Assay Name']['value'] = self.meta['MS Assay Name']['value'].split('-')[0] # remove -centroid or -profile suffix

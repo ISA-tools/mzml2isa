@@ -44,14 +44,20 @@ class ISA_Tab(object):
         for i, header in enumerate(headers):
 
             if '{{' in data[i] and "Term" not in header:
+
                 entry_list = metalist[0][self.unparameter(header)]['entry_list']
-                hsec, dsec = (headers[i:i+3], data[i:i+3]) \
+                hsec, dsec = (headers[i:i+3].copy(), data[i:i+3].copy()) \
                                 if headers[i+1] == "Term Source REF" \
                                 else (headers[i:i+1], data[i:i+1])
 
                 for k in range(len(entry_list)):
-                    headers = headers[:i+k*len(hsec)] + hsec                         + headers[i+(k+1)*len(hsec):]
-                    data    = data[:i+k*len(hsec)]    + [ d.format(k) for d in dsec] + data[i+(k+1)*len(hsec):]
+                    if k==0:
+                        headers = headers[:i] + hsec                        + headers[i+len(hsec):]
+                        data    = data[:i]    + [d.format(k) for d in dsec] + data[i+len(hsec):]
+                    else:
+                        headers = headers[:i+k*len(hsec)] + hsec                        + headers[i+(k)*len(hsec):]
+                        data    = data[:i+k*len(hsec)]    + [d.format(k) for d in dsec] + data[i+(k)*len(hsec):]
+
 
         return headers, data
 
@@ -120,7 +126,6 @@ class PermissiveFormatter(string.Formatter):
         self.missing, self.bad_fmt=missing, bad_fmt
 
     def get_field(self, field_name, args, kwargs):
-
         # Handle a key not found
         try:
             val=super(PermissiveFormatter, self).get_field(field_name, args, kwargs)

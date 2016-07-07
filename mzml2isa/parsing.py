@@ -56,7 +56,7 @@ _ims.merge(_ms)
 
 
 _ONTOLOGIES = {'mzML': _ms,
-               'imzZML': _ims }
+               'imzML': _ims }
 #_ONTOLOGIES['.IMZML'].merge(_ONTOLOGIES['.MZML'])
 del dirname
 

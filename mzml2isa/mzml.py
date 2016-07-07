@@ -642,7 +642,7 @@ class imzMLmeta(mzMLmeta):
         if ontology is None:
             warnings.simplefilter('ignore')
             try:
-                self.obo = Ontology("https://raw.githubusercontent.com/beny/imzml/master/data/imagingMS.obo")
+                self.obo = Ontology("http://www.maldi-msi.org/download/imzml/imagingMS.obo")
             except:
                 print('yogi')
                 # change the ontology and start extracting imaging specific metadata

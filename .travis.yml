@@ -28,6 +28,7 @@ before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libxml2-dev 
   - sudo apt-get install -y curlftpfs
+  - sudo apt-get install -y default-jre
 
 install:
   - pip install lxml
@@ -36,9 +37,16 @@ install:
 before_script:
   - mkdir example_files/metabolights
   - curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
+  - wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip
+  - unzip ISA-validator-1.6.5.zip
+  - wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip
+  - unzip ISAcreatorMetaboLights.zip
 
 script:
   - mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
+  - java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp ISA-validator-1.6.5/isatools_deps.jar \
+       org.isatools.isatab.manager.SimpleManager "validate" out_folder/metabolights/$STUDY \
+       ISAcreatorMetaboLights/Configurations/MetaboLightsConfig20140506/
 
 after_script:
   - fusermount -u example_files/metabolights

@@ -17,7 +17,6 @@ class ISA_Tab(object):
             'study_identifier':  name,
             'study_file_name': 's_{}.txt'.format(name),
             'assay_file_name': 'a_{}_metabolite_profiling_mass_spectrometry.txt'.format(name),
-            'investigation_file_name': 'i_Investigation.txt',
             'default_path': os.path.join(dirname, 'default'),
             'platform': {},
         }
@@ -31,7 +30,7 @@ class ISA_Tab(object):
         h,d = self.make_assay_template(metalist, datatype)
 
         #self.create_investigation(metalist, datatype)
-        #self.create_study(metalist,datatype)
+        self.create_study(metalist,datatype)
         self.create_assay(metalist, h, d)
 
     def make_assay_template(self, metalist, ext):
@@ -41,22 +40,48 @@ class ISA_Tab(object):
         with open(template_a_path, 'r') as a_in:
             headers, data = [x.strip().replace('"', '').split('\t') for x in a_in.readlines()]
 
-        for i, header in enumerate(headers):
+        i = 0
+        while i < len(headers):
+            header, datum = headers[i], data[i]
 
-            if '{{' in data[i] and "Term" not in header:
-
+            if '{{' in datum and 'Term' not in header:
                 entry_list = metalist[0][self.unparameter(header)]['entry_list']
-                hsec, dsec = (headers[i:i+3].copy(), data[i:i+3].copy()) \
+                hsec, dsec = (headers[i:i+3], data[i:i+3]) \
                                 if headers[i+1] == "Term Source REF" \
                                 else (headers[i:i+1], data[i:i+1])
 
+                headers[:] = headers[:i] + headers[i+len(hsec):] # Remove the sections we are
+                data[:] =    data[:i]    +    data[i+len(dsec):] # going to format and insert
+
+                for n in reversed(range(len(entry_list))):
+                    for (h,d) in zip(reversed(hsec),reversed(dsec)):
+                        headers.insert(i, h)
+                        data.insert(i, d.format(n))
+
+            i+= 1
+
+        print(data)
+
+        """
+        if '{{' in data[i] and "Term" not in header:                            # Handle headers & data sections where
+                                                                                # several values are accepted: sections are
+            entry_list = metalist[0][self.unparameter(header)]['entry_list']    # duplicated and properly formatted
+            hsec, dsec = (headers[i:i+3], data[i:i+3]) \
+                            if headers[i+1] == "Term Source REF" \
+                            else (headers[i:i+1], data[i:i+1])
+
+            if len(entry_list)==1:
+                data [i:i+len(dsec)] = [d.format(0) for d in dsec]
+
+            else:
                 for k in range(len(entry_list)):
                     if k==0:
-                        headers = headers[:i] + hsec                        + headers[i+len(hsec):]
-                        data    = data[:i]    + [d.format(k) for d in dsec] + data[i+len(hsec):]
+                        headers = headers[:i+len(hsec)] + hsec                        + headers[i+len(hsec):]
+                        data    = data[:i+len(hsec)]    + [d.format(k) for d in dsec] + data[i+len(dsec):]
                     else:
-                        headers = headers[:i+k*len(hsec)] + hsec                        + headers[i+(k)*len(hsec):]
-                        data    = data[:i+k*len(hsec)]    + [d.format(k) for d in dsec] + data[i+(k)*len(hsec):]
+                        headers = headers[:i+k*len(hsec)] + hsec                        + headers[i+(k+1)*len(hsec):]
+                        data    = data[:i+k*len(hsec)]    + [d.format(k) for d in dsec] + data[i+(k+1)*len(dsec):]
+        """
 
 
         return headers, data
@@ -67,13 +92,6 @@ class ISA_Tab(object):
 
         fmt = PermissiveFormatter()
 
-        #with open(template_a_path, 'r') as a_in:
-        #    headers, data = [x.strip().replace('"', '').split('\t') for x in a_in.readlines()]
-
-
-        #param_index = headers.index('Parameter Value[Instrument]') + 3
-        #additional_headers, additional_data = [], []
-
         with open(new_a_path, 'w') as a_out:
 
             writer=csv.writer(a_out, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
@@ -82,9 +100,14 @@ class ISA_Tab(object):
             for meta in metalist:
                 writer.writerow( [ fmt.vformat(x, None, meta) for x in data] )
 
-    def create_study(self, metalist):
-        template_s_path = os.path.join(self.isa_env['default_path'], 's_NMR_spectroscopy.txt')
-        new_s_path = os.path.join(self.isa_env['out_dir'], self.isa_env['assay_file_name'])
+    def create_study(self, metalist, datatype):
+
+        print(self.isa_env['out_dir'])
+
+        template_s_path = os.path.join(self.isa_env['default_path'], 's_{}.txt'.format(datatype))
+        new_s_path = os.path.join(self.isa_env['out_dir'], self.isa_env['study_file_name'])
+
+        fmt = PermissiveFormatter()
 
         with open(template_s_path, 'r') as s_in:
             headers, data = s_in.readlines()
@@ -92,10 +115,10 @@ class ISA_Tab(object):
         with open(new_s_path, 'w') as s_out:
             s_out.write(headers)
             for meta in metalist:
-                s_out.write(data.format(**meta))
+                s_out.write(fmt.vformat(data, None, meta))
 
     def create_investigation(self, metalist):
-        investigation_file = os.path.join(self.isa_env['default_path'], self.isa_env['investigation_file_name'])
+        investigation_file = os.path.join(self.isa_env['default_path'], '')
         new_i_path = os.path.join(self.isa_env['out_dir'], 'i_Investigation.txt')
 
         meta = metalist[0]

@@ -57,7 +57,6 @@ _ims.merge(_ms)
 
 _ONTOLOGIES = {'mzML': _ms,
                'imzML': _ims }
-#_ONTOLOGIES['.IMZML'].merge(_ONTOLOGIES['.MZML'])
 del dirname
 
 
@@ -66,6 +65,31 @@ def _multiparse(filepath):
             parser = PARSERS[os.path.splitext(filepath)[1].upper()]
             ont = ONTOLOGIES[os.path.splitext(filepath)[1].upper()]
             return parser(filepath, ont).meta_isa
+
+
+def merge_spectra(metalist):
+    samples = [m['Sample Name']['value'] for m in metalist]
+    duplicates = [s for s in samples if samples.count(s) > 1]
+
+    for duplicate in duplicates:
+        index = next(metalist.index(x) for x in metalist if x['Sample Name']['value']==duplicate \
+                                            and 'profile' in x['Raw Spectral Data File']['entry_list'][0]['value'])
+        base = metalist.pop(index)
+
+        for index2 in (metalist.index(x) for x in metalist if x['Sample Name']['value']==duplicate):
+            other = metalist.pop(index2)
+            base['Derived Spectral Data File']['entry_list'].extend(
+                other['Derived Spectral Data File']['entry_list']
+            )
+            base['Raw Spectral Data File']['entry_list'].extend(
+                other['Raw Spectral Data File']['entry_list']
+            )
+        metalist.append(base)
+
+    return metalist
+
+
+
 
 
 def run():
@@ -86,6 +110,7 @@ def run():
     p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
     p.add_argument('-M', dest='multip', help='launch different processes for parsing', required=False, default=0, type=int)
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
+    p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
                          required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
 
@@ -107,10 +132,10 @@ def run():
 
         full_parse(args.in_dir, args.out_dir, args.study_name,
                    args.usermeta if args.usermeta else {},
-                   args.split, args.verbose, args.multip)
+                   args.split, args.merge, args.verbose, args.multip)
 
 
-def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbose=False, multip=False):
+def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, merge=False, verbose=False, multip=False):
     """ Parses every study from *in_dir* and then creates ISA files.
 
 	A new folder is created in the out directory bearing the name of
@@ -167,6 +192,14 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
                 metalist.append(parser(i, ont).meta)
 
         # update isa-tab file
+
+        if merge and ext=='imzML':
+
+            metalist = merge_spectra(metalist)
+
+            print(len(metalist))
+
+
         if metalist:
             if verbose:
                 print("Parse mzML meta information into ISA-Tab structure")

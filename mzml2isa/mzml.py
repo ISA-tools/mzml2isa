@@ -686,8 +686,7 @@ class imzMLmeta(mzMLmeta):
         self.meta['Spectrum representation'] = {'entry_list': [ self.meta['Spectrum representation'] ] }
 
         if group_spectra:
-            self.meta['MS Assay Name']['value'] = self.meta['MS Assay Name']['value'].split('-')[0] # remove -centroid or -profile suffix
-            self.meta['Sample Name']['value'] = self.meta['Sample Name']['value'].split('-')[0]
+            self.meta['MS Assay Name']['value'] = self.meta['MS Assay Name']['value']
 
         self.meta['High-res image'] = {'value': os.path.extsep.join([self.meta['MS Assay Name']['value'],'ndpi']) }
 

@@ -1,35 +1,43 @@
 import string
 import os
-import collections
+
 import csv
+import sys
+
+try:
+    from collections import ChainMap
+except ImportError:
+    from chainmap import ChainMap
 
 
 
 class ISA_Tab(object):
 
-    def __init__(self, out_dir, name):
+    def __init__(self, out_dir, name, usermeta=None):
 
         # Create one or several study files / one or several study section in investigation
 
         dirname = os.path.dirname(os.path.realpath(__file__))
+        self.usermeta = usermeta or {}
         self.isa_env = {
             'out_dir': os.path.join(out_dir, name),
-            'study_identifier':  name,
-            'study_file_name': 's_{}.txt'.format(name),
-            'assay_file_name': 'a_{}_metabolite_profiling_mass_spectrometry.txt'.format(name),
+            'Study Identifier':  name,
+            'Study file name': 's_{}.txt'.format(name),
+            'Assay file name': 'a_{}_metabolite_profiling_mass_spectrometry.txt'.format(name),
             'default_path': os.path.join(dirname, 'default'),
-            'platform': {},
         }
 
 
     def write(self, metalist, datatype):
+
+        self.isa_env['Platform'] = metalist[0]['Instrument']
 
         if not os.path.exists(self.isa_env['out_dir']):
             os.makedirs(self.isa_env['out_dir'])
 
         h,d = self.make_assay_template(metalist, datatype)
 
-        #self.create_investigation(metalist, datatype)
+        self.create_investigation(metalist, datatype)
         self.create_study(metalist,datatype)
         self.create_assay(metalist, h, d)
 
@@ -60,35 +68,11 @@ class ISA_Tab(object):
 
             i+= 1
 
-        print(data)
-
-        """
-        if '{{' in data[i] and "Term" not in header:                            # Handle headers & data sections where
-                                                                                # several values are accepted: sections are
-            entry_list = metalist[0][self.unparameter(header)]['entry_list']    # duplicated and properly formatted
-            hsec, dsec = (headers[i:i+3], data[i:i+3]) \
-                            if headers[i+1] == "Term Source REF" \
-                            else (headers[i:i+1], data[i:i+1])
-
-            if len(entry_list)==1:
-                data [i:i+len(dsec)] = [d.format(0) for d in dsec]
-
-            else:
-                for k in range(len(entry_list)):
-                    if k==0:
-                        headers = headers[:i+len(hsec)] + hsec                        + headers[i+len(hsec):]
-                        data    = data[:i+len(hsec)]    + [d.format(k) for d in dsec] + data[i+len(dsec):]
-                    else:
-                        headers = headers[:i+k*len(hsec)] + hsec                        + headers[i+(k+1)*len(hsec):]
-                        data    = data[:i+k*len(hsec)]    + [d.format(k) for d in dsec] + data[i+(k+1)*len(dsec):]
-        """
-
-
         return headers, data
 
     def create_assay(self, metalist, headers, data):
         #template_a_path = os.path.join(self.isa_env['default_path'], 'a_imzML_parse.txt')
-        new_a_path = os.path.join(self.isa_env['out_dir'], self.isa_env['assay_file_name'])
+        new_a_path = os.path.join(self.isa_env['out_dir'], self.isa_env['Assay file name'])
 
         fmt = PermissiveFormatter()
 
@@ -98,14 +82,12 @@ class ISA_Tab(object):
             writer.writerow(headers)
 
             for meta in metalist:
-                writer.writerow( [ fmt.vformat(x, None, meta) for x in data] )
+                writer.writerow( [ fmt.vformat(x, None, ChainMap(meta, self.usermeta)) for x in data] )
 
     def create_study(self, metalist, datatype):
 
-        print(self.isa_env['out_dir'])
-
         template_s_path = os.path.join(self.isa_env['default_path'], 's_{}.txt'.format(datatype))
-        new_s_path = os.path.join(self.isa_env['out_dir'], self.isa_env['study_file_name'])
+        new_s_path = os.path.join(self.isa_env['out_dir'], self.isa_env['Study file name'])
 
         fmt = PermissiveFormatter()
 
@@ -115,10 +97,10 @@ class ISA_Tab(object):
         with open(new_s_path, 'w') as s_out:
             s_out.write(headers)
             for meta in metalist:
-                s_out.write(fmt.vformat(data, None, meta))
+                s_out.write(fmt.vformat(data, None, ChainMap(meta, self.usermeta)))
 
-    def create_investigation(self, metalist):
-        investigation_file = os.path.join(self.isa_env['default_path'], '')
+    def create_investigation(self, metalist, datatype):
+        investigation_file = os.path.join(self.isa_env['default_path'], 'i_{}.txt'.format(datatype))
         new_i_path = os.path.join(self.isa_env['out_dir'], 'i_Investigation.txt')
 
         meta = metalist[0]
@@ -129,14 +111,14 @@ class ISA_Tab(object):
                 for l in i_in:
 
                     ## FORMAT SECTIONS WHERE MORE THAN ONE VALUE IS ACCEPTED
-                    if l.startswith('Study Person'):
-                        person_row = l.strip().split('\t')
-                        l = person_row[0]
-                        for person in meta['contacts']:
-                            l +=  '\t' + fmt.format(person_row[1], study_contact=person)
-                        l += '\n'
+                    #if l.startswith('Study Person'):
+                    #    person_row = l.strip().split('\t')
+                    #    l = person_row[0]
+                    #    for person in meta['contacts']:
+                    #        l +=  '\t' + fmt.format(person_row[1], study_contact=person)
+                    #    l += '\n'
 
-                    l = l.format(**self.isa_env, **meta).format()
+                    l = fmt.vformat(l, None, ChainMap(self.isa_env, meta, self.usermeta))
                     i_out.write(l)
 
     @staticmethod

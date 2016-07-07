@@ -1,3 +1,4 @@
+# coding: utf-8
 """
 Content
 -----------------------------------------------------------------------------
@@ -37,6 +38,8 @@ try:
 except ImportError:
     PB_AVAILABLE = False
 
+MARKER = "#" if sys.version_info[0]==2 else "█"
+
 import mzml2isa.isa as isa
 import mzml2isa.mzml as mzml
 
@@ -66,27 +69,52 @@ def _multiparse(filepath):
             ont = ONTOLOGIES[os.path.splitext(filepath)[1].upper()]
             return parser(filepath, ont).meta_isa
 
+def longest_substring(string1, string2):
+    answer = ""
+    len1, len2 = len(string1), len(string2)
+    for i in range(len1):
+        match = ""
+        for j in range(len2):
+            if (i + j < len1 and string1[i + j] == string2[j]):
+                match += string2[j]
+            else:
+                if (len(match) > len(answer)): answer = match
+                match = ""
+    return answer
+
 
 def merge_spectra(metalist):
-    samples = [m['Sample Name']['value'] for m in metalist]
-    duplicates = [s for s in samples if samples.count(s) > 1]
 
-    for duplicate in duplicates:
-        index = next(metalist.index(x) for x in metalist if x['Sample Name']['value']==duplicate \
-                                            and 'profile' in x['Raw Spectral Data File']['entry_list'][0]['value'])
-        base = metalist.pop(index)
+    for m in metalist:
+        print(m['Spectrum representation'])
 
-        for index2 in (metalist.index(x) for x in metalist if x['Sample Name']['value']==duplicate):
-            other = metalist.pop(index2)
-            base['Derived Spectral Data File']['entry_list'].extend(
-                other['Derived Spectral Data File']['entry_list']
-            )
-            base['Raw Spectral Data File']['entry_list'].extend(
-                other['Raw Spectral Data File']['entry_list']
-            )
-        metalist.append(base)
+    profiles = [m for m in metalist \
+        if m['Spectrum representation']['entry_list'][0]['name']=='profile spectrum']
+    centroid = [m for m in metalist \
+        if m['Spectrum representation']['entry_list'][0]['name']=='centroid spectrum']
 
-    return metalist
+    profiles.sort(key=lambda x: x['Sample Name']['value'])
+    centroid.sort(key=lambda x: x['Sample Name']['value'])
+
+    if len(profiles)!=len(centroid):
+        return metalist
+
+    for p,c in zip(profiles, centroid):
+        p['Derived Spectral Data File']['entry_list'].extend(
+            c['Derived Spectral Data File']['entry_list']
+        )
+        p['Raw Spectral Data File']['entry_list'].extend(
+            c['Raw Spectral Data File']['entry_list']
+        )
+
+        p['Sample Name']['value'] = longest_substring(
+                                        p['Sample Name']['value'],c['Sample Name']['value']
+                                    ).strip('-_;:() \n\t')
+
+        p['MS Assay Name']['value'] = p['Sample Name']['value']
+
+
+    return profiles
 
 
 
@@ -171,7 +199,7 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, merge=
         elif not verbose:
             pbar = pb.ProgressBar(widgets=['Parsing: ',
                                            pb.Counter(), '/', str(len(mzml_files)),
-                                           pb.Bar(marker="█", left=" |", right="| "),
+                                           pb.Bar(marker=MARKER, left=" |", right="| "),
                                            pb.ETA()])
             for i in pbar(mzml_files):
                 ext = i.split(os.path.extsep)[1]

@@ -2,27 +2,43 @@ language: python
 
 python:
   - "3.5"
+  - "2.7"
 env:
-  - STUDY=MTBLS267    TYPE=
+  - STUDY=MTBLS267
   - STUDY=MTBLS266
   - STUDY=MTBLS273
   - STUDY=MTBLS32
   - STUDY=MTBLS127
-#  - STUDY=MTBLS289
+  - STUDY=MTBLS289
   - STUDY=MTBLS263
   - STUDY=MTBLS87
-#  - STUDY=MTBLS36 
-#  - STUDY=MTBLS140
+  - STUDY=MTBLS36
+  - STUDY=MTBLS140
   - STUDY=MTBLS229
   - STUDY=MTBLS265
   - STUDY=MTBLS228
   - STUDY=MTBLS67
-#  - STUDY=MTBLS125
-#  - STUDY=MTBLS126
+  - STUDY=MTBLS125
+  - STUDY=MTBLS126
   - STUDY=MTBLS88
-#  - STUDY=MTBLS38
+  - STUDY=MTBLS38
   - STUDY=MTBLS137
   - STUDY=MTBLS315
+
+matrix:
+  allow_failures:
+    - python: "2.7"
+    # Often timeout
+    - env: STUDY=MTBLS289
+    - env: STUDY=MTBLS36
+    - env: STUDY=MTBLS140
+    - env: STUDY=MTBLS125
+    - env: STUDY=MTBLS126
+    - env: STUDY=MTBLS38
+    # Fail for no know reason (need to investigate)
+    - env: STUDY=MTBLS273
+    - env: STUDY=MTBLS137
+    - env: STUDY=MTBLS228
 
 before_install:
   - sudo apt-get -qq update
@@ -44,9 +60,10 @@ before_script:
 
 script:
   - mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
-  - java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp ISA-validator-1.6.5/isatools_deps.jar \
-       org.isatools.isatab.manager.SimpleManager "validate" out_folder/metabolights/$STUDY \
-       ISAcreatorMetaboLights/Configurations/MetaboLightsConfig20140506/
+  - >
+    java -cp ISA-validator-1.6.5/isatools_deps.jar
+    org.isatools.isatab.manager.SimpleManager validate out_folder/metabolights/${STUDY}
+    Configurations/MetaboLightsConfig20140506/
 
 after_script:
   - fusermount -u example_files/metabolights

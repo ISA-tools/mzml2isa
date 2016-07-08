@@ -86,9 +86,6 @@ def longest_substring(string1, string2):
 
 def merge_spectra(metalist):
 
-    for m in metalist:
-        print(m['Spectrum representation'])
-
     profiles = [m for m in metalist \
         if m['Spectrum representation']['entry_list'][0]['name']=='profile spectrum']
     centroid = [m for m in metalist \
@@ -164,7 +161,7 @@ def run():
                    args.split, args.merge, args.verbose, args.multip)
 
 
-def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, merge=False, verbose=False, multip=False):
+def full_parse(in_dir, out_dir, study_identifier, usermeta={}, split=True, merge=False, verbose=False, multip=False):
     """ Parses every study from *in_dir* and then creates ISA files.
 
 	A new folder is created in the out directory bearing the name of
@@ -198,8 +195,9 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, merge=
 
         # get meta information for all files
         elif not verbose:
-            pbar = pb.ProgressBar(widgets=['Parsing: ',
-                                           pb.Counter(), '/', str(len(mzml_files)),
+            pbar = pb.ProgressBar(widgets=['Parsing {:8}: '.format(study_identifier),
+                                           pb.FormatLabel('%(value)4d'), '/',
+                                           '%4d' % len(mzml_files),
                                            pb.Bar(marker=MARKER, left=" |", right="| "),
                                            pb.ETA()])
             for i in pbar(mzml_files):
@@ -224,14 +222,15 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, merge=
         # update isa-tab file
 
         if merge and ext=='imzML':
-            print('Attempting to merge profile and centroid scans')
+            if verbose:
+                print('Attempting to merge profile and centroid scans')
             metalist = merge_spectra(metalist)
 
 
         if metalist:
             if verbose:
                 print("Parsing mzML meta information into ISA-Tab structure")
-            isa_tab_create = isa.ISA_Tab(out_dir, study_identifer).write(metalist, ext)
+            isa_tab_create = isa.ISA_Tab(out_dir, study_identifier).write(metalist, ext)
 
     else:
     	warnings.warn("No files were found in directory.", UserWarning)

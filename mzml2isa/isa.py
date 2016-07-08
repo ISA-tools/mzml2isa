@@ -9,6 +9,7 @@ try:
 except ImportError:
     from chainmap import ChainMap
 
+import mzml2isa
 
 
 class ISA_Tab(object):
@@ -31,6 +32,8 @@ class ISA_Tab(object):
     def write(self, metalist, datatype):
 
         self.isa_env['Platform'] = next((meta['Instrument'] for meta in metalist if 'Instrument' in meta), '')
+        self.isa_env['Converter'] = mzml2isa.__name__
+        self.isa_env['Converter version'] = mzml2isa.__version__
 
         if not os.path.exists(self.isa_env['out_dir']):
             os.makedirs(self.isa_env['out_dir'])

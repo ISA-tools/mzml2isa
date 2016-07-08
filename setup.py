@@ -23,7 +23,9 @@ setup(
     description="mzml2isa - mzML to ISA-tab parsing tool",
     long_description=open('README.rst').read(),
     
-    install_requires=['pronto'],
+    install_requires=['pronto'] \
+                     if sys.version_info[0]==3 \
+                     else ['pronto', 'argparse', 'chainmap'],
     extras_require={ 'extras': ['lxml', 'progressbar2'] },
 
     include_package_data=True,
@@ -31,7 +33,8 @@ setup(
     url='http://www.biosciences.bham.ac.uk/labs/viant/',
 
     classifiers=[
-    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 2.7",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.5",
     "Topic :: Text Processing :: Markup :: XML",

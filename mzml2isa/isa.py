@@ -138,9 +138,6 @@ class ISA_Tab(object):
 
                         if label in chained:
 
-                            print(label)
-                            print(len(chained[label]))
-
                             for k in range(len(chained[label])):
                                 l = '\t'.join([l, value.format(k)])
                             l += '\n'

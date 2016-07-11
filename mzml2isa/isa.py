@@ -38,7 +38,7 @@ class ISA_Tab(object):
         self.isa_env['Converter'] = mzml2isa.__name__
         self.isa_env['Converter version'] = mzml2isa.__version__
 
-    def write(self, metalist, datatype):
+    def write(self, metalist, datatype, split=True):
 
         self.isa_env['Platform'] = [ next((meta['Instrument'] for meta in metalist if 'Instrument' in meta), '') ]
 
@@ -48,7 +48,7 @@ class ISA_Tab(object):
 
         h,d = self.make_assay_template(metalist, datatype)
 
-        self.create_assay(metalist, h, d)
+        self.create_assay(metalist, h, d, split)
         self.create_study(metalist,datatype)
         self.create_investigation(metalist, datatype)
 
@@ -81,11 +81,14 @@ class ISA_Tab(object):
 
         return headers, data
 
-    def create_assay(self, metalist, headers, data):
+    def create_assay(self, metalist, headers, data, split=True):
         fmt = PermissiveFormatter()
 
-        polarities = set( meta['Scan polarity']['value'] for meta in metalist ) \
-                        if 'Scan polarity' in metalist[0].keys() else set('')
+        if split:
+            polarities = set( meta['Scan polarity']['value'] for meta in metalist ) \
+                            if 'Scan polarity' in metalist[0].keys() else ['nopolarity']
+        else:
+            polarities = ['nosplit']
 
         new_a_path = os.path.join(self.isa_env['out_dir'], self.isa_env['Assay file name']) \
                         if len(polarities)==1 \

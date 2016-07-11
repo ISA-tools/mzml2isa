@@ -157,11 +157,11 @@ def run():
         warnings.filterwarnings(args.wrng_ctrl)
 
         full_parse(args.in_dir, args.out_dir, args.study_name,
-                   args.usermeta if args.usermeta else {},
+                   args.usermeta if args.usermeta else None,
                    args.split, args.merge, args.verbose, args.multip)
 
 
-def full_parse(in_dir, out_dir, study_identifier, usermeta={}, split=True, merge=False, verbose=False, multip=False):
+def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, merge=False, verbose=False, multip=False):
     """ Parses every study from *in_dir* and then creates ISA files.
 
 	A new folder is created in the out directory bearing the name of
@@ -230,7 +230,7 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta={}, split=True, merge
         if metalist:
             if verbose:
                 print("Parsing mzML meta information into ISA-Tab structure")
-            isa_tab_create = isa.ISA_Tab(out_dir, study_identifier).write(metalist, ext)
+            isa_tab_create = isa.ISA_Tab(out_dir, study_identifier, usermeta or {}).write(metalist, ext, split)
 
     else:
     	warnings.warn("No files were found in directory.", UserWarning)

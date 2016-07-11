@@ -630,13 +630,9 @@ class imzMLmeta(mzMLmeta):
 
         if ontology is None:
             warnings.simplefilter('ignore')
-            try:
-                self.obo = Ontology("http://www.maldi-msi.org/download/imzml/imagingMS.obo")
-            except:
-                # change the ontology and start extracting imaging specific metadata
-                dirname = os.path.dirname(os.path.realpath(__file__))
-                obo_path = os.path.join(dirname, "imagingMS.obo")
-                self.obo = Ontology(obo_path)
+            dirname = os.path.dirname(os.path.realpath(__file__))
+            obo_path = os.path.join(dirname, "imagingMS.obo")
+            self.obo = Ontology(obo_path, True, import_depth=1)
         else:
             self.obo = ontology
 
@@ -697,6 +693,7 @@ class imzMLmeta(mzMLmeta):
 
 if __name__ == '__main__':
     import sys
+
 
     if sys.argv[-1].endswith('.imzML'):
         print(imzMLmeta(sys.argv[-1]).meta_json)

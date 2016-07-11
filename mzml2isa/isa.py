@@ -42,7 +42,6 @@ class ISA_Tab(object):
 
         self.isa_env['Platform'] = [ next((meta['Instrument'] for meta in metalist if 'Instrument' in meta), '') ]
 
-
         if not os.path.exists(self.isa_env['out_dir']):
             os.makedirs(self.isa_env['out_dir'])
 
@@ -161,9 +160,10 @@ class PermissiveFormatter(string.Formatter):
 
     def get_field(self, field_name, args, kwargs):
         # Handle a key not found
+        print(field_name)
         try:
             val=super(PermissiveFormatter, self).get_field(field_name, args, kwargs)
-        except (KeyError, AttributeError, IndexError):
+        except (KeyError, AttributeError, IndexError, TypeError):
             val=None,field_name
         return val
 

@@ -2,9 +2,7 @@
 # released under the GNU General Public License version 3.0 (GPLv3)
 
 from setuptools import setup, find_packages
-import glob
 import sys
-import os
 
 import mzml2isa
 
@@ -12,17 +10,17 @@ import mzml2isa
 setup(
     name='mzml2isa',
     version=mzml2isa.__version__,
-    
+
     packages=find_packages(),
-    
+
     py_modules=['mzml2isa'],
-    
+
     author= mzml2isa.__author__,
     author_email= 'tnl495@bham.ac.uk',
 
     description="mzml2isa - mzML to ISA-tab parsing tool",
     long_description=open('README.rst').read(),
-    
+
     install_requires=open('requirements.txt').read().splitlines()
                      if sys.version_info[0]==3 \
                      else open('requirements-py2.txt').read().splitlines(),

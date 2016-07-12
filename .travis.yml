@@ -27,7 +27,6 @@ env:
 
 matrix:
   allow_failures:
-    - python: "2.7"
     # Often timeout
     - env: STUDY=MTBLS289
     - env: STUDY=MTBLS36
@@ -47,7 +46,7 @@ before_install:
   - sudo apt-get install -y default-jre
 
 install:
-  - pip install lxml
+  - pip install -r requirements.txt
   - pip install .
 
 before_script:
@@ -68,3 +67,6 @@ script:
 after_script:
   - fusermount -u example_files/metabolights
 
+notifications:
+  email:
+    - althonosdev@gmail.com

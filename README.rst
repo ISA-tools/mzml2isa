@@ -14,44 +14,16 @@ structure out of mzML files, providing the backbone of a study which can
 then be edited with an ISA editing tool (see `MetaboLights pre-packaged
 ISA Creator <http://www.ebi.ac.uk/metabolights/>`__)
 
-Currently the program does the following \* Extract meta information
-from mzML files and store as either python dictionary or JSON format \*
-Create an ISA-Tab file structure with relevant meta information \* Add
-additional metadatas that cannot be parsed from mzML files to the
-ISA-Tab files through a JSON formatted dictionnary.
+Currently the program does the following:
+  * Extract meta information from mzML files and store as either python dictionary or JSON format
+  * Create an ISA-Tab file structure with relevant meta information
+  * Add additional metadata that cannot be parsed from mzML files to the ISA-Tab files through a JSON formatted dictionnary.
 
 Install
 -------
 
-With PIP
-~~~~~~~~
-
-If ``pip`` is installed, it can be used to easily install the parser
-(this may need to be run as administrator depending on the machine's
-architecture):
-
-.. code:: bash
-
-    pip3 install mzml2isa
-
-Without PIP
-~~~~~~~~~~~
-
-Alternatively, you can also clone the repository and install from the
-source :
-
-.. code:: bash
-
-    git clone git://github.com/althonos/mzml2isa && cd mzml2isa
-    python3 setup.py install
-
-mzml2isa has 2 optional dependencies: ``progressbar2`` and ``lxml``, the
-latter quickening the parsing process while the other enhances the
-output of the program. To install them both, use pip:
-
-.. code:: bash
-
-    pip3 install lxml progressbar2
+See the `Installation page <http://2isa.readthedocs.io/en/latest/mzml2isa/install.html>`__ of
+the `online documentation <http://2isa.readthedocs.io/en/latest/mzml2isa/index.html>`__.
 
 Use
 ---
@@ -136,8 +108,8 @@ Ref
 A modified version of the ontology extraction from this blog[1]_ was
 used, and a slightly modified class from pymzml[2]_
 
-.. [#] http://blog.nextgenetics.net/?e=6
-.. [#] http://pymzml.github.io/
+.. [1] http://blog.nextgenetics.net/?e=6
+.. [2] http://pymzml.github.io/
 
 
 .. |Build Status| image:: https://img.shields.io/travis/althonos/mzml2isa.svg?style=flat&maxAge=2592000

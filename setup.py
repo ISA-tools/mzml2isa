@@ -2,9 +2,7 @@
 # released under the GNU General Public License version 3.0 (GPLv3)
 
 from setuptools import setup, find_packages
-import glob
 import sys
-import os
 
 import mzml2isa
 
@@ -12,26 +10,30 @@ import mzml2isa
 setup(
     name='mzml2isa',
     version=mzml2isa.__version__,
-    
+
     packages=find_packages(),
-    
+
     py_modules=['mzml2isa'],
-    
+
     author= mzml2isa.__author__,
     author_email= 'tnl495@bham.ac.uk',
 
     description="mzml2isa - mzML to ISA-tab parsing tool",
     long_description=open('README.rst').read(),
-    
-    install_requires=['pronto'],
-    extras_require={ 'extras': ['lxml', 'progressbar2'] },
+
+    install_requires=open('requirements.txt').read().splitlines()
+                     if sys.version_info[0]==3 \
+                     else open('requirements-py2.txt').read().splitlines(),
+
+    extras_require={ 'pb': ['progressbar2'] },
 
     include_package_data=True,
 
     url='http://www.biosciences.bham.ac.uk/labs/viant/',
 
     classifiers=[
-    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 2.7",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.5",
     "Topic :: Text Processing :: Markup :: XML",

@@ -1,0 +1,4 @@
+lxml
+pronto
+argparse
+chainmap

@@ -1,3 +1,4 @@
+# coding: utf-8
 """
 Content
 -----------------------------------------------------------------------------
@@ -37,13 +38,15 @@ try:
 except ImportError:
     PB_AVAILABLE = False
 
+MARKER = "#" if sys.version_info[0]==2 else "█"
+
 import mzml2isa.isa as isa
 import mzml2isa.mzml as mzml
 
 
 
-_PARSERS = {'.MZML': mzml.mzMLmeta,
-           '.IMZML': mzml.imzMLmeta}
+_PARSERS = {'mzML': mzml.mzMLmeta,
+           'imzML': mzml.imzMLmeta}
 
 # change the ontology and start extracting imaging specific metadata
 warnings.simplefilter('ignore')
@@ -55,17 +58,64 @@ _ims = Ontology(os.path.join(dirname, "imagingMS.obo"), False)
 _ims.merge(_ms)
 
 
-_ONTOLOGIES = {'.MZML': _ms,
-               '.IMZML': _ims }
-#_ONTOLOGIES['.IMZML'].merge(_ONTOLOGIES['.MZML'])
+_ONTOLOGIES = {'mzML': _ms,
+               'imzML': _ims }
 del dirname
 
 
 def _multiparse(filepath):
-            print('Parsing file: {}'.format(filepath))
-            parser = PARSERS[os.path.splitext(filepath)[1].upper()]
-            ont = ONTOLOGIES[os.path.splitext(filepath)[1].upper()]
-            return parser(filepath, ont).meta_isa
+    print('Parsing file: {}'.format(filepath))
+    parser = PARSERS[filepath.split(os.path.extsep)[-1]]
+    ont = ONTOLOGIES[filepath.split(os.path.extsep)[-1]]
+    return parser(filepath, ont).meta_isa
+
+
+def longest_substring(string1, string2):
+    answer = ""
+    len1, len2 = len(string1), len(string2)
+    for i in range(len1):
+        match = ""
+        for j in range(len2):
+            if (i + j < len1 and string1[i + j] == string2[j]):
+                match += string2[j]
+            else:
+                if (len(match) > len(answer)): answer = match
+                match = ""
+    return answer
+
+
+def merge_spectra(metalist):
+
+    profiles = [m for m in metalist \
+        if m['Spectrum representation']['entry_list'][0]['name']=='profile spectrum']
+    centroid = [m for m in metalist \
+        if m['Spectrum representation']['entry_list'][0]['name']=='centroid spectrum']
+
+    profiles.sort(key=lambda x: x['Sample Name']['value'])
+    centroid.sort(key=lambda x: x['Sample Name']['value'])
+
+    if len(profiles)!=len(centroid):
+        return metalist
+
+    for p,c in zip(profiles, centroid):
+        p['Derived Spectral Data File']['entry_list'].extend(
+            c['Derived Spectral Data File']['entry_list']
+        )
+        p['Raw Spectral Data File']['entry_list'].extend(
+            c['Raw Spectral Data File']['entry_list']
+        )
+
+        p['Sample Name']['value'] = longest_substring(
+                                        p['Sample Name']['value'],c['Sample Name']['value']
+                                    ).strip('-_;:() \n\t')
+
+        p['MS Assay Name']['value'] = p['Sample Name']['value']
+
+
+    return profiles
+
+
+
 
 
 def run():
@@ -86,6 +136,7 @@ def run():
     p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
     p.add_argument('-M', dest='multip', help='launch different processes for parsing', required=False, default=0, type=int)
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
+    p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
                          required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
 
@@ -106,11 +157,11 @@ def run():
         warnings.filterwarnings(args.wrng_ctrl)
 
         full_parse(args.in_dir, args.out_dir, args.study_name,
-                   args.usermeta if args.usermeta else {},
-                   args.split, args.verbose, args.multip)
+                   args.usermeta if args.usermeta else None,
+                   args.split, args.merge, args.verbose, args.multip)
 
 
-def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbose=False, multip=False):
+def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, merge=False, verbose=False, multip=False):
     """ Parses every study from *in_dir* and then creates ISA files.
 
 	A new folder is created in the out directory bearing the name of
@@ -144,37 +195,45 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta={}, split=True, verbos
 
         # get meta information for all files
         elif not verbose:
-            pbar = pb.ProgressBar(widgets=['Parsing: ',
-                                           pb.Counter(), '/', str(len(mzml_files)),
-                                           pb.Bar(marker="█", left=" |", right="| "),
+            pbar = pb.ProgressBar(widgets=['Parsing {:8}: '.format(study_identifier),
+                                           pb.FormatLabel('%(value)4d'), '/',
+                                           '%4d' % len(mzml_files),
+                                           pb.Bar(marker=MARKER, left=" |", right="| "),
                                            pb.ETA()])
             for i in pbar(mzml_files):
-                ext = os.path.splitext(i)[1].upper()
-		
+                ext = i.split(os.path.extsep)[-1]
+
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
-		
-                metalist.append(parser(i, ont).meta_isa)
+
+                metalist.append(parser(i, ont).meta)
 
         else:
             for i in mzml_files:
-                ext = os.path.splitext(i)[1].upper()
+
+                print("Parsing file: {}".format(i))
+                ext = i.split(os.path.extsep)[-1]
 
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
 
-                print("Parsing file: {}".format(i))
-                metalist.append(parser(i, ont).meta_isa)
+                metalist.append(parser(i, ont).meta)
 
         # update isa-tab file
+
+        if merge and ext=='imzML':
+            if verbose:
+                print('Attempting to merge profile and centroid scans')
+            metalist = merge_spectra(metalist)
+
+
         if metalist:
             if verbose:
-                print("Parse mzML meta information into ISA-Tab structure")
-            isa_tab_create = isa.ISA_Tab(metalist,out_dir, study_identifer, usermeta, split)
+                print("Parsing mzML meta information into ISA-Tab structure")
+            isa_tab_create = isa.ISA_Tab(out_dir, study_identifier, usermeta or {}).write(metalist, ext, split)
 
     else:
-    	warnings.warn("No files were found in directory."), UserWarning
-    	#print("No files were found.")
+    	warnings.warn("No files were found in directory.", UserWarning)
 
 if __name__ == '__main__':
     run()

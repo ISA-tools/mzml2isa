@@ -160,7 +160,6 @@ class PermissiveFormatter(string.Formatter):
 
     def get_field(self, field_name, args, kwargs):
         # Handle a key not found
-        print(field_name)
         try:
             val=super(PermissiveFormatter, self).get_field(field_name, args, kwargs)
         except (KeyError, AttributeError, IndexError, TypeError):

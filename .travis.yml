@@ -59,9 +59,6 @@ script:
   - >
     python -c "from isatools import isatab; import logging,sys; sh=logging.StreamHandler(sys.stdout); 
     isatab.logger.addHandler(sh); isatab.validate2(open('out_folder/metabolights/$STUDY/i_Investigation.txt'))" 
-    2>&1 /dev/null > /dev/tty | grep "CRITICAL" -c
-
-  - if [ ! $(!!) -eq 0 ]; then exit 1; fi
 
 after_script:
   - fusermount -u example_files/metabolights

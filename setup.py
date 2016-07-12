@@ -23,10 +23,11 @@ setup(
     description="mzml2isa - mzML to ISA-tab parsing tool",
     long_description=open('README.rst').read(),
     
-    install_requires=['pronto'] \
+    install_requires=open('requirements.txt').read().splitlines()
                      if sys.version_info[0]==3 \
-                     else ['pronto', 'argparse', 'chainmap'],
-    extras_require={ 'extras': ['lxml', 'progressbar2'] },
+                     else open('requirements-py2.txt').read().splitlines(),
+
+    extras_require={ 'pb': ['progressbar2'] },
 
     include_package_data=True,
 

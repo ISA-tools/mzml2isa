@@ -44,22 +44,30 @@ before_install:
   - sudo apt-get install -y libxml2-dev 
   - sudo apt-get install -y curlftpfs
   - pip install isatools
+  - sudo apt-get install -y default-jre
 
 install:
-  - pip install lxml
+  - pip install -r requirements.txt
   - pip install .
 
 before_script:
   - mkdir example_files/metabolights
   - curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
-
+  - wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip
+  - unzip ISA-validator-1.6.5.zip
+  - wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip
+  - unzip ISAcreatorMetaboLights.zip
 
 script:
   - mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
   - >
-    python -c "from isatools import isatab; import logging,sys; sh=logging.StreamHandler(sys.stdout); 
-    isatab.logger.addHandler(sh); isatab.validate2(open('out_folder/metabolights/$STUDY/i_Investigation.txt'))" 
+    java -cp ISA-validator-1.6.5/isatools_deps.jar
+    org.isatools.isatab.manager.SimpleManager validate out_folder/metabolights/${STUDY}
+    Configurations/MetaboLightsConfig20140506/
 
 after_script:
   - fusermount -u example_files/metabolights
 
+notifications:
+  email:
+    - althonosdev@gmail.com

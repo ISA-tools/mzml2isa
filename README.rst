@@ -2,9 +2,8 @@ mzml2isa
 ========
 
 Parser to get meta information from mzML file and parse relevant information to a ISA-Tab structure
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-|Version| |Py versions| |Git| |Build Status| |License|
+|Version| |Py versions| |Git| |Build Status| |License| |RTD doc|
 
 Overview
 --------
@@ -25,50 +24,24 @@ Install
 See the `Installation page <http://2isa.readthedocs.io/en/latest/mzml2isa/install.html>`__ of
 the `online documentation <http://2isa.readthedocs.io/en/latest/mzml2isa/index.html>`__.
 
-Use
----
+Usage
+-----
 
 CLI
-~~~
-
-The parser comes with a simple one-liner:
+'''
 
 .. code:: bash
 
     mzml2isa -i /path/to/mzml_files/ -o /path/to/out_folder/ -s name_of_study
 
-Module
-~~~~~~
+Python Module
+'''''''''''''
 
-It is also possible to import the package:
+See the `Usage page <http://2isa.readthedocs.io/en/latest/mzml2isa/usage.html>`__ and
+the `Examples page <http://2isa.readthedocs.io/en/latest/mzml2isa/examples.html>`__ for more
+information.
 
-.. code:: python
 
-    from mzml2isa import parsing
-
-    in_dir = "/path/to/mzml_files/"
-    out_dir = "/path/to/out_folder/"
-    study_identifier_name = "name_of_study"
-
-    parsing.full_parse(in_dir, out_dir, study_identifier_name)
-
-Meta extraction
-~~~~~~~~~~~~~~~
-
-If you just want to extract meta information:
-
-.. code:: python
-
-    from mzml2isa import mzml
-
-    onefile = os.path.join(in_dir,"samp1.mzML")
-    mm = mzml.mzMLmeta(onefile)
-
-    # python dictionary format
-    print mm.meta
-
-    # JSON format
-    print mm.meta_json
 
 Metabolights
 ------------
@@ -105,8 +78,8 @@ Workflow
 Ref
 ---
 
-A modified version of the ontology extraction from this blog[1]_ was
-used, and a slightly modified class from pymzml[2]_
+A modified version of the ontology extraction from this blog [1]_ was
+used, and a slightly modified class from pymzml [2]_
 
 .. [1] http://blog.nextgenetics.net/?e=6
 .. [2] http://pymzml.github.io/
@@ -127,4 +100,5 @@ used, and a slightly modified class from pymzml[2]_
 .. |License| image:: https://img.shields.io/pypi/l/mzml2isa.svg?style=flat&maxAge=2592000
    :target: https://www.gnu.org/licenses/gpl-3.0.html
 
-
+.. |RTD doc| image:: https://img.shields.io/badge/documentation-RTD-71B360.svg?style=flat&maxAge=2592000
+   :target: http://2isa.readthedocs.io/en/latest/mzml2isa/index.html

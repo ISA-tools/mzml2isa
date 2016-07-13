@@ -645,7 +645,7 @@ class imzMLmeta(mzMLmeta):
         terms['file_content'] = {
                 'MS:1000525' : {'attribute': False, 'name': 'Spectrum representation', 'plus1': False, 'value': False, 'soft': False},
                 'IMS:1000008': {'attribute': False, 'name': 'Universally unique identifier', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000009': {'attribute': False, 'name': 'Binary file checksum type', 'plus1': False, 'value':False, 'soft': False},
+                'IMS:1000009': {'attribute': False, 'name': 'Binary file checksum type', 'plus1': False, 'value': True, 'soft': False},
                 'IMS:1000003': {'attribute': False, 'name': 'Ibd binary type', 'plus1': False, 'value': False, 'soft':False},
         }
 

@@ -129,12 +129,12 @@ class mzMLmeta(object):
         terms = collections.OrderedDict()
         terms['file_content'] = {
                 'MS:1000524': {'attribute': False, 'name': 'Data file content', 'plus1': True, 'value':False, 'soft': False},
-                'MS:1000525': {'attribute': False, 'name': 'Spectrum representation', 'plus1': False, 'value':False, 'soft': False}
+                'MS:1000525': {'attribute': False, 'name': 'Spectrum representation', 'plus1': True, 'value':False, 'soft': False}
         }
 
         terms['source_file'] = {
             'MS:1000767': {'attribute': False, 'name':'Native spectrum identifier format', 'plus1': False, 'value':False, 'soft': False},
-            'MS:1000561': {'attribute': False, 'name':'data file checksum type', 'plus1': True, 'value':True, 'soft': False},
+            'MS:1000561': {'attribute': False, 'name':'Data file checksum type', 'plus1': False, 'value':True, 'soft': False},
             'MS:1000560': {'attribute': False, 'name':'Raw data file format', 'plus1': False, 'value':False, 'soft': False},
         }
 

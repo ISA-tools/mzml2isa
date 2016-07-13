@@ -40,6 +40,7 @@ except ImportError:
 
 MARKER = "#" if sys.version_info[0]==2 else "█"
 
+import mzml2isa
 import mzml2isa.isa as isa
 import mzml2isa.mzml as mzml
 
@@ -139,6 +140,8 @@ def run():
     p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
                          required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
+    p.add_argument('--version', action='version', version='mzml2isa {}'.format(mzml2isa.__version__))
+
 
     if PB_AVAILABLE:
         p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)

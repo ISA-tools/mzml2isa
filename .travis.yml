@@ -38,6 +38,7 @@ matrix:
     - env: STUDY=MTBLS273
     - env: STUDY=MTBLS137
     - env: STUDY=MTBLS228
+  fast_finish: true
 
 before_install:
   - sudo apt-get -qq update

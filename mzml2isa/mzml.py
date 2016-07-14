@@ -256,7 +256,8 @@ class mzMLmeta(object):
 
                         # Check if a value is associated with this CV
                         if (info['value']):
-                            self.meta[meta_name]['entry_list'][c]['value'] = e.attrib['value']
+                            self.meta[meta_name]['entry_list'][c]['value'] = self._convert(e.attrib['value'])
+
                         c += 1
                     else:
 
@@ -271,7 +272,7 @@ class mzMLmeta(object):
 
                             # Check if value associated
                             if (info['value']):
-                                self.meta[meta_name]['value'] = e.attrib['value']
+                                self.meta[meta_name]['value'] = self._convert(e.attrib['value'])
                                 # remove name and accession if only the value is interesting
                                 #if self.meta[meta_name]['name'].upper() == meta_name.upper():
                                 #    del self.meta[meta_name]['name']
@@ -288,6 +289,16 @@ class mzMLmeta(object):
                             soft_ref = getparent(getparent(e, self.tree), self.tree).attrib['softwareRef']
 
                         self.software(soft_ref, meta_name)
+
+    @staticmethod
+    def _convert(value):
+        try:
+            return int(value)
+        except ValueError:
+            try:
+                return float(value)
+            except ValueError:
+                return value
 
     def _instrument_byref(self):
         """ The instrument meta information is more complicated to extract so it has its own function
@@ -649,14 +660,6 @@ XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{s
                  'scan_ref':          '{root}/s:run/{spectrum}List/{spectrum}/s:referenceableParamGroupRef',
                  'ref_param_list':    '{root}/s:referenceableParamGroupList/s:referenceableParamGroup'
                 }
-
-
-#<run defaultInstrumentConfigurationRef="ThermoExactiveOrbitrap0" id="Experiment01" sampleRef="sample1" startTimeStamp="2014-07-10T17:23:16">
-#    <spectrumList count="11449" defaultDataProcessingRef="XcaliburProcessing">
-#      <spectrum id="File=0Scan=1" defaultArrayLength="0" index="0" sourceFileRef="sf1">
-#        <referenceableParamGroupRef ref="spectrum1"/>
-
-
 
 
 class imzMLmeta(mzMLmeta):

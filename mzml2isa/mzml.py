@@ -460,6 +460,8 @@ class mzMLmeta(object):
             scan_cv =  pyxpath(self, XPATHS['scan_cv'])
 
             time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
+            unit = next( ( {'name': i.attrib['unitName'],'accession': i.attrib['unitAccession'],'ref': i.attrib['unitCvRef'] }
+                            for i in scan_cv if i.attrib['accession'] == 'MS:1000016' and 'unitName' in i.attrib.keys() ), None)
 
             minrt = str(round(min(time),4))
             maxrt = str(round(max(time),4))
@@ -471,6 +473,8 @@ class mzMLmeta(object):
             timerange = ''
 
         self.meta['Time range'] = {'value': timerange}
+        if unit is not None:
+            self.meta['Time range']['unit'] = unit
 
     def mzrange(self):
         try: #case with detection range
@@ -478,9 +482,16 @@ class mzMLmeta(object):
             minmz_l = []
             maxmz_l = []
 
+            unit = None
+
             for i in scan_window_cv:
                 if i.attrib['accession'] == 'MS:1000501':
                     minmz_l.append(float(i.attrib['value']))
+
+                    unit = unit or {'name': i.attrib['unitName'],
+                                    'ref': i.attrib['unitCvRef'],
+                                    'accession': i.attrib['unitAccession']}
+
                 if i.attrib['accession'] == 'MS:1000500':
                     maxmz_l.append(float(i.attrib['value']))
 
@@ -494,26 +505,39 @@ class mzMLmeta(object):
             mzrange = ''
 
         self.meta['Scan m/z range'] = {'value': mzrange}
+        if unit is not None:
+            self.meta['Scan m/z range']['unit'] = unit
+
+
 
     def scan_num(self):
         scan_num = pyxpath(self, XPATHS['scan_num'])[0].attrib["count"]
         self.meta['Number of scans'] = {'value': int(scan_num)}
 
     def urlize(self):
-        """Turns YY:XXXXXXX accession number into an url to http://purl.obolibrary.org/obo/MS_XXXXXXX"""
+        """Turns YY:XXXXXXX accession number into an url"""
         for meta_name in self.meta:
             if 'accession' in self.meta[meta_name].keys():
-                if self.meta[meta_name]['accession'].startswith('MS'):
-                    self.meta[meta_name]['accession'] = "http://purl.obolibrary.org/obo/{}".format(self.meta[meta_name]['accession'].replace(':', '_'))
-                elif self.meta[meta_name]['accession'].startswith('IMS'):
-                    self.meta[meta_name]['accession'] = "http://www.maldi-msi.org/download/imzml/imagingMS.obo#{}".format(self.meta[meta_name]['accession']['accession'])
+                self.meta[meta_name]['accession'] = self._urlize_name(self.meta[meta_name]['accession'])
+            if 'unit' in self.meta[meta_name].keys():
+                self.meta[meta_name]['unit']['accession'] = self._urlize_name(self.meta[meta_name]['unit']['accession'])
             elif 'entry_list' in self.meta[meta_name].keys():
                 for index, entry in enumerate(self.meta[meta_name]['entry_list']):
                     if 'accession' in entry.keys():
-                        if entry['accession'].startswith('MS'):
-                            entry['accession'] = "http://purl.obolibrary.org/obo/{}".format(entry['accession'].replace(':', '_'))
-                        elif entry['accession'].startswith('IMS'):
-                            entry['accession'] = "http://www.maldi-msi.org/download/imzml/imagingMS.obo#{}".format(entry['accession'])
+                        self.meta[meta_name]['entry_list'][index]['accession'] = self._urlize_name(entry['accession'])
+                    if 'unit' in entry.keys():
+                        self.meta[meta_name]['entry_list'][index]['unit']['accession'] = self._urlize_name(entry['unit']['accession'])
+
+    @staticmethod
+    def _urlize_name(name):
+        if name.startswith('MS'):
+            return "http://purl.obolibrary.org/obo/{}".format(name.replace(':', '_'))
+        elif name.startswith('IMS'):
+            return "http://www.maldi-msi.org/download/imzml/imagingMS.obo#{}".format(name)
+        elif name.startswith('UO'):
+            return "http://purl.obolibrary.org/obo/{}".format(name.replace(':', '_'))
+        return name
+
 
     def build_env(self):
 
@@ -672,6 +696,9 @@ class imzMLmeta(mzMLmeta):
         self.extract_meta(terms, xpaths_meta)
 
         self.link_files(group_spectra)
+
+        self.urlize()
+
 
     def link_files(self, group_spectra):
         self.meta['Raw Spectral Data File'] =  {'entry_list': [{'value': os.path.splitext(os.path.basename(self.in_file))[0] \

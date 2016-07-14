@@ -160,7 +160,7 @@ class mzMLmeta(object):
         terms['detector'] = {
                 'MS:1000481': {'attribute': True, 'name':'detector_attribute', 'plus1': True, 'value': True, 'soft': False},
                 'MS:1000026': {'attribute': False, 'name':'Detector', 'plus1': False, 'value': False, 'soft': False},
-                'MS:1000027': {'attribute': False, 'name':'Detector mode', 'plus1': True, 'value':False, 'soft': False}
+                'MS:1000027': {'attribute': False, 'name':'Detector mode', 'plus1': False, 'value':False, 'soft': False}
         }
 
         terms['data_processing'] = {
@@ -415,8 +415,8 @@ class mzMLmeta(object):
         if not 'MS' in cv:
             warnings.warn("Standard controlled vocab not available. Can not parse.", UserWarning)
             return
-        else:
-            self.meta['term_source'] = {'value': 'MS'}
+        #else:
+        #    self.meta['term_source'] = {'value': 'MS'}
 
 
         try:
@@ -472,9 +472,10 @@ class mzMLmeta(object):
             # warnings.warn("Could not find any time range.", UserWarning)
             timerange = ''
 
-        self.meta['Time range'] = {'value': timerange}
-        if unit is not None:
-            self.meta['Time range']['unit'] = unit
+        if timerange:
+            self.meta['Time range'] = {'value': timerange}
+            if unit is not None:
+                self.meta['Time range']['unit'] = unit
 
     def mzrange(self):
         try: #case with detection range
@@ -504,9 +505,10 @@ class mzMLmeta(object):
                 warnings.warn("Could not find any m/z range.", UserWarning)
             mzrange = ''
 
-        self.meta['Scan m/z range'] = {'value': mzrange}
-        if unit is not None:
-            self.meta['Scan m/z range']['unit'] = unit
+        if mzrange:
+            self.meta['Scan m/z range'] = {'value': mzrange}
+            if unit is not None:
+                self.meta['Scan m/z range']['unit'] = unit
 
 
 
@@ -698,6 +700,9 @@ class imzMLmeta(mzMLmeta):
         self.link_files(group_spectra)
 
         self.urlize()
+
+
+
 
 
     def link_files(self, group_spectra):

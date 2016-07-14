@@ -91,6 +91,10 @@ def merge_spectra(metalist):
             c['Raw Spectral Data File']['entry_list']
         )
 
+        p['Spectrum representation']['entry_list'].extend(
+            c['Spectrum representation']['entry_list']
+        )
+
         p['Sample Name']['value'] = longest_substring(
                                         p['Sample Name']['value'],c['Sample Name']['value']
                                     ).strip('-_;:() \n\t')

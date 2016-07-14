@@ -43,7 +43,7 @@ MARKER = "#" if sys.version_info[0]==2 else "█"
 import mzml2isa
 import mzml2isa.isa as isa
 import mzml2isa.mzml as mzml
-
+from mzml2isa.versionutils import longest_substring
 
 
 _PARSERS = {'mzML': mzml.mzMLmeta,
@@ -69,21 +69,6 @@ def _multiparse(filepath):
     parser = PARSERS[filepath.split(os.path.extsep)[-1]]
     ont = ONTOLOGIES[filepath.split(os.path.extsep)[-1]]
     return parser(filepath, ont).meta_isa
-
-
-def longest_substring(string1, string2):
-    answer = ""
-    len1, len2 = len(string1), len(string2)
-    for i in range(len1):
-        match = ""
-        for j in range(len2):
-            if (i + j < len1 and string1[i + j] == string2[j]):
-                match += string2[j]
-            else:
-                if (len(match) > len(answer)): answer = match
-                match = ""
-    return answer
-
 
 def merge_spectra(metalist):
 

@@ -30,6 +30,7 @@ GNU General Public License version 3.0 (GPLv3)
 import collections
 import json
 import os
+import glob
 import warnings
 
 from pronto import Ontology
@@ -165,7 +166,7 @@ class mzMLmeta(object):
 
         terms['data_processing'] = {
                 'MS:1000630': {'attribute': True, 'name':'data_processing_parameter', 'plus1': True, 'value': True, 'soft': True},
-                'MS:1000452': {'attribute': False, 'name':'Data Transformation', 'plus1': True, 'value': False, 'soft': True},
+                'MS:1000452': {'attribute': False, 'name':'Data Transformation Name', 'plus1': True, 'value': False, 'soft': True},
         }
 
         # update self.meta with the relevant meta infromation
@@ -192,10 +193,8 @@ class mzMLmeta(object):
         #
         self.urlize()
 
-        # Get the isa_tab compatible meta dictionary
-
-        self.meta['Data Transformation Name'] = self.meta['Data Transformation']
-        del self.meta['Data Transformation']
+        #self.meta['Data Transformation Name'] = self.meta['Data Transformation']
+        #del self.meta['Data Transformation']
 
     def extract_meta(self, terms, xpaths):
         """ Extract meta information for CV terms based on their location in the xml file
@@ -329,7 +328,6 @@ class mzMLmeta(object):
                     elif ie.attrib['accession'] == 'MS:1000529':
                         self.meta['Instrument serial number'] = {'value': ie.attrib['value']}
 
-
         soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib[self.env['softwareRef']]
 
         # Get associated software
@@ -385,6 +383,8 @@ class mzMLmeta(object):
 
         elements = pyxpath(self, XPATHS['software_elements'])
 
+        if name.endswith('Name'):               # We don't want Data Transformation Name Software !
+            name = name.replace(' Name', '')
 
         for e in elements:
 
@@ -510,8 +510,6 @@ class mzMLmeta(object):
             if unit is not None:
                 self.meta['Scan m/z range']['unit'] = unit
 
-
-
     def scan_num(self):
         scan_num = pyxpath(self, XPATHS['scan_num'])[0].attrib["count"]
         self.meta['Number of scans'] = {'value': int(scan_num)}
@@ -539,7 +537,6 @@ class mzMLmeta(object):
         elif name.startswith('UO'):
             return "http://purl.obolibrary.org/obo/{}".format(name.replace(':', '_'))
         return name
-
 
     def build_env(self):
 
@@ -651,7 +648,7 @@ XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{s
 
 class imzMLmeta(mzMLmeta):
 
-    def __init__(self, in_file, ontology=None, group_spectra=True):
+    def __init__(self, in_file, ontology=None):
         # Extract same informations as mzml file
 
         if ontology is None:
@@ -697,29 +694,43 @@ class imzMLmeta(mzMLmeta):
 
         self.extract_meta(terms, xpaths_meta)
 
-        self.link_files(group_spectra)
+        self.link_files()
 
         self.urlize()
 
-
-
-
-
-    def link_files(self, group_spectra):
+    def link_files(self):
         self.meta['Raw Spectral Data File'] =  {'entry_list': [{'value': os.path.splitext(os.path.basename(self.in_file))[0] \
                                                                          + os.path.extsep + 'ibd'}] }
 
         self.meta['Spectrum representation'] = {'entry_list': [ self.meta['Spectrum representation'] ] }
 
-        if group_spectra:
-            self.meta['MS Assay Name']['value'] = self.meta['MS Assay Name']['value']
+        #if group_spectra:
+        #    self.meta['MS Assay Name']['value'] = self.meta['MS Assay Name']['value']
 
-        self.meta['High-res image'] = {'value': os.path.extsep.join([self.meta['MS Assay Name']['value'],'ndpi']) }
+        self.meta['High-res image'] = {'value': self.find_img('ndpi') }
+        self.meta['Low-res image'] =  {'value': self.find_img('jpg', 'tif') }
 
-        for img_format in ('jpg', 'tif'):
-            img_file_low = os.path.join(self.in_dir, os.path.extsep.join([self.meta['MS Assay Name']['value'], img_format]))
-            if os.path.isfile(img_file_low):
-                self.meta['Low-res image'] = {'value': os.path.basename(img_file_low)}
+
+    def find_img(self, *img_formats):
+
+        identity = dict()
+
+        for img_format in img_formats:
+
+            name = self.meta['Sample Name']['value']
+
+            for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
+
+                filename = os.path.splitext(os.path.basename(file))[0]
+                identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
+
+        if identity:
+            return max(identity, key=identity.get)
+        else:
+            return ''
+
+
+
 
 
 

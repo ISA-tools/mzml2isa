@@ -35,9 +35,7 @@ matrix:
     - env: STUDY=MTBLS126
     - env: STUDY=MTBLS38
     # Fail for no know reason (need to investigate)
-    - env: STUDY=MTBLS273
     - env: STUDY=MTBLS137
-    - env: STUDY=MTBLS228
   fast_finish: true
 
 before_install:

@@ -444,15 +444,15 @@ class mzMLmeta(object):
                 neg = True
 
         if pos & neg:
-            polarity = "alternating"
+            polarity = {'name': "alternating scan", 'ref':'', 'accession':''}
         elif pos:
-            polarity = "positive"
+            polarity = {'name':"positive scan", 'ref':'MS', 'accession':'MS:1000130'}
         elif neg:
-            polarity = "negative"
+            polarity = {'name':"negative scan", 'ref':'MS', 'accession':'MS:1000129'}
         else:
-            polarity = "n/a"
+            polarity = {'name': "n/a", 'ref':'', 'accession':''}
 
-        self.meta['Scan polarity'] = {'value': polarity}
+        self.meta['Scan polarity'] = polarity
 
     def timerange(self):
 
@@ -643,7 +643,17 @@ XPATHS_I_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:
                 }
 
 XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
+                 'scan_ref':          '{root}/s:run/{spectrum}List/{spectrum}/s:referenceableParamGroupRef',
+                 'ref_param_list':    '{root}/s:referenceableParamGroupList/s:referenceableParamGroup'
                 }
+
+
+#<run defaultInstrumentConfigurationRef="ThermoExactiveOrbitrap0" id="Experiment01" sampleRef="sample1" startTimeStamp="2014-07-10T17:23:16">
+#    <spectrumList count="11449" defaultDataProcessingRef="XcaliburProcessing">
+#      <spectrum id="File=0Scan=1" defaultArrayLength="0" index="0" sourceFileRef="sf1">
+#        <referenceableParamGroupRef ref="spectrum1"/>
+
+
 
 
 class imzMLmeta(mzMLmeta):
@@ -696,6 +706,8 @@ class imzMLmeta(mzMLmeta):
 
         self.link_files()
 
+        self.scan_meta()
+
         self.urlize()
 
     def link_files(self):
@@ -709,7 +721,6 @@ class imzMLmeta(mzMLmeta):
 
         self.meta['High-res image'] = {'value': self.find_img('ndpi') }
         self.meta['Low-res image'] =  {'value': self.find_img('jpg', 'tif') }
-
 
     def find_img(self, *img_formats):
 
@@ -729,7 +740,27 @@ class imzMLmeta(mzMLmeta):
         else:
             return ''
 
+    def scan_meta(self):
+        """Extract scan dependant metadata"""
 
+        scan_refs = { x.attrib['ref'] for x in pyxpath(self, XPATHS_I['scan_ref']) }
+
+        terms = collections.OrderedDict()
+
+        terms['scan_meta'] = {
+            'MS:1000511': {'attribute': False, 'name':'MS Level', 'plus1': False, 'value':True, 'soft': False},
+            'MS:1000465': {'attribute': False, 'name':'Scan polarity', 'plus1': False, 'value':False, 'soft': False},
+        }
+
+        if len(scan_refs) != 1:
+            warnings.warn("File contains scans using different parameter values, parsed metadata may be wrong.", UserWarning)
+
+        for ref in scan_refs:
+
+            param_group = next( x for x in pyxpath(self, XPATHS_I['ref_param_list']) if x.attrib['id'] == ref)
+
+            self.cvParam_loop(param_group.iterfind('s:cvParam', self.ns),
+                              'scan_meta', terms)
 
 
 

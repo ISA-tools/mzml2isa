@@ -84,7 +84,7 @@ class ISA_Tab(object):
         fmt = PermissiveFormatter()
 
         if split:
-            polarities = set( meta['Scan polarity']['value'] for meta in metalist ) \
+            polarities = set( meta['Scan polarity']['name'] for meta in metalist ) \
                             if 'Scan polarity' in metalist[0].keys() else ['nopolarity']
         else:
             polarities = ['nosplit']
@@ -103,7 +103,7 @@ class ISA_Tab(object):
                 writer=csv.writer(a_out, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
                 writer.writerow(headers)
 
-                for meta in ( x for x in metalist if x['Scan polarity']['value']==polarity ):
+                for meta in ( x for x in metalist if x['Scan polarity']['name']==polarity ):
                     writer.writerow( [ fmt.vformat(x, None, ChainMap(meta, self.usermeta)) for x in data] )
 
     def create_study(self, metalist, datatype):

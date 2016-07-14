@@ -37,6 +37,9 @@ from pronto import Ontology
 from mzml2isa.versionutils import *
 
 
+IDENTITY_THRESHOLD = 0.4
+
+
 
 XPATHS_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cvParam',
                'source_file':       '{root}/s:fileDescription/s:sourceFileList/s:sourceFile/s:cvParam',
@@ -735,7 +738,7 @@ class imzMLmeta(mzMLmeta):
                 filename = os.path.splitext(os.path.basename(file))[0]
                 identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
 
-        if identity:
+        if identity and max(identity.values()) > IDENTITY_THRESHOLD:
             return max(identity, key=identity.get)
         else:
             return ''

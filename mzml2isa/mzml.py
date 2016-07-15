@@ -276,7 +276,7 @@ class mzMLmeta(object):
 
                         if 'unitName' in e.attrib:
                             self.meta[meta_name]['entry_list'][-1]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
-                                                                                'accession': e.attrib['unitAccession']}
+                                                                              'accession': e.attrib['unitAccession']}
 
                         # Check if a value is associated with this CV
                         if info['value']:
@@ -357,6 +357,12 @@ class mzMLmeta(object):
                         self.meta['Instrument'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name'],
                                                    'ref':ie.attrib['cvRef']}
 
+                        if ie.attrib['name'] != self.obo[ie.attrib['accession']]:
+                            warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(ie.attrib['name']),
+                                                   "does not correspond to the instrument accession ({})".format(self.obo[ie.attrib['accession']].name)]),
+                                          UserWarning)
+                            self.meta['Instrument']['name'] = self.obo[ie.attrib['accession']].name
+
                         # get manufacturer (actually just derived from instrument model). Want to get the top level
                         # so have to go up (should only be a maximum of 3 steps above in the heirachy but do up 8 to be
                         # sure.
@@ -395,6 +401,12 @@ class mzMLmeta(object):
             elif e.attrib['accession'] in self.obo['MS:1000031'].rchildren():
                 self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name'],
                                            'ref':e.attrib['cvRef']}
+
+                if e.attrib['name'] != self.obo[e.attrib['accession']]:
+                    warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(e.attrib['name']),
+                                           "does not correspond to the instrument accession ({})".format(self.obo[e.attrib['accession']].name)]),
+                                  UserWarning)
+                    self.meta['Instrument']['name'] = self.obo[e.attrib['accession']].name
 
                 parents = self.obo[e.attrib['accession']].rparents()
                 parents.append(self.obo[e.attrib['accession']])

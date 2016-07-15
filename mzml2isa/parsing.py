@@ -64,6 +64,16 @@ _ONTOLOGIES = {'mzML': _ms,
 del dirname
 
 
+
+def _custom_formatwarning(msg, *a):
+    # ignore everything except the message
+    return 'Warning: {}\n'.format(str(msg))
+
+warnings.formatwarning = _custom_formatwarning
+
+
+
+
 def _multiparse(filepath):
     print('Parsing file: {}'.format(filepath))
     parser = PARSERS[filepath.split(os.path.extsep)[-1]]
@@ -127,7 +137,7 @@ def run():
     p.add_argument('-M', dest='multip', help='launch different processes for parsing', required=False, default=0, type=int)
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
     p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
-    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
+    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='once',
                          required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
     p.add_argument('--version', action='version', version='mzml2isa {}'.format(mzml2isa.__version__))
 
@@ -145,7 +155,7 @@ def run():
         print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
         print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
 
-    with warnings.catch_warnings():
+    with warnings.catch_warnings() as w:
         warnings.filterwarnings(args.wrng_ctrl)
 
         full_parse(args.in_dir, args.out_dir, args.study_name,
@@ -167,8 +177,8 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
     # get mzML file in the example_files folder
     mzml_path = os.path.join(in_dir, "*mzML")
 
-    if verbose:
-    	print(mzml_path)
+    #if verbose:
+    #	print(mzml_path)
 
     mzml_files = [mzML for mzML in glob.glob(mzml_path)]
     #mzml_files.sort()

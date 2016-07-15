@@ -1,71 +1,70 @@
 language: python
-
 python:
-  - "3.5"
-  - "2.7"
+- '3.5'
+- '2.7'
 env:
-  - STUDY=MTBLS267
-  - STUDY=MTBLS266
-  - STUDY=MTBLS273
-  - STUDY=MTBLS32
-  - STUDY=MTBLS127
-  - STUDY=MTBLS289
-  - STUDY=MTBLS263
-  - STUDY=MTBLS87
-  - STUDY=MTBLS36
-  - STUDY=MTBLS140
-  - STUDY=MTBLS229
-  - STUDY=MTBLS265
-  - STUDY=MTBLS228
-  - STUDY=MTBLS67
-  - STUDY=MTBLS125
-  - STUDY=MTBLS126
-  - STUDY=MTBLS88
-  - STUDY=MTBLS38
-  - STUDY=MTBLS137
-  - STUDY=MTBLS315
-
+- STUDY=MTBLS267
+- STUDY=MTBLS266
+- STUDY=MTBLS273
+- STUDY=MTBLS32
+- STUDY=MTBLS127
+- STUDY=MTBLS289
+- STUDY=MTBLS263
+- STUDY=MTBLS87
+- STUDY=MTBLS36
+- STUDY=MTBLS140
+- STUDY=MTBLS229
+- STUDY=MTBLS265
+- STUDY=MTBLS228
+- STUDY=MTBLS67
+- STUDY=MTBLS125
+- STUDY=MTBLS126
+- STUDY=MTBLS88
+- STUDY=MTBLS38
+- STUDY=MTBLS137
+- STUDY=MTBLS315
 matrix:
   allow_failures:
-    # Often timeout
-    - env: STUDY=MTBLS289
-    - env: STUDY=MTBLS36
-    - env: STUDY=MTBLS140
-    - env: STUDY=MTBLS125
-    - env: STUDY=MTBLS126
-    - env: STUDY=MTBLS38
-    # Fail for no know reason (need to investigate)
-    - env: STUDY=MTBLS137
+  - env: STUDY=MTBLS289
+  - env: STUDY=MTBLS36
+  - env: STUDY=MTBLS140
+  - env: STUDY=MTBLS125
+  - env: STUDY=MTBLS126
+  - env: STUDY=MTBLS38
+  - env: STUDY=MTBLS137
   fast_finish: true
-
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install python-lxml python3-lxml
-  - sudo apt-get install -y curlftpfs
-  - sudo apt-get install -y default-jre
-
+- sudo apt-get -qq update
+- sudo apt-get install python-lxml python3-lxml
+- sudo apt-get install -y curlftpfs
+- sudo apt-get install -y default-jre
 install:
-  - pip install -r requirements.txt
-  - pip install .
-
+- pip install -r requirements.txt
+- pip install .
 before_script:
-  - mkdir example_files/metabolights
-  - curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
-  - wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip
-  - unzip ISA-validator-1.6.5.zip
-  - wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip
-  - unzip ISAcreatorMetaboLights.zip
-
+- mkdir example_files/metabolights
+- curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
+- wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip
+- unzip ISA-validator-1.6.5.zip
+- wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip
+- unzip ISAcreatorMetaboLights.zip
 script:
-  - mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
-  - >
-    java -cp ISA-validator-1.6.5/isatools_deps.jar
-    org.isatools.isatab.manager.SimpleManager validate out_folder/metabolights/${STUDY}
-    Configurations/MetaboLightsConfig20140506/
-
+- mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
+  -W always
+- 'java -cp ISA-validator-1.6.5/isatools_deps.jar org.isatools.isatab.manager.SimpleManager
+  validate out_folder/metabolights/${STUDY} Configurations/MetaboLightsConfig20140506/
+'
 after_script:
-  - fusermount -u example_files/metabolights
-
+- fusermount -u example_files/metabolights
 notifications:
   email:
-    - althonosdev@gmail.com
+  - althonosdev@gmail.com
+deploy:
+  provider: pypi
+  user: althonos
+  password:
+    secure: JuI14XA+bwrg9Qe5HNDoPj6Dzi4BrNhc/Xq2cStTOeosyCIUKRgEaIkkZ0NrRZ5g9CTdArRwwjtfAzK8MlkTTt4iCVasmirnjafGCrw5vY/ELlqdBuu52RmIx2o5o0eua7dTjI6Q5rrCOBPj4/nB6JFpsTyytxhUXjdw/Wr9ZpSleS6iaWaF/smLTPOPpO6NQh/2kPWM7AErax2Bbg9MdXYTLoBCBk0Kjub93ymSXyZCjX3y1lfpldW7Nmn8ZXcU/ak408oD4EtHMC4BeNpoKju1Jl5qLhMHWIo/G2/X/B9Jdgju1C4DhcqHhumyTm9aI33ECmLMCq6vdsG3gmLl+z0Key6w1A6xekEQrWbmPvi7AmbGVeNz4V4HYVv2cyEmxwhSCIrPWiZKK4YqiJSlzsufSdcrtVYIZ5Xhvb1YXVnGAJ471+ua+ESuQHBUhQM3c3kpFyabsLAPN3eIRjAOWVFNWc/LP/5TA8VgbG3P6D/hGBOZBIyNka3Kj6Q6YOkPyrb80oiJJ229GwTvlG/FQ5by7t2une9At9TfTsKKsKkAlsFSYoCQ6gY65+hzeWrFkTssXSNZbq1MKillL+7/uaW6WwvvVYSl9XAXuaXCrCB7c5fwXem3tWnqV2R75bVaHelgIwjGd4m60DDa+xQG8oikREVuLBILNjp4fEYKrEc=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: althonos/mzml2isa

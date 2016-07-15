@@ -180,7 +180,7 @@ class mzMLmeta(object):
         self.instrument()
 
         #
-        #self.polarity()
+        self.polarity()
 
         #
         self.timerange()
@@ -479,7 +479,7 @@ class mzMLmeta(object):
         else:
             polarity = {'name': "n/a", 'ref':'', 'accession':''}
 
-        self.meta['Polarity'] = polarity
+        self.meta['Scan polarity'] = polarity
 
     def spectrum_meta(self):
         """Extract information of each spectrum in entry lists."""
@@ -489,7 +489,7 @@ class mzMLmeta(object):
         terms['sp'] = {
             'MS:1000524': {'attribute': False, 'name': 'Data file content', 'plus1': True, 'value': False, 'soft':False},
             'MS:1000796': {'attribute': False, 'name': 'Spectrum title', 'plus1': True, 'value': True, 'soft':False},
-            'MS:1000465': {'attribute': False, 'name': 'Scan polarity', 'plus1': True, 'value': False, 'soft': False},
+            'MS:1000465': {'attribute': False, 'name': 'Polarity', 'plus1': True, 'value': False, 'soft': False},
             'MS:1000511': {'attribute': False, 'name': 'MS Level', 'plus1': True, 'value':True, 'soft': False},
             'MS:1000525': {'attribute': False, 'name': 'Spectrum representation', 'plus1': True, 'value':False, 'soft': False},
             'MS:1000504': {'attribute': False, 'name': 'Base Peak m/z', 'plus1': True, 'value': True, 'soft': False},

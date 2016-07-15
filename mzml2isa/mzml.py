@@ -56,6 +56,7 @@ XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:refe
                'ic_nest':           '{root}/{instrument}List/{instrument}/s:cvParam[@accession]',
                'ic_soft_ref':       '{root}/{instrument}List/{instrument}/{software}[@{softwareRef}]',
                'software_elements': '{root}/s:softwareList/s:software',
+               'sp':                '{root}/s:run/{spectrum}List/{spectrum}',
                'sp_cv':             '{root}/s:run/{spectrum}List/{spectrum}/s:cvParam',
                'scan_window_cv':    '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/{scanWindow}List/{scanWindow}/s:cvParam',
                'scan_cv':           '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
@@ -179,7 +180,7 @@ class mzMLmeta(object):
         self.instrument()
 
         #
-        self.polarity()
+        #self.polarity()
 
         #
         self.timerange()
@@ -189,6 +190,9 @@ class mzMLmeta(object):
 
         #
         self.scan_num()
+
+        #
+        self.spectrum_meta()
 
         #
         self.derived()
@@ -230,7 +234,10 @@ class mzMLmeta(object):
         # get associated meta information from each file
         descendents = {k: self.obo[k].rchildren().id for k in terms[location_name]}
 
-        c = 0
+        #c = 0
+
+        if elements is None:
+            return
 
         # go through every cvParam element
         for e in elements:
@@ -247,18 +254,23 @@ class mzMLmeta(object):
                         # Setup the dictionary for multiple entries
                         if not meta_name in self.meta.keys():
                             self.meta[meta_name] = {'entry_list': []}
+
                         self.meta[meta_name]['entry_list'].append( {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']} )
 
                         if 'unitName' in e.attrib:
                             self.meta[meta_name]['entry_list'][-1]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
                                                                                 'accession': e.attrib['unitAccession']}
 
-
                         # Check if a value is associated with this CV
                         if (info['value']):
-                            self.meta[meta_name]['entry_list'][c]['value'] = self._convert(e.attrib['value'])
+                            self.meta[meta_name]['entry_list'][-1]['value'] = self._convert(e.attrib['value'])
 
-                        c += 1
+                        if self.meta[meta_name]['entry_list'][-1]['name'].upper() == meta_name.upper():
+                            del self.meta[meta_name]['entry_list'][-1]['name']
+                            del self.meta[meta_name]['entry_list'][-1]['accession']
+                            del self.meta[meta_name]['entry_list'][-1]['ref']
+
+                        #c += 1
                     else:
 
                         if 'name' in info.keys():
@@ -274,9 +286,10 @@ class mzMLmeta(object):
                             if (info['value']):
                                 self.meta[meta_name]['value'] = self._convert(e.attrib['value'])
                                 # remove name and accession if only the value is interesting
-                                #if self.meta[meta_name]['name'].upper() == meta_name.upper():
-                                #    del self.meta[meta_name]['name']
-                                #    del self.meta[meta_name]['accession']
+
+                                if self.meta[meta_name]['name'].upper() == meta_name.upper():
+                                    del self.meta[meta_name]['name']
+                                    del self.meta[meta_name]['accession']
 
 
 
@@ -466,7 +479,106 @@ class mzMLmeta(object):
         else:
             polarity = {'name': "n/a", 'ref':'', 'accession':''}
 
-        self.meta['Scan polarity'] = polarity
+        self.meta['Polarity'] = polarity
+
+    def spectrum_meta(self):
+        """Extract information of each spectrum in entry lists."""
+
+        terms = collections.OrderedDict()
+
+        terms['sp'] = {
+            'MS:1000524': {'attribute': False, 'name': 'Data file content', 'plus1': True, 'value': False, 'soft':False},
+            'MS:1000796': {'attribute': False, 'name': 'Spectrum title', 'plus1': True, 'value': True, 'soft':False},
+            'MS:1000465': {'attribute': False, 'name': 'Scan polarity', 'plus1': True, 'value': False, 'soft': False},
+            'MS:1000511': {'attribute': False, 'name': 'MS Level', 'plus1': True, 'value':True, 'soft': False},
+            'MS:1000525': {'attribute': False, 'name': 'Spectrum representation', 'plus1': True, 'value':False, 'soft': False},
+            'MS:1000504': {'attribute': False, 'name': 'Base Peak m/z', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000505': {'attribute': False, 'name': 'Base Peak intensity', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000285': {'attribute': False, 'name': 'Total ion current', 'plus1': True, 'value': True, 'soft': False},
+
+            'MS:1000927': {'attribute': False, 'name': 'Ion injection time', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000512': {'attribute': False, 'name': 'Filter string', 'plus1': True, 'value': True, 'soft': False},
+
+            'MS:1000528': {'attribute': False, 'name': 'Lowest observed m/z', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000527': {'attribute': False, 'name': 'Highest observed m/z', 'plus1': True, 'value': True, 'soft': False},
+        }
+
+        terms['combination'] = {
+            'MS:1000570': {'attribute': False, 'name': 'Spectrum combination', 'plus1': True, 'value': False, 'soft': False}
+        }
+
+        terms['configuration'] = {
+            'MS:1000016': {'attribute': False, 'name': 'Scan start time', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000512': {'attribute': False, 'name': 'Filter string', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000616': {'attribute': False, 'name': 'Preset scan configuration', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000927': {'attribute': False, 'name': 'Ion injection time', 'plus1': True, 'value':True, 'soft': False},
+            'MS:1000018': {'attribute': False, 'name': 'Scan direction', 'plus1': True, 'value': True, 'soft':False},
+            'MS:1000019': {'attribute': False, 'name': 'Scan law', 'plus1': True, 'value': True, 'soft':False},
+        }
+
+        terms['isolation_window'] = {
+            'MS:1000827': {'attribute': False, 'name': 'Isolation window target m/z', 'plus1':True, 'value': True, 'soft': False},
+            'MS:1000828': {'attribute': False, 'name': 'Isolation window lower offset', 'plus1':True, 'value': True, 'soft': False},
+            'MS:1000829': {'attribute': False, 'name': 'Isolation window higher offset', 'plus1':True, 'value': True, 'soft': False},
+        }
+
+        terms['selected_ion'] = {
+            'MS:1000744': {'attribute': False, 'name': 'Selected ion m/z', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000744': {'attribute': False, 'name': 'Charge state', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000744': {'attribute': False, 'name': 'Peak intensity', 'plus1': True, 'value': True, 'soft': False},
+        }
+
+        terms['activation'] = {
+            'MS:1000044': {'attribute': False, 'name': 'Dissociation method', 'plus1': True, 'value': False, 'soft': False},
+            'MS:1000045': {'attribute': False, 'name': 'Collision Energy', 'plus1': True, 'value': True, 'soft':False},
+        }
+
+        terms['binary'] = {
+            'MS:1000518': {'attribute': False, 'name': 'Binary data type', 'plus1': True, 'value': False, 'soft': False},
+            'MS:1000572': {'attribute': False, 'name': 'Binary data compression type', 'plus1': True, 'value': False, 'soft': False},
+            'MS:1000513': {'attribute': False, 'name': 'Binary data array', 'plus1': True, 'value': False, 'soft': False},
+        }
+
+        for spectrum in pyxpath(self, XPATHS['sp']):
+
+            spec_ref = spectrum.iterfind('./s:referenceableParamGroupRef', self.ns)
+            for ref in spec_ref:
+                params = next( (x for x in pyxpath(self, '{root}/s:referenceableParamGroupList/s:referenceableParamGroup') \
+                                if x.attrib['id'] == ref.attrib['ref']), None)
+                self.cvParam_loop(params.iterfind('s:cvParam', self.ns), 'sp', terms)
+
+            scan_ref = spectrum.iterfind('{scanList}/s:scan/s:referenceableParamGroupRef'.format(**self.env), self.ns)
+            for ref in scan_ref:
+                params = next( (x for x in pyxpath(self, '{root}/s:referenceableParamGroupList/s:referenceableParamGroup') \
+                                if x.attrib['id'] == ref.attrib['ref']), None)
+                self.cvParam_loop(params.iterfind('s:cvParam', self.ns), 'combination', terms)
+
+            bin_ref = spectrum.iterfind('s:binaryDataArrayList/s:binaryDataArray/s:referenceableParamGroupRef', self.ns)
+            for ref in bin_ref:
+                params = next( (x for x in pyxpath(self, '{root}/s:referenceableParamGroupList/s:referenceableParamGroup') \
+                                if x.attrib['id'] == ref.attrib['ref']), None)
+                self.cvParam_loop(params.iterfind('s:cvParam', self.ns), 'binary', terms)
+
+            self.cvParam_loop(spectrum.iterfind('s:cvParam', self.ns), 'sp', terms)
+            self.cvParam_loop(spectrum.iterfind('{scanList}/s:cvParam'.format(**self.env), self.ns), 'combination', terms)
+            self.cvParam_loop(spectrum.iterfind('{scanList}/s:scan/s:cvParam'.format(**self.env), self.ns), 'configuration', terms)
+            self.cvParam_loop(spectrum.iterfind('s:binaryDataArrayList/s:binaryDataArray/s:cvParam'.format(**self.env), self.ns), 'binary', terms)
+
+            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:activation/s:cvParam', self.ns), 'activation', terms)
+            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:isolationWindow/s:cvParam', self.ns), 'isolation_window', terms)
+            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:selectedIonList/s:selectedIon/s:cvParam', self.ns), 'selected_ion', terms)
+
+        for entry in ('Collision Energy', 'Data file content', 'Dissociation method', 'Spectrum combination',
+                      'Binary data array', 'Binary data compression type', 'Binary data type'):
+            self.merge_entries(entry)
+
+    def merge_entries(self, name):
+
+        if name in self.meta.keys():
+            if 'entry_list' in self.meta[name].keys():
+                self.meta[name]['entry_list'] = [i for n, i in enumerate(self.meta[name]['entry_list'])
+                                                   if i not in self.meta[name]['entry_list'][n + 1:]]
+
 
     def timerange(self):
 

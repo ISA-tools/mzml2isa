@@ -112,7 +112,7 @@ class mzMLmeta(object):
         # setup lxml parsing
         self.in_file = in_file
         self.in_dir = os.path.dirname(in_file)
-        self.tree = etree.parse(in_file, etree.XMLParser())
+        self.tree = self._make_tree(in_file)#etree.parse(in_file, etree.XMLParser())
 
         self.build_env()
 
@@ -300,6 +300,19 @@ class mzMLmeta(object):
             except ValueError:
                 return value
 
+    @staticmethod
+    def _make_tree(in_file):
+
+        context = etree.iterparse(in_file, events=('start',))
+
+        [ elem.clear() for _,elem in context if elem.tag=='{http://psi.hupo.org/ms/mzml}binary']
+
+        #for event, elem in context:
+        #    if elem.tag == '{http://psi.hupo.org/ms/mzml}binary':
+        #        elem.clear()
+
+        return etree.ElementTree(context.root)
+
     def _instrument_byref(self):
         """ The instrument meta information is more complicated to extract so it has its own function
 
@@ -317,7 +330,7 @@ class mzMLmeta(object):
         for e in elements:
             # get all CV information from the instrument config
             if e.attrib['id']==ic_ref:
-                instrument_e = e.findall('s:cvParam', self.ns)
+                instrument_e = e.iterfind('s:cvParam', self.ns)
 
                 for ie in instrument_e:
 
@@ -408,7 +421,7 @@ class mzMLmeta(object):
 
                     if e.attrib['version']:
                         self.meta[name+' software version'] = {'value': e.attrib['version']}
-                    software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
+                    software_cvParam = e.iterfind('s:cvParam', namespaces=self.ns)
                     for ie in software_cvParam:
                         self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name'],
                                                        'ref': ie.attrib['cvRef']}

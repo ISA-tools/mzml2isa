@@ -59,6 +59,7 @@ XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:refe
                'scan_num':          '{root}/s:run/{spectrum}List',
                'cv':                '{root}/s:cvList/s:cv',
                'raw_file':          '{root}/s:fileDescription/s:sourceFileList/s:sourceFile',
+
               }
 
 
@@ -86,7 +87,7 @@ class mzMLmeta(object):
     obo = None
     _descendents = dict()
 
-    def __init__(self, in_file, ontology=None):
+    def __init__(self, in_file, ontology=None, complete_parse=False):
         """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
 
         :param str in_file: path to mzML file
@@ -196,10 +197,13 @@ class mzMLmeta(object):
         self.scan_num()
 
         #
-        self.spectrum_meta()
+        self.derived()
 
         #
-        self.derived()
+        if complete_parse:
+            self.spectrum_meta()
+        elif not 'Data file content' in self.meta:
+            self.data_file_content()
 
         #
         self.urlize()
@@ -239,10 +243,12 @@ class mzMLmeta(object):
 
         #descendents = {}
 
-        for k in terms[location_name].keys():
-            if not k in self._descendents.keys():
-                self._descendents[k] = self.obo[k].rchildren().id
+        #for k in terms[location_name]:
+        #    if not k in self._descendents:
+        #        self._descendents[k] = self.obo[k].rchildren().id
         #    descendents[k] = self._obo_memo[k]
+
+        self._descendents.update({k:self.obo[k].rchildren().id for k in terms[location_name] if not k in self._descendents})
 
         #descendents = {k: self.obo[k].rchildren().id for k in terms[location_name]}
 
@@ -264,14 +270,17 @@ class mzMLmeta(object):
                     # Check if there can be more than one of the same term
                     if(info['plus1']):
                         # Setup the dictionary for multiple entries
-                        if not meta_name in self.meta.keys():
+                        if not meta_name in self.meta:
                             self.meta[meta_name] = {'entry_list': []}
 
                         self.meta[meta_name]['entry_list'].append( {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']} )
 
-                        if 'unitName' in e.attrib:
+                        #if 'unitName' in e.attrib:
+                        try:
                             self.meta[meta_name]['entry_list'][-1]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
                                                                               'accession': e.attrib['unitAccession']}
+                        except KeyError:
+                            pass
 
                         # Check if a value is associated with this CV
                         if info['value']:
@@ -291,9 +300,12 @@ class mzMLmeta(object):
                         self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']}
 
 
-                        if 'unitName' in e.attrib:
+                        #if 'unitName' in e.attrib:
+                        try:
                             self.meta[meta_name]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
                                                             'accession': e.attrib['unitAccession']}
+                        except KeyError:
+                            pass
 
                         # Check if value associated
                         if (info['value']):
@@ -343,7 +355,7 @@ class mzMLmeta(object):
         for e in elements:
             # get all CV information from the instrument config
             if e.attrib['id']==ic_ref:
-                instrument_e = e.findall('s:cvParam', self.ns)
+                instrument_e = e.iterfind('s:cvParam', self.ns)
 
                 for ie in instrument_e:
 
@@ -352,7 +364,7 @@ class mzMLmeta(object):
                         self.meta['Instrument'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name'],
                                                    'ref':ie.attrib['cvRef']}
 
-                        if ie.attrib['name'] != self.obo[ie.attrib['accession']]:
+                        if ie.attrib['name'] != self.obo[ie.attrib['accession']].name:
                             warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(ie.attrib['name']),
                                                    "does not correspond to the instrument accession ({})".format(self.obo[ie.attrib['accession']].name)]),
                                           UserWarning)
@@ -420,9 +432,9 @@ class mzMLmeta(object):
             self.software(soft_ref, 'Instrument')
         except (IndexError, KeyError, StopIteration): #Sometimes <Instrument> contains no Software tag
             warnings.warn("Instrument {} does not have a software tag.".format( self.meta['Instrument']['name']
-                                                                                if 'Instrument' in self.meta.keys()
+                                                                                if 'Instrument' in self.meta
                                                                                 else "<"+self.meta['Instrument serial number']+">"
-                                                                                if 'Instrument serial number' in self.meta.keys()
+                                                                                if 'Instrument serial number' in self.meta
                                                                                 else '?'),
                            UserWarning)
 
@@ -446,7 +458,7 @@ class mzMLmeta(object):
 
                     if e.attrib['version']:
                         self.meta[name+' software version'] = {'value': e.attrib['version']}
-                    software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
+                    software_cvParam = e.iterfind('s:cvParam', namespaces=self.ns)
                     for ie in software_cvParam:
                         self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name'],
                                                        'ref': ie.attrib['cvRef']}
@@ -507,8 +519,28 @@ class mzMLmeta(object):
         self.meta['Scan polarity'] = polarity
 
     def make_params(self):
-        self._params = {x.attrib['id']:x for x in pyxpath(self, '{root}/s:referenceableParamGroupList/s:referenceableParamGroup')}
+        self._params = {x.attrib['id']:x for x in pyxpath(self,
+        '{root}/s:referenceableParamGroupList/s:referenceableParamGroup')}
 
+    def data_file_content(self):
+
+        file_contents = self.obo['MS:1000524'].rchildren().id
+
+        def unseen(accession, memo=set()):
+            if accession in set:
+                return False
+            else:
+                memo.add(accession)
+                return True
+
+        self.meta['Data file content'] = {'entry_list':
+
+            [ {'name': cv.attrib['name'], 'ref': cv.attrib['ref'], 'accession': cv.attrib['accession'] }
+                for cv in pyxpath(self, XPATHS['sp_cv'])
+                    if cv.attrib['accession'] in file_contents and unseen(cv.attrib['accession'])
+            ]
+
+        }
 
     def spectrum_meta(self):
         """Extract information of each spectrum in entry lists."""
@@ -590,9 +622,9 @@ class mzMLmeta(object):
             self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:isolationWindow/s:cvParam', self.ns), 'isolation_window', terms)
             self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:selectedIonList/s:selectedIon/s:cvParam', self.ns), 'selected_ion', terms)
 
-        for entry in ('Collision Energy', 'Data file content', 'Dissociation method', 'Spectrum combination',
-                      'Binary data array', 'Binary data compression type', 'Binary data type'):
-            self.merge_entries(entry)
+        # for entry in ('Collision Energy', 'Data file content', 'Dissociation method', 'Spectrum combination',
+        #               'Binary data array', 'Binary data compression type', 'Binary data type'):
+        #     self.merge_entries(entry)
 
     def merge_entries(self, name):
 
@@ -615,7 +647,7 @@ class mzMLmeta(object):
 
             time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
             unit = next( ( {'name': i.attrib['unitName'],'accession': i.attrib['unitAccession'],'ref': i.attrib['unitCvRef'] }
-                            for i in scan_cv if i.attrib['accession'] == 'MS:1000016' and 'unitName' in i.attrib.keys() ), None)
+                            for i in scan_cv if i.attrib['accession'] == 'MS:1000016' and 'unitName' in i.attrib ), None)
 
             minrt = str(round(min(time),4))
             maxrt = str(round(max(time),4))
@@ -671,16 +703,33 @@ class mzMLmeta(object):
     def urlize(self):
         """Turns YY:XXXXXXX accession number into an url"""
         for meta_name in self.meta:
-            if 'accession' in self.meta[meta_name].keys():
+            #if 'accession' in self.meta[meta_name]:
+            try:
                 self.meta[meta_name]['accession'] = self._urlize_name(self.meta[meta_name]['accession'])
-            if 'unit' in self.meta[meta_name].keys():
+            except KeyError:
+                pass
+
+            #if 'unit' in self.meta[meta_name]:
+            try:
                 self.meta[meta_name]['unit']['accession'] = self._urlize_name(self.meta[meta_name]['unit']['accession'])
-            elif 'entry_list' in self.meta[meta_name].keys():
+            except KeyError:
+                pass
+
+            #elif 'entry_list' in self.meta[meta_name]:
+            try:
                 for index, entry in enumerate(self.meta[meta_name]['entry_list']):
-                    if 'accession' in entry.keys():
+                    #if 'accession' in entry:
+                    try:
                         self.meta[meta_name]['entry_list'][index]['accession'] = self._urlize_name(entry['accession'])
-                    if 'unit' in entry.keys():
+                    except KeyError:
+                        pass
+                    #if 'unit' in entry:
+                    try:
                         self.meta[meta_name]['entry_list'][index]['unit']['accession'] = self._urlize_name(entry['unit']['accession'])
+                    except KeyError:
+                        pass
+            except KeyError:
+                pass
 
     @staticmethod
     def _urlize_name(name):

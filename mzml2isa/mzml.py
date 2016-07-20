@@ -2,8 +2,7 @@
 Content
 -----------------------------------------------------------------------------
 This module contains a single class, mzMLmeta, which is used to parse and
-serialize an mzML file into a Python dictionnary. This class was slightly
-modified from the pymzml implementation[1]_.
+serialize an mzML file into a Python dictionnary. 
 
 Following features are implemented but were commented out:
 - retrieval of sofware version number
@@ -11,9 +10,6 @@ Following features are implemented but were commented out:
 Both can be found by looking for the #!# comment tag in the mzml2isa.mzml
 module source code.
 
-Reference:
------------------------------------------------------------------------------
-- [1] http://pymzml.github.io
 
 About
 -----------------------------------------------------------------------------

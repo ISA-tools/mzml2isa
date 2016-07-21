@@ -23,6 +23,7 @@ env:
 - STUDY=MTBLS38
 - STUDY=MTBLS137
 - STUDY=MTBLS315
+- STUDY=MTBLS341
 matrix:
   allow_failures:
   - env: STUDY=MTBLS289
@@ -32,6 +33,7 @@ matrix:
   - env: STUDY=MTBLS126
   - env: STUDY=MTBLS38
   - env: STUDY=MTBLS137
+  - env: STUDY=MTBLS341
   fast_finish: true
 before_install:
 - sudo apt-get -qq update

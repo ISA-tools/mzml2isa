@@ -85,7 +85,7 @@ class ISA_Tab(object):
 
         if split:
             polarities = set( meta['Scan polarity']['name'] for meta in metalist ) \
-                            if 'Scan polarity' in metalist[0].keys() else ['nopolarity']
+                            if 'Scan polarity' in metalist[0] else ['nopolarity']
         else:
             polarities = ['nosplit']
 

@@ -35,7 +35,7 @@ if sys.version_info == 2:
         This function also formats the xpath query using the *mzMLmeta.env
         dictionnary created by the **mzml.mzMLmeta.build_env** function.
         """
-        return mzMLmeta.tree.xpath(query.format(**mzMLmeta.env), namespaces=mzMLmeta.ns)
+        return mzMLmeta.tree.iterfind(query.format(**mzMLmeta.env), namespaces=mzMLmeta.ns)
 
     def getparent(element, tree):
         """Finds every parent of a tree node.
@@ -86,7 +86,7 @@ else:
         This function also formats the xpath query using the *mzMLmeta.env
         dictionnary created by the **mzml.mzMLmeta.build_env** function.
         """
-        return mzMLmeta.tree.findall(query.format(**mzMLmeta.env), mzMLmeta.ns)
+        return mzMLmeta.tree.iterfind(query.format(**mzMLmeta.env), mzMLmeta.ns)
 
     def getparent(element, tree):
         """Finds every parent of a tree node.

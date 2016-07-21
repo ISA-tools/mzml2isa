@@ -75,15 +75,6 @@ Workflow
 .. figure:: https://raw.githubusercontent.com/Tomnl/mzml2isa/master/isa_config/mzml2isa.png
    :alt: workflow
 
-Ref
----
-
-A modified version of the ontology extraction from this blog [1]_ was
-used, and a slightly modified class from pymzml [2]_
-
-.. [1] http://blog.nextgenetics.net/?e=6
-.. [2] http://pymzml.github.io/
-
 
 .. |Build Status| image:: https://img.shields.io/travis/althonos/mzml2isa.svg?style=flat&maxAge=2592000
    :target: https://travis-ci.org/althonos/mzml2isa

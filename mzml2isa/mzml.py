@@ -408,7 +408,7 @@ class mzMLmeta(object):
                 self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name'],
                                            'ref':e.attrib['cvRef']}
 
-                if e.attrib['name'] != self.obo[e.attrib['accession']]:
+                if e.attrib['name'] != self.obo[e.attrib['accession']].name:
                     warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(e.attrib['name']),
                                            "does not correspond to the instrument accession ({})".format(self.obo[e.attrib['accession']].name)]),
                                   UserWarning)

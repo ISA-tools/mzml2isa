@@ -113,7 +113,7 @@ class mzMLmeta(object):
         # setup lxml parsing
         self.in_file = in_file
         self.in_dir = os.path.dirname(in_file)
-        self.tree = self._make_tree(in_file)#etree.parse(in_file, etree.XMLParser())
+        self.tree = etree.parse(in_file, etree.XMLParser())
 
         self.build_env()
 

@@ -28,6 +28,8 @@ import argparse
 import textwrap
 import warnings
 import json
+import tarfile
+import zipfile
 
 from multiprocessing.pool import Pool
 from pronto import Ontology
@@ -62,16 +64,6 @@ _ims.merge(_ms)
 _ONTOLOGIES = {'mzML': _ms,
                'imzML': _ims }
 del dirname
-
-
-
-def _custom_formatwarning(msg, *a):
-    # ignore everything except the message
-    return 'Warning: {}\n'.format(str(msg))
-
-warnings.formatwarning = _custom_formatwarning
-
-
 
 
 def _multiparse(filepath):
@@ -133,20 +125,28 @@ def run():
     p.add_argument('-i', dest='in_dir', help='in folder containing mzML files', required=True)
     p.add_argument('-o', dest='out_dir', help='out folder, new directory will be created here', required=True)
     p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
-    p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False, type=json.loads)
+    p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False)#, type=json.loads)
     p.add_argument('-M', dest='multip', help='launch different processes for parsing', required=False, default=0, type=int)
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
     p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
-    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='once',
+    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
                          required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
     p.add_argument('--version', action='version', version='mzml2isa {}'.format(mzml2isa.__version__))
-
+    
+    
 
     if PB_AVAILABLE:
         p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
 
     args = p.parse_args()
-
+    
+    if args.usermeta:
+    	# Read in json 
+	with open(args.usermeta, 'r') as f:
+        	usermeta = json.load(f)
+    else:
+        usermeta = ""
+    
     if not PB_AVAILABLE:
         setattr(args, 'verbose', True)
 
@@ -155,11 +155,11 @@ def run():
         print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
         print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
 
-    with warnings.catch_warnings() as w:
+    with warnings.catch_warnings():
         warnings.filterwarnings(args.wrng_ctrl)
 
         full_parse(args.in_dir, args.out_dir, args.study_name,
-                   args.usermeta if args.usermeta else None,
+                   usermeta if usermeta else None,
                    args.split, args.merge, args.verbose, args.multip)
 
 
@@ -175,13 +175,21 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
     """
 
     # get mzML file in the example_files folder
-    mzml_path = os.path.join(in_dir, "*mzML")
+    if os.path.isfile(in_dir) and tarfile.is_tarfile(in_dir):
+        compr = True
+        mzml_files = compr_extract(in_dir, "tar")
+    elif os.path.isfile(in_dir) and zipfile.is_zipfile(in_dir):
+        compr = True
+        mzml_files = compr_extract(in_dir, "zip")
+    else:
+        compr = False
+        mzml_path = os.path.join(in_dir, "*mzML")
 
-    #if verbose:
-    #	print(mzml_path)
+        if verbose:
+            print(mzml_path)
 
-    mzml_files = [mzML for mzML in glob.glob(mzml_path)]
-    #mzml_files.sort()
+        mzml_files = [mzML for mzML in glob.glob(mzml_path)]
+        #mzml_files.sort()
 
     if multip:
         pool = Pool(multip)
@@ -203,8 +211,10 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
                                            pb.Bar(marker=MARKER, left=" |", right="| "),
                                            pb.ETA()])
             for i in pbar(mzml_files):
-                ext = i.split(os.path.extsep)[-1]
-
+                if compr:
+                   ext = i.name.split(os.path.extsep)[-1]
+                else:
+                   ext = i.split(os.path.extsep)[-1]
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
 
@@ -212,13 +222,15 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
 
         else:
             for i in mzml_files:
-
                 print("Parsing file: {}".format(i))
-                ext = i.split(os.path.extsep)[-1]
-
+                if compr:
+                   ext = i.name.split(os.path.extsep)[-1]
+                else:
+                   ext = i.split(os.path.extsep)[-1]
+               
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
-
+ 
                 metalist.append(parser(i, ont).meta)
 
         # update isa-tab file
@@ -236,6 +248,28 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
 
     else:
     	warnings.warn("No files were found in directory.", UserWarning)
+
+def compr_extract(compr_pth, type_):
+    # extrac zip or tar(gz) files into python tar or zip objects
+
+    filend = ('.mzml', '.imzml')
+    if type_ == "zip":
+        comp = zipfile.ZipFile(compr_pth)
+        cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)] 
+    else:
+        comp = tarfile.open(compr_pth)
+        cfiles = [comp.extractfile(m) for m in comp.getmembers() if m.name.lower().endswith(filend)] 
+
+    # get file names in the directory (required for imzML)
+    filelist = [f.filename for f in comp.filelist]
+    
+    # And add these file names as additional attribute the compression tar or zip objects
+    for cf in cfiles:
+	cf.filelist = filelist
+   
+    return cfiles
+    
+
 
 if __name__ == '__main__':
     run()

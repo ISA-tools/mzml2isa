@@ -2,7 +2,7 @@
 Content
 -----------------------------------------------------------------------------
 This module contains a single class, mzMLmeta, which is used to parse and
-serialize an mzML file into a Python dictionnary. 
+serialize an mzML file into a Python dictionnary.
 
 Following features are implemented but were commented out:
 - retrieval of sofware version number
@@ -307,7 +307,7 @@ class mzMLmeta(object):
         """
 
         # gets the first Instrument config (something to watch out for)
-        ic_ref = pyxpath(self, XPATHS['ic_ref'])[0].attrib["ref"]
+        ic_ref = next(pyxpath(self, XPATHS['ic_ref'])).attrib["ref"]
 
         elements = pyxpath(self, XPATHS['ic_elements'])
 
@@ -340,7 +340,7 @@ class mzMLmeta(object):
                     elif ie.attrib['accession'] == 'MS:1000529':
                         self.meta['Instrument serial number'] = {'value': ie.attrib['value']}
 
-        soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib[self.env['softwareRef']]
+        soft_ref = next(pyxpath(self, XPATHS['ic_soft_ref'])).attrib[self.env['softwareRef']]
 
         # Get associated software
         self.software(soft_ref, 'Instrument')
@@ -375,10 +375,10 @@ class mzMLmeta(object):
 
 
         try:
-            soft_ref = pyxpath(self, XPATHS['ic_soft_ref'])[0].attrib[self.env['softwareRef']]
+            soft_ref = next(pyxpath(self, XPATHS['ic_soft_ref'])).attrib[self.env['softwareRef']]
             # Get associated software
             self.software(soft_ref, 'Instrument')
-        except (IndexError, KeyError): #Sometimes <Instrument> contains no Software tag
+        except (IndexError, KeyError, StopIteration): #Sometimes <Instrument> contains no Software tag
             warnings.warn("Instrument {} does not have a software tag.".format( self.meta['Instrument']['name']
                                                                                 if 'Instrument' in self.meta.keys()
                                                                                 else "<"+self.meta['Instrument serial number']+">"
@@ -422,7 +422,7 @@ class mzMLmeta(object):
     def derived(self):
         """ Get the derived meta information. Updates the self.meta dictionary"""
 
-        cv = pyxpath(self, XPATHS['cv'])[0].attrib[self.env["cvLabel"]]
+        cv = next(pyxpath(self, XPATHS['cv'])).attrib[self.env["cvLabel"]]
 
         if not 'MS' in cv:
             warnings.warn("Standard controlled vocab not available. Can not parse.", UserWarning)
@@ -432,7 +432,7 @@ class mzMLmeta(object):
 
 
         try:
-            raw_file = pyxpath(self, XPATHS['raw_file'])[0].attrib[self.env["filename"]]
+            raw_file = next(pyxpath(self, XPATHS['raw_file'])).attrib[self.env["filename"]]
             self.meta['Raw Spectral Data File'] = {'entry_list': [{'value': os.path.basename(raw_file)}] }
         except IndexError:
             warnings.warn("Could not find any metadata about Raw Spectral Data File", UserWarning)
@@ -529,7 +529,7 @@ class mzMLmeta(object):
                 self.meta['Scan m/z range']['unit'] = unit
 
     def scan_num(self):
-        scan_num = pyxpath(self, XPATHS['scan_num'])[0].attrib["count"]
+        scan_num = next(pyxpath(self, XPATHS['scan_num'])).attrib["count"]
         self.meta['Number of scans'] = {'value': int(scan_num)}
 
     def urlize(self):
@@ -744,12 +744,12 @@ class imzMLmeta(mzMLmeta):
         for img_format in img_formats:
 
             name = self.meta['Sample Name']['value']
-            
+
             # Check if the file is compressed. If it is then we need to get the filelist from the compressed
             # file object
             if isinstance(self.in_file, tarfile.ExFileObject) or isinstance(self.in_file, zipfile.ZipExtFile):
                 # Get a reduced file list with just the img_format that is in the loop
-                rfilelist = [f for f in self.in_file.filelist if f.lower().endswith(img_format)] 
+                rfilelist = [f for f in self.in_file.filelist if f.lower().endswith(img_format)]
                 # loop through the reduced file list and add to the identity dicitonary
                 for file in rfilelist:
                     filename = os.path.splitext(os.path.basename(file))[0]
@@ -760,8 +760,8 @@ class imzMLmeta(mzMLmeta):
                     filename = os.path.splitext(os.path.basename(file))[0]
                     identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
 
- 
-            
+
+
 
         if identity and max(identity.values()) > IDENTITY_THRESHOLD:
             return max(identity, key=identity.get)

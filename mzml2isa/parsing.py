@@ -113,10 +113,10 @@ def merge_spectra(metalist):
 def run():
     """ Runs **mzml2isa** from the command line"""
     p = argparse.ArgumentParser(prog='PROG',
-	                        formatter_class=argparse.RawDescriptionHelpFormatter,
-	                        description='''Extract meta information from (i)mzML files and create ISA-tab structure''',
-	                        epilog=textwrap.dedent('''\
-	                        -------------------------------------------------------------------------
+                            formatter_class=argparse.RawDescriptionHelpFormatter,
+                            description='''Extract meta information from (i)mzML files and create ISA-tab structure''',
+                            epilog=textwrap.dedent('''\
+                            -------------------------------------------------------------------------
 
                                 Example Usage:
                                 mzml2isa -i [in dir] -o [out dir] -s [study identifier name] -m [usermeta...]
@@ -132,21 +132,21 @@ def run():
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
                          required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
     p.add_argument('--version', action='version', version='mzml2isa {}'.format(mzml2isa.__version__))
-    
-    
+
+
 
     if PB_AVAILABLE:
         p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
 
     args = p.parse_args()
-    
+
     if args.usermeta:
-    	# Read in json 
-	with open(args.usermeta, 'r') as f:
-        	usermeta = json.load(f)
+        # Read in json
+        with open(args.usermeta, 'r') as f:
+                usermeta = json.load(f)
     else:
         usermeta = ""
-    
+
     if not PB_AVAILABLE:
         setattr(args, 'verbose', True)
 
@@ -166,10 +166,10 @@ def run():
 def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, merge=False, verbose=False, multip=False):
     """ Parses every study from *in_dir* and then creates ISA files.
 
-	A new folder is created in the out directory bearing the name of
-	the study identifier.
+    A new folder is created in the out directory bearing the name of
+    the study identifier.
 
-    :param str in_dir: 			 path to directory containing studies
+    :param str in_dir:           path to directory containing studies
     :param str out_dir:          path to out directory
     :param str study_identifier: name of the study (directory to create)
     """
@@ -227,10 +227,10 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
                    ext = i.name.split(os.path.extsep)[-1]
                 else:
                    ext = i.split(os.path.extsep)[-1]
-               
+
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
- 
+
                 metalist.append(parser(i, ont).meta)
 
         # update isa-tab file
@@ -247,7 +247,7 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
             isa_tab_create = isa.ISA_Tab(out_dir, study_identifier, usermeta or {}).write(metalist, ext, split)
 
     else:
-    	warnings.warn("No files were found in directory.", UserWarning)
+        warnings.warn("No files were found in directory.", UserWarning)
 
 def compr_extract(compr_pth, type_):
     # extrac zip or tar(gz) files into python tar or zip objects
@@ -255,20 +255,20 @@ def compr_extract(compr_pth, type_):
     filend = ('.mzml', '.imzml')
     if type_ == "zip":
         comp = zipfile.ZipFile(compr_pth)
-        cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)] 
+        cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)]
     else:
         comp = tarfile.open(compr_pth)
-        cfiles = [comp.extractfile(m) for m in comp.getmembers() if m.name.lower().endswith(filend)] 
+        cfiles = [comp.extractfile(m) for m in comp.getmembers() if m.name.lower().endswith(filend)]
 
     # get file names in the directory (required for imzML)
     filelist = [f.filename for f in comp.filelist]
-    
+
     # And add these file names as additional attribute the compression tar or zip objects
     for cf in cfiles:
-	cf.filelist = filelist
-   
+        cf.filelist = filelist
+
     return cfiles
-    
+
 
 
 if __name__ == '__main__':

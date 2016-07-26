@@ -105,6 +105,7 @@ class mzMLmeta(object):
                                   "psi-ms.obo"))
         else:
             self.obo = ontology
+IOAzoi
 
         # setup lxml parsing
         self.in_file = in_file

@@ -1,7 +1,7 @@
 language: python
 python:
 - '3.5'
-- '2.7'
+#- '2.7'
 env:
 - STUDY=MTBLS267
 - STUDY=MTBLS266

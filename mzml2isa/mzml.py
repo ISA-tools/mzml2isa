@@ -434,7 +434,7 @@ class mzMLmeta(object):
         try:
             raw_file = next(pyxpath(self, XPATHS['raw_file'])).attrib[self.env["filename"]]
             self.meta['Raw Spectral Data File'] = {'entry_list': [{'value': os.path.basename(raw_file)}] }
-        except IndexError:
+        except StopIteration:
             warnings.warn("Could not find any metadata about Raw Spectral Data File", UserWarning)
 
         if isinstance(self.in_file, tarfile.ExFileObject) or isinstance(self.in_file, zipfile.ZipExtFile):

@@ -958,8 +958,8 @@ class imzMLmeta(mzMLmeta):
                     filename = os.path.splitext(os.path.basename(file))[0]
                     identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
 
-                filename = os.path.splitext(os.path.basename(file))[0]
-                identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
+                #filename = os.path.splitext(os.path.basename(file))[0]
+                #identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
 
 
 

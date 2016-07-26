@@ -659,7 +659,7 @@ class mzMLmeta(object):
 
             time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
             unit = next( ( {'name': i.attrib['unitName'],'accession': i.attrib['unitAccession'],'ref': i.attrib['unitCvRef'] }
-                            for i in scan_cv if i.attrib['accession'] == 'MS:1000016' and 'unitName' in i.attrib ), None)
+                            for i in pyxpath(self, XPATHS['scan_cv']) if i.attrib['accession'] == 'MS:1000016' and 'unitName' in i.attrib ), None)
 
             minrt = str(round(min(time),4))
             maxrt = str(round(max(time),4))

@@ -27,8 +27,7 @@ import json
 import os
 import glob
 import warnings
-import tarfile
-import zipfile
+import itertools
 
 from pronto import Ontology
 from mzml2isa.versionutils import *
@@ -48,17 +47,19 @@ XPATHS_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cv
               }
 
 
-XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:referenceableParamGroupRef[@ref]',
+XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:referenceableParamGroupRef',
                'ic_elements':       '{root}/s:referenceableParamGroupList/s:referenceableParamGroup',
-               'ic_nest':           '{root}/{instrument}List/{instrument}/s:cvParam[@accession]',
-               'ic_soft_ref':       '{root}/{instrument}List/{instrument}/{software}[@{softwareRef}]',
+               'ic_nest':           '{root}/{instrument}List/{instrument}/s:cvParam',
+               'ic_soft_ref':       '{root}/{instrument}List/{instrument}/{software}',
                'software_elements': '{root}/s:softwareList/s:software',
+               'sp':                '{root}/s:run/{spectrum}List/{spectrum}',
                'sp_cv':             '{root}/s:run/{spectrum}List/{spectrum}/s:cvParam',
                'scan_window_cv':    '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/{scanWindow}List/{scanWindow}/s:cvParam',
                'scan_cv':           '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
-               'scan_num':          '{root}/s:run/{spectrum}List[@count]',
-               'cv':                '{root}/s:cvList/s:cv[@{cvLabel}]',
-               'raw_file':          '{root}/s:fileDescription/s:sourceFileList/s:sourceFile[@{filename}]',
+               'scan_num':          '{root}/s:run/{spectrum}List',
+               'cv':                '{root}/s:cvList/s:cv',
+               'raw_file':          '{root}/s:fileDescription/s:sourceFileList/s:sourceFile',
+
               }
 
 
@@ -83,7 +84,10 @@ class mzMLmeta(object):
         }
     """
 
-    def __init__(self, in_file, ontology=None):
+    obo = None
+    _descendents = dict()
+
+    def __init__(self, in_file, ontology=None, complete_parse=False):
         """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
 
         :param str in_file: path to mzML file
@@ -95,27 +99,25 @@ class mzMLmeta(object):
         :ivar obj self.meta_isa: Meta information with names compatible with ISA-Tab
         """
 
-        if ontology is None:
+        if ontology is None and self.obo is None:
             warnings.simplefilter('ignore')
             try:
-                self.obo = Ontology('http://www.berkeleybop.org/ontologies/ms.obo', False)
+                self.obo = Ontology('https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo', False)
             except:
                 self.obo = Ontology(os.path.join(
                                    os.path.dirname(os.path.realpath(__file__)),
                                   "psi-ms.obo"))
-        else:
+        elif self.obo is None:
             self.obo = ontology
-IOAzoi
 
         # setup lxml parsing
         self.in_file = in_file
-        if isinstance(in_file, tarfile.ExFileObject) or isinstance(in_file, zipfile.ZipExtFile):
-            self.in_dir = os.path.dirname(in_file.name)
-        else:
-            self.in_dir = os.path.dirname(in_file)
+        self.in_dir = os.path.dirname(in_file)
         self.tree = etree.parse(in_file, etree.XMLParser())
 
         self.build_env()
+
+        self.make_params()
 
         #initalize the meta variables
         self.meta = collections.OrderedDict()
@@ -176,6 +178,9 @@ IOAzoi
         # update self.meta with the relevant meta infromation
         self.extract_meta(terms, xpaths_meta)
 
+        # make a memoized dict of the referenceable params
+        self.make_params()
+
         # The instrument information has to be extracted separately
         self.instrument()
 
@@ -193,6 +198,12 @@ IOAzoi
 
         #
         self.derived()
+
+        #
+        if complete_parse:
+            self.spectrum_meta()
+        elif not 'Data file content' in self.meta:
+            self.data_file_content()
 
         #
         self.urlize()
@@ -213,6 +224,8 @@ IOAzoi
 
         # loop though the xpaths
         for location_name, xpath in iterdict(xpaths):
+
+
             # get the elements from the xpath
             elements = pyxpath(self, xpath)
 
@@ -227,9 +240,22 @@ IOAzoi
         :param dict terms: CV terms we want
         """
         # get associated meta information from each file
-        descendents = {k: self.obo[k].rchildren().id for k in terms[location_name]}
 
-        c = 0
+        #descendents = {}
+
+        #for k in terms[location_name]:
+        #    if not k in self._descendents:
+        #        self._descendents[k] = self.obo[k].rchildren().id
+        #    descendents[k] = self._obo_memo[k]
+
+        self._descendents.update({k:self.obo[k].rchildren().id for k in terms[location_name] if not k in self._descendents})
+
+        #descendents = {k: self.obo[k].rchildren().id for k in terms[location_name]}
+
+        #c = 0
+
+        #if elements is None:
+        #    return
 
         # go through every cvParam element
         for e in elements:
@@ -237,46 +263,58 @@ IOAzoi
             for accession, info in iterdict(terms[location_name]):
 
                 # check if the element is one of the terms we are looking for
-                if e.attrib['accession'] in descendents[accession] or e.attrib['accession']==accession:
+                if e.attrib['accession'] in self._descendents[accession] or e.attrib['accession']==accession:
 
                     meta_name = info['name']
 
                     # Check if there can be more than one of the same term
                     if(info['plus1']):
                         # Setup the dictionary for multiple entries
-                        if not meta_name in self.meta.keys():
+                        if not meta_name in self.meta:
                             self.meta[meta_name] = {'entry_list': []}
+
                         self.meta[meta_name]['entry_list'].append( {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']} )
 
-                        if 'unitName' in e.attrib:
+                        #if 'unitName' in e.attrib:
+                        try:
                             self.meta[meta_name]['entry_list'][-1]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
-                                                                                'accession': e.attrib['unitAccession']}
-
+                                                                              'accession': e.attrib['unitAccession']}
+                        except KeyError:
+                            pass
 
                         # Check if a value is associated with this CV
-                        if (info['value']):
-                            self.meta[meta_name]['entry_list'][c]['value'] = self._convert(e.attrib['value'])
+                        if info['value']:
+                            self.meta[meta_name]['entry_list'][-1]['value'] = self._convert(e.attrib['value'])
 
-                        c += 1
+                        if self.meta[meta_name]['entry_list'][-1]['name'].upper() == meta_name.upper():
+                            del self.meta[meta_name]['entry_list'][-1]['name']
+                            del self.meta[meta_name]['entry_list'][-1]['accession']
+                            del self.meta[meta_name]['entry_list'][-1]['ref']
+
+                        #c += 1
                     else:
 
-                        if 'name' in info.keys():
-                            # Standard CV with only with entry
-                            self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']}
+                        #if 'name' in info.keys():
+
+                        # Standard CV with only with entry
+                        self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']}
 
 
-                            if 'unitName' in e.attrib:
-                                self.meta[meta_name]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
-                                                                'accession': e.attrib['unitAccession']}
+                        #if 'unitName' in e.attrib:
+                        try:
+                            self.meta[meta_name]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
+                                                            'accession': e.attrib['unitAccession']}
+                        except KeyError:
+                            pass
 
-                            # Check if value associated
-                            if (info['value']):
-                                self.meta[meta_name]['value'] = self._convert(e.attrib['value'])
-                                # remove name and accession if only the value is interesting
-                                #if self.meta[meta_name]['name'].upper() == meta_name.upper():
-                                #    del self.meta[meta_name]['name']
-                                #    del self.meta[meta_name]['accession']
+                        # Check if value associated
+                        if (info['value']):
+                            self.meta[meta_name]['value'] = self._convert(e.attrib['value'])
+                            # remove name and accession if only the value is interesting
 
+                            if self.meta[meta_name]['name'].upper() == meta_name.upper():
+                                del self.meta[meta_name]['name']
+                                del self.meta[meta_name]['accession']
 
 
                     # Check if there is expected associated software
@@ -316,7 +354,7 @@ IOAzoi
         for e in elements:
             # get all CV information from the instrument config
             if e.attrib['id']==ic_ref:
-                instrument_e = e.findall('s:cvParam', self.ns)
+                instrument_e = e.iterfind('s:cvParam', self.ns)
 
                 for ie in instrument_e:
 
@@ -324,6 +362,12 @@ IOAzoi
                     if ie.attrib['accession'] in self.obo['MS:1000031'].rchildren().id:
                         self.meta['Instrument'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name'],
                                                    'ref':ie.attrib['cvRef']}
+
+                        if ie.attrib['name'] != self.obo[ie.attrib['accession']].name:
+                            warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(ie.attrib['name']),
+                                                   "does not correspond to the instrument accession ({})".format(self.obo[ie.attrib['accession']].name)]),
+                                          UserWarning)
+                            self.meta['Instrument']['name'] = self.obo[ie.attrib['accession']].name
 
                         # get manufacturer (actually just derived from instrument model). Want to get the top level
                         # so have to go up (should only be a maximum of 3 steps above in the heirachy but do up 8 to be
@@ -364,6 +408,12 @@ IOAzoi
                 self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name'],
                                            'ref':e.attrib['cvRef']}
 
+                if e.attrib['name'] != self.obo[e.attrib['accession']].name:
+                    warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(e.attrib['name']),
+                                           "does not correspond to the instrument accession ({})".format(self.obo[e.attrib['accession']].name)]),
+                                  UserWarning)
+                    self.meta['Instrument']['name'] = self.obo[e.attrib['accession']].name
+
                 parents = self.obo[e.attrib['accession']].rparents()
                 parents.append(self.obo[e.attrib['accession']])
                 manufacturer = next(parent for parent in parents if parent in self.obo['MS:1000031'].children)
@@ -381,9 +431,9 @@ IOAzoi
             self.software(soft_ref, 'Instrument')
         except (IndexError, KeyError, StopIteration): #Sometimes <Instrument> contains no Software tag
             warnings.warn("Instrument {} does not have a software tag.".format( self.meta['Instrument']['name']
-                                                                                if 'Instrument' in self.meta.keys()
+                                                                                if 'Instrument' in self.meta
                                                                                 else "<"+self.meta['Instrument serial number']+">"
-                                                                                if 'Instrument serial number' in self.meta.keys()
+                                                                                if 'Instrument serial number' in self.meta
                                                                                 else '?'),
                            UserWarning)
 
@@ -407,7 +457,7 @@ IOAzoi
 
                     if e.attrib['version']:
                         self.meta[name+' software version'] = {'value': e.attrib['version']}
-                    software_cvParam = e.findall('s:cvParam', namespaces=self.ns)
+                    software_cvParam = e.iterfind('s:cvParam', namespaces=self.ns)
                     for ie in software_cvParam:
                         self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name'],
                                                        'ref': ie.attrib['cvRef']}
@@ -438,16 +488,10 @@ IOAzoi
         except StopIteration:
             warnings.warn("Could not find any metadata about Raw Spectral Data File", UserWarning)
 
-        if isinstance(self.in_file, tarfile.ExFileObject) or isinstance(self.in_file, zipfile.ZipExtFile):
-            derived_spectral_data_file = os.path.basename(self.in_file.name)
-            ms_assay_name = os.path.splitext(derived_spectral_data_file)[0]
-        else:
-            derived_spectral_data_file = os.path.basename(self.in_file)
-            ms_assay_name = os.path.splitext(derived_spectral_data_file)[0]
 
-        self.meta['MS Assay Name'] = {'value': ms_assay_name}
-        self.meta['Derived Spectral Data File'] = {'entry_list': [{'value': derived_spectral_data_file }] } # mzML file name
-        self.meta['Sample Name'] = {'value': ms_assay_name} # mzML file name w/o extension
+        self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
+        self.meta['Derived Spectral Data File'] = {'entry_list': [{'value': os.path.basename(self.in_file)}] } # mzML file name
+        self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name w/o extension
 
     def polarity(self):
 
@@ -473,6 +517,128 @@ IOAzoi
 
         self.meta['Scan polarity'] = polarity
 
+    def make_params(self):
+        self._params = {x.attrib['id']:x for x in pyxpath(self,
+        '{root}/s:referenceableParamGroupList/s:referenceableParamGroup')}
+
+    def data_file_content(self):
+
+        file_contents = self.obo['MS:1000524'].rchildren().id
+
+        def unseen(accession, memo=set()):
+            if accession in set:
+                return False
+            else:
+                memo.add(accession)
+                return True
+
+        self.meta['Data file content'] = {'entry_list':
+
+            [ {'name': cv.attrib['name'], 'ref': cv.attrib['ref'], 'accession': cv.attrib['accession'] }
+                for cv in pyxpath(self, XPATHS['sp_cv'])
+                    if cv.attrib['accession'] in file_contents and unseen(cv.attrib['accession'])
+            ]
+
+        }
+
+    def spectrum_meta(self):
+        """Extract information of each spectrum in entry lists."""
+
+        terms = collections.OrderedDict()
+
+        terms['sp'] = {
+            'MS:1000524': {'attribute': False, 'name': 'Data file content', 'plus1': True, 'value': False, 'soft':False},
+            'MS:1000796': {'attribute': False, 'name': 'Spectrum title', 'plus1': True, 'value': True, 'soft':False},
+            'MS:1000465': {'attribute': False, 'name': 'Polarity', 'plus1': True, 'value': False, 'soft': False},
+            'MS:1000511': {'attribute': False, 'name': 'MS Level', 'plus1': True, 'value':True, 'soft': False},
+            'MS:1000525': {'attribute': False, 'name': 'Spectrum representation', 'plus1': True, 'value':False, 'soft': False},
+            'MS:1000504': {'attribute': False, 'name': 'Base Peak m/z', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000505': {'attribute': False, 'name': 'Base Peak intensity', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000285': {'attribute': False, 'name': 'Total ion current', 'plus1': True, 'value': True, 'soft': False},
+
+            'MS:1000927': {'attribute': False, 'name': 'Ion injection time', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000512': {'attribute': False, 'name': 'Filter string', 'plus1': True, 'value': True, 'soft': False},
+
+            'MS:1000528': {'attribute': False, 'name': 'Lowest observed m/z', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000527': {'attribute': False, 'name': 'Highest observed m/z', 'plus1': True, 'value': True, 'soft': False},
+        }
+
+        terms['combination'] = {
+            'MS:1000570': {'attribute': False, 'name': 'Spectrum combination', 'plus1': True, 'value': False, 'soft': False}
+        }
+
+        terms['configuration'] = {
+            'MS:1000016': {'attribute': False, 'name': 'Scan start time', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000512': {'attribute': False, 'name': 'Filter string', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000616': {'attribute': False, 'name': 'Preset scan configuration', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000927': {'attribute': False, 'name': 'Ion injection time', 'plus1': True, 'value':True, 'soft': False},
+            'MS:1000018': {'attribute': False, 'name': 'Scan direction', 'plus1': True, 'value': True, 'soft':False},
+            'MS:1000019': {'attribute': False, 'name': 'Scan law', 'plus1': True, 'value': True, 'soft':False},
+        }
+
+        terms['isolation_window'] = {
+            'MS:1000827': {'attribute': False, 'name': 'Isolation window target m/z', 'plus1':True, 'value': True, 'soft': False},
+            'MS:1000828': {'attribute': False, 'name': 'Isolation window lower offset', 'plus1':True, 'value': True, 'soft': False},
+            'MS:1000829': {'attribute': False, 'name': 'Isolation window higher offset', 'plus1':True, 'value': True, 'soft': False},
+        }
+
+        terms['selected_ion'] = {
+            'MS:1000744': {'attribute': False, 'name': 'Selected ion m/z', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000744': {'attribute': False, 'name': 'Charge state', 'plus1': True, 'value': True, 'soft': False},
+            'MS:1000744': {'attribute': False, 'name': 'Peak intensity', 'plus1': True, 'value': True, 'soft': False},
+        }
+
+        terms['activation'] = {
+            'MS:1000044': {'attribute': False, 'name': 'Dissociation method', 'plus1': True, 'value': False, 'soft': False},
+            'MS:1000045': {'attribute': False, 'name': 'Collision Energy', 'plus1': True, 'value': True, 'soft':False},
+        }
+
+        terms['binary'] = {
+            'MS:1000518': {'attribute': False, 'name': 'Binary data type', 'plus1': True, 'value': False, 'soft': False},
+            'MS:1000572': {'attribute': False, 'name': 'Binary data compression type', 'plus1': True, 'value': False, 'soft': False},
+            'MS:1000513': {'attribute': False, 'name': 'Binary data array', 'plus1': True, 'value': False, 'soft': False},
+        }
+
+        for spectrum in pyxpath(self, XPATHS['sp']):
+
+            for path,name in [('./s:referenceableParamGroupRef', 'sp'),
+                              ('{scanList}/s:scan/s:referenceableParamGroupRef', 'combination'),
+                              ('{root}/s:referenceableParamGroupList/s:referenceableParamGroup', 'binary')]:
+
+                refs = spectrum.iterfind(path.format(**self.env), self.ns)
+                for ref in refs:
+                    params = self._params[ref.attrib['ref']]
+                    self.cvParam_loop(params.iterfind('s:cvParam', self.ns), name, terms)
+
+
+
+            self.cvParam_loop(spectrum.iterfind('s:cvParam', self.ns), 'sp', terms)
+            self.cvParam_loop(spectrum.iterfind('{scanList}/s:cvParam'.format(**self.env), self.ns), 'combination', terms)
+            self.cvParam_loop(spectrum.iterfind('{scanList}/s:scan/s:cvParam'.format(**self.env), self.ns), 'configuration', terms)
+            self.cvParam_loop(spectrum.iterfind('s:binaryDataArrayList/s:binaryDataArray/s:cvParam'.format(**self.env), self.ns), 'binary', terms)
+
+            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:activation/s:cvParam', self.ns), 'activation', terms)
+            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:isolationWindow/s:cvParam', self.ns), 'isolation_window', terms)
+            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:selectedIonList/s:selectedIon/s:cvParam', self.ns), 'selected_ion', terms)
+
+        # for entry in ('Collision Energy', 'Data file content', 'Dissociation method', 'Spectrum combination',
+        #               'Binary data array', 'Binary data compression type', 'Binary data type'):
+        #     self.merge_entries(entry)
+
+    def merge_entries(self, name):
+
+        if name in self.meta.keys():
+            if 'entry_list' in self.meta[name].keys():
+                seen = set()
+                return [x for x in self.meta[name]['entry_list'] if str(x) not in seen and not seen.add(str(x))]
+
+
+                #return [next(g) for k,g in itertools.groupby(self.meta[name]['entry_list'], lambda x: x['name'])]
+
+                #self.meta[name]['entry_list'] = [i for n, i in enumerate(self.meta[name]['entry_list'])
+                #                                   if i not in self.meta[name]['entry_list'][n + 1:]]
+
+
     def timerange(self):
 
         try:
@@ -480,7 +646,7 @@ IOAzoi
 
             time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
             unit = next( ( {'name': i.attrib['unitName'],'accession': i.attrib['unitAccession'],'ref': i.attrib['unitCvRef'] }
-                            for i in scan_cv if i.attrib['accession'] == 'MS:1000016' and 'unitName' in i.attrib.keys() ), None)
+                            for i in scan_cv if i.attrib['accession'] == 'MS:1000016' and 'unitName' in i.attrib ), None)
 
             minrt = str(round(min(time),4))
             maxrt = str(round(max(time),4))
@@ -536,16 +702,33 @@ IOAzoi
     def urlize(self):
         """Turns YY:XXXXXXX accession number into an url"""
         for meta_name in self.meta:
-            if 'accession' in self.meta[meta_name].keys():
+            #if 'accession' in self.meta[meta_name]:
+            try:
                 self.meta[meta_name]['accession'] = self._urlize_name(self.meta[meta_name]['accession'])
-            if 'unit' in self.meta[meta_name].keys():
+            except KeyError:
+                pass
+
+            #if 'unit' in self.meta[meta_name]:
+            try:
                 self.meta[meta_name]['unit']['accession'] = self._urlize_name(self.meta[meta_name]['unit']['accession'])
-            elif 'entry_list' in self.meta[meta_name].keys():
+            except KeyError:
+                pass
+
+            #elif 'entry_list' in self.meta[meta_name]:
+            try:
                 for index, entry in enumerate(self.meta[meta_name]['entry_list']):
-                    if 'accession' in entry.keys():
+                    #if 'accession' in entry:
+                    try:
                         self.meta[meta_name]['entry_list'][index]['accession'] = self._urlize_name(entry['accession'])
-                    if 'unit' in entry.keys():
+                    except KeyError:
+                        pass
+                    #if 'unit' in entry:
+                    try:
                         self.meta[meta_name]['entry_list'][index]['unit']['accession'] = self._urlize_name(entry['unit']['accession'])
+                    except KeyError:
+                        pass
+            except KeyError:
+                pass
 
     @staticmethod
     def _urlize_name(name):
@@ -722,12 +905,7 @@ class imzMLmeta(mzMLmeta):
         self.urlize()
 
     def link_files(self):
-        if isinstance(self.in_file, tarfile.ExFileObject) or isinstance(self.in_file, zipfile.ZipExtFile):
-            raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file.name))[0]
-        else:
-            raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file))[0]
-
-        self.meta['Raw Spectral Data File'] =  {'entry_list': [{'value': raw_spectral_data_file \
+        self.meta['Raw Spectral Data File'] =  {'entry_list': [{'value': os.path.splitext(os.path.basename(self.in_file))[0] \
                                                                          + os.path.extsep + 'ibd'}] }
 
         self.meta['Spectrum representation'] = {'entry_list': [ self.meta['Spectrum representation'] ] }
@@ -746,23 +924,10 @@ class imzMLmeta(mzMLmeta):
 
             name = self.meta['Sample Name']['value']
 
-            # Check if the file is compressed. If it is then we need to get the filelist from the compressed
-            # file object
-            if isinstance(self.in_file, tarfile.ExFileObject) or isinstance(self.in_file, zipfile.ZipExtFile):
-                # Get a reduced file list with just the img_format that is in the loop
-                rfilelist = [f for f in self.in_file.filelist if f.lower().endswith(img_format)]
-                # loop through the reduced file list and add to the identity dicitonary
-                for file in rfilelist:
-                    filename = os.path.splitext(os.path.basename(file))[0]
-                    identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
+            for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
 
-            else:
-                for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
-                    filename = os.path.splitext(os.path.basename(file))[0]
-                    identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
-
-
-
+                filename = os.path.splitext(os.path.basename(file))[0]
+                identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
 
         if identity and max(identity.values()) > IDENTITY_THRESHOLD:
             return max(identity, key=identity.get)

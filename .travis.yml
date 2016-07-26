@@ -52,7 +52,6 @@ before_script:
 - unzip ISAcreatorMetaboLights.zip
 script:
 - mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
-  -W always
 - 'java -cp ISA-validator-1.6.5/isatools_deps.jar org.isatools.isatab.manager.SimpleManager
   validate out_folder/metabolights/${STUDY} Configurations/MetaboLightsConfig20140506/
 '

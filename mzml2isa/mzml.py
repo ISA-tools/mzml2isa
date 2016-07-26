@@ -112,7 +112,12 @@ class mzMLmeta(object):
 
         # setup lxml parsing
         self.in_file = in_file
-        self.in_dir = os.path.dirname(in_file)
+
+        try:
+            self.in_dir = os.path.dirname(in_file)
+        except AttributeError:
+            self.in_dir = None
+
         self.tree = etree.parse(in_file, etree.XMLParser())
 
         self.build_env()
@@ -488,10 +493,18 @@ class mzMLmeta(object):
         except StopIteration:
             warnings.warn("Could not find any metadata about Raw Spectral Data File", UserWarning)
 
+        try:
+            derived_spectral_data_file = os.path.basename(self.in_file.name)
+            ms_assay_name = os.path.splitext(derived_spectral_data_file)[0]
+        except AttributeError:
+            derived_spectral_data_file = os.path.basename(self.in_file)
+            ms_assay_name = os.path.splitext(derived_spectral_data_file)[0]
 
-        self.meta['MS Assay Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]}
-        self.meta['Derived Spectral Data File'] = {'entry_list': [{'value': os.path.basename(self.in_file)}] } # mzML file name
-        self.meta['Sample Name'] = {'value': os.path.splitext(os.path.basename(self.in_file))[0]} # mzML file name w/o extension
+        self.meta['MS Assay Name'] = {'value': ms_assay_name}
+        self.meta['Derived Spectral Data File'] = {'entry_list': [{'value': derived_spectral_data_file}] } # mzML file name
+        self.meta['Sample Name'] = {'value': ms_assay_name} # mzML file name w/o extension
+
+
 
     def polarity(self):
 
@@ -905,8 +918,14 @@ class imzMLmeta(mzMLmeta):
         self.urlize()
 
     def link_files(self):
-        self.meta['Raw Spectral Data File'] =  {'entry_list': [{'value': os.path.splitext(os.path.basename(self.in_file))[0] \
-                                                                         + os.path.extsep + 'ibd'}] }
+
+        try:
+            raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file.name))[0]
+        except AttributeError:
+            raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file))[0]
+
+        self.meta['Raw Spectral Data File'] =  {'entry_list': [{'value': raw_spectral_data_file \
+                                                                          + os.path.extsep + 'ibd'}] }
 
         self.meta['Spectrum representation'] = {'entry_list': [ self.meta['Spectrum representation'] ] }
 
@@ -924,10 +943,30 @@ class imzMLmeta(mzMLmeta):
 
             name = self.meta['Sample Name']['value']
 
-            for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
+
+            try:
+                # Get a reduced file list with just the img_format that is in the loop
+                rfilelist = [f for f in self.in_file.filelist if f.lower().endswith(img_format)]
+                # loop through the reduced file list and add to the identity dicitonary
+                for file in rfilelist:
+                    filename = os.path.splitext(os.path.basename(file))[0]
+                    identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
+
+            except AttributeError:
+
+                for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
+                    filename = os.path.splitext(os.path.basename(file))[0]
+                    identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
 
                 filename = os.path.splitext(os.path.basename(file))[0]
                 identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
+
+
+
+            # for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
+
+            #     filename = os.path.splitext(os.path.basename(file))[0]
+            #     identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
 
         if identity and max(identity.values()) > IDENTITY_THRESHOLD:
             return max(identity, key=identity.get)

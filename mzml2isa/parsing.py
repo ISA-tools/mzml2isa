@@ -20,7 +20,7 @@ GNU General Public License version 3.0 (GPLv3)
 """
 
 
-
+import io
 import os
 import sys
 import glob
@@ -162,7 +162,6 @@ def run():
                    usermeta if usermeta else None,
                    args.split, args.merge, args.verbose, args.multip)
 
-
 def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, merge=False, verbose=False, multip=False):
     """ Parses every study from *in_dir* and then creates ISA files.
 
@@ -210,7 +209,9 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
                                            '%4d' % len(mzml_files),
                                            pb.Bar(marker=MARKER, left=" |", right="| "),
                                            pb.ETA()])
+
             for i in pbar(mzml_files):
+
                 if compr:
                    ext = i.name.split(os.path.extsep)[-1]
                 else:
@@ -223,10 +224,11 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
         else:
             for i in mzml_files:
                 print("Parsing file: {}".format(i))
+
                 if compr:
-                   ext = i.name.split(os.path.extsep)[-1]
+                    ext = i.name.split(os.path.extsep)[-1]
                 else:
-                   ext = i.split(os.path.extsep)[-1]
+                    ext = i.split(os.path.extsep)[-1]
 
                 parser = _PARSERS[ext]
                 ont = _ONTOLOGIES[ext]
@@ -249,6 +251,20 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
     else:
         warnings.warn("No files were found in directory.", UserWarning)
 
+
+class _TarFile(object):
+
+    def __init__(self, name, buffered_reader):
+        self.name = name
+        self.BufferedReader = buffered_reader
+
+    def __getattr__(self, attr):
+        if attr=="name":
+            return self.name
+        return getattr(self.BufferedReader, attr)
+
+
+
 def compr_extract(compr_pth, type_):
     # extrac zip or tar(gz) files into python tar or zip objects
 
@@ -256,18 +272,23 @@ def compr_extract(compr_pth, type_):
     if type_ == "zip":
         comp = zipfile.ZipFile(compr_pth)
         cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)]
+        filelist = [f.filename for f in comp.filelist]
     else:
-        comp = tarfile.open(compr_pth)
-        cfiles = [comp.extractfile(m) for m in comp.getmembers() if m.name.lower().endswith(filend)]
+        comp = tarfile.open(compr_pth, 'r:*')
+        #cfiles = [comp.extractfile(m) for m in comp.getmembers() if m.name.lower().endswith(filend)]
 
-    # get file names in the directory (required for imzML)
-    filelist = [f.filename for f in comp.filelist]
+        cfiles = [_TarFile(m.name, comp.extractfile(m)) for m in comp.getmembers() if m.name.lower().endswith(filend)]
+        filelist = [f for f in comp.getnames()]
 
     # And add these file names as additional attribute the compression tar or zip objects
     for cf in cfiles:
         cf.filelist = filelist
 
     return cfiles
+
+
+
+
 
 
 

@@ -539,7 +539,7 @@ class mzMLmeta(object):
         file_contents = self.obo['MS:1000524'].rchildren().id
 
         def unseen(accession, memo=set()):
-            if accession in set:
+            if accession in memo:
                 return False
             else:
                 memo.add(accession)

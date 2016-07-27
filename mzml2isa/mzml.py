@@ -547,7 +547,7 @@ class mzMLmeta(object):
 
         self.meta['Data file content'] = {'entry_list':
 
-            [ {'name': cv.attrib['name'], 'ref': cv.attrib['ref'], 'accession': cv.attrib['accession'] }
+            [ {'name': cv.attrib['name'], 'ref': cv.attrib['cvRef'], 'accession': cv.attrib['accession'] }
                 for cv in pyxpath(self, XPATHS['sp_cv'])
                     if cv.attrib['accession'] in file_contents and unseen(cv.attrib['accession'])
             ]

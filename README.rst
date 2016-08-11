@@ -1,21 +1,21 @@
 mzml2isa
 ========
 
-Parser to get meta information from mzML file and parse relevant information to a ISA-Tab structure
+Parser to extract meta information from mzML mass spectrometry files and parse relevant information to a ISA-Tab structure
 
 |Version| |Py versions| |Git| |Build Status| |License| |RTD doc| |DOI|
 
 Overview
 --------
 
-mzml2isa is a Python3 program that can be used to generate an ISA-Tab
-structure out of mzML files, providing the backbone of a study which can
-then be edited with an ISA editing tool (see `MetaboLights pre-packaged
+mzml2isa is a Python3 program that can automatically generate ISA-Tab document
+structure metadata files from raw XML metabolomics data files (mzML open access data format). The mzml2ISA tool provides the backbone of ISA-Tab metabolomics study which can
+then be edited with an ISA editing tool, ISAcreator (see `MetaboLights pre-packaged
 ISA Creator <http://www.ebi.ac.uk/metabolights/>`__)
 
 Currently the program does the following:
-  * Extract meta information from mzML files and store as either python dictionary or JSON format
-  * Create an ISA-Tab file structure with relevant meta information
+  * Extract meta information from mzML files and stores it as either python dictionary or JSON format
+  * Creates an ISA-Tab file structure with relevant meta information filled in.
   * Add additional metadata that cannot be parsed from mzML files to the ISA-Tab files through a JSON formatted dictionnary.
 
 Install

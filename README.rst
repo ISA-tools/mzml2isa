@@ -9,7 +9,7 @@ Overview
 --------
 
 mzml2isa is a Python3 program that can automatically generate ISA-Tab document
-structure metadata files from raw XML metabolomics data files (mzML open access data format) mzml2ISA provides the backbone of ISA-Tab metabolomics study which can
+structure metadata files from raw XML metabolomics data files (mzML open access data format). mzml2ISA provides the backbone of ISA-Tab metabolomics study which can
 then be edited with an ISA editing tool, ISAcreator (see `MetaboLights pre-packaged
 ISA Creator <http://www.ebi.ac.uk/metabolights/>`__)
 

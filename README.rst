@@ -1,7 +1,7 @@
 mzml2isa
 ========
 
-Parser to get meta information from mzML mass spectrometry files and parse relevant information to a ISA-Tab structure
+Parser to extract meta information from mzML mass spectrometry files and parse relevant information to a ISA-Tab structure
 
 |Version| |Py versions| |Git| |Build Status| |License| |RTD doc| |DOI|
 

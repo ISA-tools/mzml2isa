@@ -1,4 +1,3 @@
 lxml
 pronto
-argparse
 chainmap

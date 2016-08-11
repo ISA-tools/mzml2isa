@@ -73,30 +73,27 @@ class mzMLmeta(object):
     can be repeated, if has associated software if it has a value as well
     as name.
 
-    Creates a dictionary of meta information and a JSON structure e.g::
-        "mass_analyzer_type": {
-            "accession": "MS:1000484",
-            "name": "orbitrap"
-        },
-        "ionization_type": {
-            "accession": "MS:1000073",
-            "name": "electrospray ionization"
-        }
+    Attributes:
+        tree (:obj:`lxml.etree.ElementTree`): the tree object created from
+            the mzML file
+        ns (dict): a dictionary containing the xml namespace mapping
+        obo (:obj:`pronto.Ontology`): the ontology object
+        meta (dict): structured dictionary containing extracted metadata
+        env (dict): the `environment variables`, tag names that are not
+            standards among different mzML files.
+
     """
 
     obo = None
     _descendents = dict()
 
     def __init__(self, in_file, ontology=None, complete_parse=False):
-        """ **Constructor**: Setup the xpaths and terms. Then run the various extraction methods
+        """Setup the xpaths and terms. Then run the various extraction methods
 
-        :param str in_file: path to mzML file
-        :ivar obj self.tree: The xml tree object
-        :ivar dict self.ns: Dictionary of the namespace of the mzML file
-        :ivar obj self.obo: Parsing object used to get children and parents of the ontological terms
-        :ivar obj self.meta: Meta information in python dictionary
-        :ivar obj self.meta_json: Meta information in json format
-        :ivar obj self.meta_isa: Meta information with names compatible with ISA-Tab
+        Parameters:
+            in_file (str): path to mzML file
+            ontology (:obj:`pronto.Ontology`): a cached MS ontology
+            complete_parse (bool): parse scan-specific metadata
         """
 
         if ontology is None and self.obo is None:
@@ -122,7 +119,7 @@ class mzMLmeta(object):
 
         self.build_env()
 
-        self.make_params()
+        self._make_params()
 
         #initalize the meta variables
         self.meta = collections.OrderedDict()
@@ -184,7 +181,7 @@ class mzMLmeta(object):
         self.extract_meta(terms, xpaths_meta)
 
         # make a memoized dict of the referenceable params
-        self.make_params()
+        #self.make_params()
 
         # The instrument information has to be extracted separately
         self.instrument()
@@ -221,10 +218,12 @@ class mzMLmeta(object):
 
         Updates the self.meta dictionary with the relevant meta information
 
-        :param dict terms: The CV and "search parameters" required at the xml locations
-        :param dict xpath: The xpath locations to be searched
+        Parameters:
+            terms (dict): The CV and search parameters required at the xml locations
+            xpath (dict): the xpath locations to search
+
         .. seealso::
-            :func:`cvParam_loop`
+            :obj:`cvParam_loop`
         """
 
         # loop though the xpaths
@@ -238,11 +237,12 @@ class mzMLmeta(object):
             self.cvParam_loop(elements, location_name, terms)
 
     def cvParam_loop(self, elements, location_name, terms):
-        """ loop through the elements and see if the terms are found. If they are update the self.meta dict
+        """Loop through the elements and eventually update the self.meta dict.
 
-        :param obj elements: lxml object
-        :param str location_name: Name of the xml location
-        :param dict terms: CV terms we want
+        Parameters:
+            elements (:obj:`iterator`): the element containing the cvParam tags
+            location_name (str): Name of the xml location
+            terms (dict): terms that are to be extracted
         """
         # get associated meta information from each file
 
@@ -334,6 +334,12 @@ class mzMLmeta(object):
 
     @staticmethod
     def _convert(value):
+        """Try to convert a string to the appropriate type.
+
+        Parameters:
+            value (str): the string to convert
+
+        """
         try:
             return int(value)
         except ValueError:
@@ -343,11 +349,11 @@ class mzMLmeta(object):
                 return value
 
     def _instrument_byref(self):
-        """ The instrument meta information is more complicated to extract so it has its own function
+        """Extract the instrument from its referenceableParamList entry.
 
-        Updates the self.meta with the relevant meta information.
-
-        Requires looking at the hierarchy of ontological terms to get all the instrument information
+        The instrument meta information is more complicated to extract so it has its own function
+        Updates the self.meta with the relevant meta information. Requires looking at the hierarchy
+        of ontological terms to get all the instrument information
         """
 
         # gets the first Instrument config (something to watch out for)
@@ -396,7 +402,8 @@ class mzMLmeta(object):
         self.software(soft_ref, 'Instrument')
 
     def _instrument_nested(self):
-        """
+        """Extract the instrument from the instrument cvParam list.
+
         The easy case, where version number is not in ./referenceableParamList but directly
         in instrument/cvParam
         """
@@ -445,8 +452,10 @@ class mzMLmeta(object):
     def software(self, soft_ref, name):
         """ Get associated software of cv term. Updates the self.meta dictionary
 
-        :param str soft_ref: Reference to software found in xml file
-        :param str name: Name of the associated CV term that the software is associated to
+        Parameters:
+            soft_ref (str): the reference to the software found in another xml "ref" attribute.
+            name (str): Name of the associated CV term that the software is associated to.
+
         """
 
         elements = pyxpath(self, XPATHS['software_elements'])
@@ -476,7 +485,12 @@ class mzMLmeta(object):
                                                    'ref': params.attrib['cvRef']}
 
     def derived(self):
-        """ Get the derived meta information. Updates the self.meta dictionary"""
+        """ Get the derived meta information
+
+        The derived meta information includes all tags that are solely based
+        on the file name, such as `MS Assay Name`, `Derived Spectral Data File`
+        or `Sample Name`.
+        """
 
         cv = next(pyxpath(self, XPATHS['cv'])).attrib[self.env["cvLabel"]]
 
@@ -504,9 +518,8 @@ class mzMLmeta(object):
         self.meta['Derived Spectral Data File'] = {'entry_list': [{'value': derived_spectral_data_file}] } # mzML file name
         self.meta['Sample Name'] = {'value': ms_assay_name} # mzML file name w/o extension
 
-
-
     def polarity(self):
+        """Iterates over all scans to get the `average` polarity."""
 
         sp_cv = pyxpath(self, XPATHS['sp_cv'])
 
@@ -530,11 +543,20 @@ class mzMLmeta(object):
 
         self.meta['Scan polarity'] = polarity
 
-    def make_params(self):
+    def _make_params(self):
+        """Create a memoized set of xml Elements in `ReferenceableParamGroupList`"""
+
+
         self._params = {x.attrib['id']:x for x in pyxpath(self,
         '{root}/s:referenceableParamGroupList/s:referenceableParamGroup')}
 
     def data_file_content(self):
+        """Extract the `Data file content` from all scans.
+
+        This method is called only in the case the FileContent xml Element
+        contained no actual cvParam elements. This was witnessed in at least
+        one file from a Waters instrument.
+        """
 
         file_contents = self.obo['MS:1000524'].rchildren().id
 
@@ -555,7 +577,14 @@ class mzMLmeta(object):
         }
 
     def spectrum_meta(self):
-        """Extract information of each spectrum in entry lists."""
+        """Extract information of each spectrum in entry lists.
+
+        This method is only called is the **complete_parse** parameters was set
+        as True when the mzMLmeta object was created. This requires more time
+        as iterating through hundreds of elements is bound to be more performance
+        hungry than just a few elements. It is believed to be useful when mzml2isa
+        is used as a parsing library.
+        """
 
         terms = collections.OrderedDict()
 
@@ -639,6 +668,16 @@ class mzMLmeta(object):
         #     self.merge_entries(entry)
 
     def merge_entries(self, name):
+        """An unoptimized way of merging meta entries only made of duplicates.
+
+        This is only useful when the :obj:`spectrum_meta` method is called, as
+        a way of reducing the size of some meta entries that add no interesting
+        information (for instance, when all binary data is compressed the same
+        way, it is useless to know that for each scan).
+
+        Parameters:
+            name (str): the entry to de-duplicate
+        """
 
         if name in self.meta.keys():
             if 'entry_list' in self.meta[name].keys():
@@ -651,8 +690,14 @@ class mzMLmeta(object):
                 #self.meta[name]['entry_list'] = [i for n, i in enumerate(self.meta[name]['entry_list'])
                 #                                   if i not in self.meta[name]['entry_list'][n + 1:]]
 
-
     def timerange(self):
+        """Try to extract the Time range of all the scans.
+
+        Time range consists in the smallest and largest time the successive scans
+        were started. The unit (most of the time `minute`) will be extracted as well
+        if possible.
+
+        """
 
         try:
             scan_cv =  pyxpath(self, XPATHS['scan_cv'])
@@ -676,6 +721,9 @@ class mzMLmeta(object):
                 self.meta['Time range']['unit'] = unit
 
     def mzrange(self):
+        """Try to extract the m/z range of all scans."""
+
+
         try: #case with detection range
             scan_window_cv = pyxpath(self, XPATHS['scan_window_cv'])
             minmz_l = []
@@ -709,11 +757,13 @@ class mzMLmeta(object):
                 self.meta['Scan m/z range']['unit'] = unit
 
     def scan_num(self):
+        """Extract the total number of scans."""
         scan_num = next(pyxpath(self, XPATHS['scan_num'])).attrib["count"]
         self.meta['Number of scans'] = {'value': int(scan_num)}
 
     def urlize(self):
-        """Turns YY:XXXXXXX accession number into an url"""
+        """Urllize all accessions within the meta dictionary"""
+
         for meta_name in self.meta:
             #if 'accession' in self.meta[meta_name]:
             try:
@@ -744,16 +794,26 @@ class mzMLmeta(object):
                 pass
 
     @staticmethod
-    def _urlize_name(name):
-        if name.startswith('MS'):
-            return "http://purl.obolibrary.org/obo/{}".format(name.replace(':', '_'))
-        elif name.startswith('IMS'):
-            return "http://www.maldi-msi.org/download/imzml/imagingMS.obo#{}".format(name)
-        elif name.startswith('UO'):
-            return "http://purl.obolibrary.org/obo/{}".format(name.replace(':', '_'))
-        return name
+    def _urlize_name(accession):
+        """Turn YY:XXXXXXX accession number into an url
+
+        Parameters:
+            accession (str): a CV term accession
+
+        Returns:
+            str: an url version of the accession
+
+        """
+        if accession.startswith('MS'):
+            return "http://purl.obolibrary.org/obo/{}".format(accession.replace(':', '_'))
+        elif accession.startswith('IMS'):
+            return "http://www.maldi-msi.org/download/imzml/imagingMS.obo#{}".format(accession)
+        elif accession.startswith('UO'):
+            return "http://purl.obolibrary.org/obo/{}".format(accession.replace(':', '_'))
+        return accession
 
     def build_env(self):
+        """Build the env and the ns dictionaries."""
 
         self.env = collections.OrderedDict()
 

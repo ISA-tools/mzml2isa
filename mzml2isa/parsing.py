@@ -140,12 +140,19 @@ def run():
 
     args = p.parse_args()
 
-    if args.usermeta:
-        # Read in json
-        with open(args.usermeta, 'r') as f:
+    try:
+        if not args.usermeta:
+            usermeta = None
+        elif os.path.isfile(args.usermeta):
+            with open(args.usermeta) as f:
                 usermeta = json.load(f)
-    else:
-        usermeta = ""
+        else:
+            usermeta = json.loads(args.usermeta)
+    except json.decoder.JSONDecodeError:
+        warnings.warn("Usermeta could not be parsed.", UserWarning)
+        usermeta = None
+
+
 
     if not PB_AVAILABLE:
         setattr(args, 'verbose', True)

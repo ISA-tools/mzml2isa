@@ -2,3 +2,4 @@ include mzml2isa/*.obo
 include mzml2isa/default/*.txt
 include README.rst
 include requirements*.txt
+include isa_config/mzml2isa.png

@@ -72,7 +72,7 @@ studies.
 Workflow
 --------
 
-.. figure:: https://raw.githubusercontent.com/Tomnl/mzml2isa/master/isa_config/mzml2isa.png
+.. figure:: isa_config/mzml2isa.png
    :alt: workflow
 
 

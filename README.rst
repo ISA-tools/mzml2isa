@@ -88,7 +88,7 @@ Workflow
 .. |Git| image:: https://img.shields.io/badge/repository-GitHub-blue.svg?style=flat&maxAge=2592000
    :target: https://github.com/althonos/mzml2isa
 
-.. |Bioconda| image:: https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat-square
+.. |Bioconda| image:: https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat&maxAge=2592000
    :target: http://bioconda.github.io/recipes/mzml2isa/README.html
 
 .. |License| image:: https://img.shields.io/pypi/l/mzml2isa.svg?style=flat&maxAge=2592000

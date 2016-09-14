@@ -1,4 +1,4 @@
-format-version: 1.2
+﻿format-version: 1.2
 date: 08:09:2008 13:53
 saved-by: Thorsten Schramm
 auto-generated-by: OBO-Edit 1.101
@@ -71,19 +71,19 @@ relationship: part_of IMS:0000000 ! Imaging Mass Spectrometry Ontology
 
 [Term]
 id: IMS:1000010
-name: scan 
+name: scan
 def: "Describes the attributes of the generation of the image." [COMPUTIS:IMS]
 relationship: part_of IMS:0000000 ! Imaging Mass Spectrometry Ontology
 
 [Term]
 id: IMS:1000011
-name: laser shot mode 
+name: laser shot mode
 def: "Describes the method how the laser was moved across the sample while firing." [COMPUTIS:IMS]
 relationship: part_of IMS:0000000 ! Imaging Mass Spectrometry Ontology
 
 [Term]
 id: IMS:1000012
-name: imaging ion source 
+name: imaging ion source
 def: "Parameters describing the imaging source, which is used to create the ions measured by the MS." [COMPUTIS:IMS]
 relationship: part_of IMS:0000000 ! Imaging Mass Spectrometry Ontology
 

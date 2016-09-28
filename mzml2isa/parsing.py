@@ -57,8 +57,8 @@ dirname = os.path.dirname(os.path.realpath(__file__))
 
 
 _ms = Ontology(os.path.join(dirname, "psi-ms.obo"), False)
-_ims = Ontology(os.path.join(dirname, "imagingMS.obo"), False)
-_ims.merge(_ms)
+_ims = Ontology(os.path.join(dirname, "imagingMS.obo"), True, 1)
+#_ims.merge(_ms)
 
 
 _ONTOLOGIES = {'mzML': _ms,

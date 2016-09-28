@@ -103,7 +103,7 @@ class mzMLmeta(object):
             except:
                 self.obo = Ontology(os.path.join(
                                    os.path.dirname(os.path.realpath(__file__)),
-                                  "psi-ms.obo"))
+                                  "psi-ms.obo"), False)
         elif self.obo is None:
             self.obo = ontology
 

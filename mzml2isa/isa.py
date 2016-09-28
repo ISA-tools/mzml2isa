@@ -3,6 +3,7 @@ import os
 
 import csv
 import sys
+import functools
 
 try:
     from collections import ChainMap
@@ -94,7 +95,12 @@ class ISA_Tab(object):
                         else os.path.join(self.isa_env['out_dir'], self.isa_env['Assay polar file name'])
 
         for polarity in polarities:
-            with open(new_a_path.format(polarity[:3].upper()), 'w') as a_out:
+
+            csv_wopen = functools.partial(open, mode='w', newline='') \
+                        if sys.version_info[0]==3 \
+                        else functools.partial(open, mode='wb')
+            
+            with csv_wopen(new_a_path.format(polarity[:3].upper())) as a_out:
 
                 self.isa_env['Written assays'].append(os.path.basename(new_a_path.format(polarity[:3].upper())))
                 self.isa_env['Technology type'].append(self.isa_env['mzML technology'])

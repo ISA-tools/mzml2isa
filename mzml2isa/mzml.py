@@ -998,16 +998,22 @@ class imzMLmeta(mzMLmeta):
     def find_img(self, *img_formats):
 
         identity = dict()
+        sample_name = self.meta['Sample Name']['value']
 
+        # First attempt to find image files named exactly like the imzML file
+        for file in (x for x in os.listdir(self.in_dir) if x.lower().endswith(img_formats)):
+            if os.path.splitext(file)[0] == sample_name:
+                return file
+
+        # If None is found, attempt comparing identity
         for img_format in img_formats:
 
             name = self.meta['Sample Name']['value']
 
-
             try:
                 # Get a reduced file list with just the img_format that is in the loop
                 rfilelist = [f for f in self.in_file.filelist if f.lower().endswith(img_format)]
-                # loop through the reduced file list and add to the identity dicitonary
+                # loop through the reduced file list, compute and add to the identity dicitonary
                 for file in rfilelist:
                     filename = os.path.splitext(os.path.basename(file))[0]
                     identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
@@ -1017,16 +1023,6 @@ class imzMLmeta(mzMLmeta):
                 for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
                     filename = os.path.splitext(os.path.basename(file))[0]
                     identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
-
-                #filename = os.path.splitext(os.path.basename(file))[0]
-                #identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
-
-
-
-            # for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
-
-            #     filename = os.path.splitext(os.path.basename(file))[0]
-            #     identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
 
         if identity and max(identity.values()) > IDENTITY_THRESHOLD:
             return max(identity, key=identity.get)
@@ -1059,8 +1055,8 @@ class imzMLmeta(mzMLmeta):
 
 
 if __name__ == '__main__':
-    import sys
 
+    import sys
 
     if sys.argv[-1].endswith('.imzML'):
         print(imzMLmeta(sys.argv[-1]).meta_json)

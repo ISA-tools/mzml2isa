@@ -55,9 +55,11 @@ _PARSERS = {'mzML': mzml.mzMLmeta,
 warnings.simplefilter('ignore')
 dirname = os.path.dirname(os.path.realpath(__file__))
 
-
-_ms = Ontology(os.path.join(dirname, "psi-ms.obo"), False)
-_ims = Ontology(os.path.join(dirname, "imagingMS.obo"), True, 1)
+if not any(x in sys.argv for x in ('-h', '--help', '--version')):
+    _ms = Ontology(os.path.join(dirname, "psi-ms.obo"), False)
+    _ims = Ontology(os.path.join(dirname, "imagingMS.obo"), True, 1)
+else:
+    _ms, _ims = None, None
 #_ims.merge(_ms)
 
 
@@ -68,8 +70,8 @@ del dirname
 
 def _multiparse(filepath):
     print('Parsing file: {}'.format(filepath))
-    parser = PARSERS[filepath.split(os.path.extsep)[-1]]
-    ont = ONTOLOGIES[filepath.split(os.path.extsep)[-1]]
+    parser = _PARSERS[filepath.split(os.path.extsep)[-1]]
+    ont = _ONTOLOGIES[filepath.split(os.path.extsep)[-1]]
     return parser(filepath, ont).meta_isa
 
 def merge_spectra(metalist):
@@ -126,7 +128,7 @@ def run():
     p.add_argument('-o', dest='out_dir', help='out folder, new directory will be created here', required=True)
     p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
     p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False)#, type=json.loads)
-    p.add_argument('-M', dest='multip', help='launch different processes for parsing', required=False, default=0, type=int)
+    p.add_argument('-j', dest='jobs', help='launch different processes for parsing', required=False, default=0, type=int)
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
     p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
@@ -167,7 +169,7 @@ def run():
 
         full_parse(args.in_dir, args.out_dir, args.study_name,
                    usermeta if usermeta else None,
-                   args.split, args.merge, args.verbose, args.multip)
+                   args.split, args.merge, args.verbose, args.jobs)
 
 def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, merge=False, verbose=False, multip=False):
     """ Parses every study from *in_dir* and then creates ISA files.

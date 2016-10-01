@@ -57,7 +57,8 @@ dirname = os.path.dirname(os.path.realpath(__file__))
 
 if not any(x in sys.argv for x in ('-h', '--help', '--version')):
     _ms = Ontology(os.path.join(dirname, "psi-ms.obo"), False)
-    _ims = Ontology(os.path.join(dirname, "imagingMS.obo"), True, 1)
+    _ims = Ontology(os.path.join(dirname, "imagingMS.obo"), False)
+    _ims.terms.update(_ms.terms)
 else:
     _ms, _ims = None, None
 #_ims.merge(_ms)

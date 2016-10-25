@@ -132,8 +132,7 @@ def run():
     p.add_argument('-j', dest='jobs', help='launch different processes for parsing', required=False, default=0, type=int)
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
     p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
-    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='ignore',
-                         required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
+    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='once', required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
     p.add_argument('--version', action='version', version='mzml2isa {}'.format(mzml2isa.__version__))
 
 
@@ -259,7 +258,7 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
             isa_tab_create = isa.ISA_Tab(out_dir, study_identifier, usermeta or {}).write(metalist, ext, split)
 
     else:
-        warnings.warn("No files were found in directory.", UserWarning)
+        warnings.warn("No files were found in {}.".format(in_dir), UserWarning)
 
 
 class _TarFile(object):

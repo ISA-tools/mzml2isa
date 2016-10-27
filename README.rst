@@ -86,7 +86,7 @@ Workflow
    :target: https://pypi.python.org/pypi/mzml2isa/
 
 .. |Git| image:: https://img.shields.io/badge/repository-GitHub-blue.svg?style=flat&maxAge=2592000
-   :target: https://github.com/althonos/mzml2isa
+   :target: https://github.com/ISA-tools/mzml2isa
 
 .. |Bioconda| image:: https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat&maxAge=2592000
    :target: http://bioconda.github.io/recipes/mzml2isa/README.html

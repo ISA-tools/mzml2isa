@@ -6,7 +6,7 @@ import sys
 
 import mzml2isa
 
-if sys.platform == "win32" or sys.platform == "win64":
+if sys.platform.startswith('win'):
     # Windows
     if sys.version_info[0]==3:
         install_requires = open('requirements-win.txt').read().splitlines()

@@ -279,8 +279,7 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
                 else:
                     ext = i.split(os.path.extsep)[-1]
 
-		print(ext)
-
+                
                 parser = PARSERS[ext]
                 ont = ONTOLOGIES[ext]
 

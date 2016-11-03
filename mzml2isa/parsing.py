@@ -58,7 +58,7 @@ from mzml2isa.versionutils import longest_substring
 #     ont = _ONTOLOGIES[filepath.split(os.path.extsep)[-1]]
 #     return parser(filepath, ont).meta_isa
 
-def _multiparse(filepath, metalist, win):
+def _multiparse(filepath, metalist):
     dirname = os.path.dirname(os.path.realpath(__file__))
     if not any(x in sys.argv for x in ('-h', '--help', '--version')):
         _ms = Ontology(os.path.join(dirname, "psi-ms.obo"), False)
@@ -75,6 +75,7 @@ def _multiparse(filepath, metalist, win):
                    'imzML': _ims}
 
     print('Parsing file: {}'.format(filepath))
+
     parser = PARSERS[filepath.split(os.path.extsep)[-1]]
     ont = ONTOLOGIES[filepath.split(os.path.extsep)[-1]]
 
@@ -263,6 +264,7 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
                    ext = i.name.split(os.path.extsep)[-1]
                 else:
                    ext = i.split(os.path.extsep)[-1]
+                
                 parser = PARSERS[ext]
                 ont = ONTOLOGIES[ext]
 
@@ -276,6 +278,8 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
                     ext = i.name.split(os.path.extsep)[-1]
                 else:
                     ext = i.split(os.path.extsep)[-1]
+
+		print(ext)
 
                 parser = PARSERS[ext]
                 ont = ONTOLOGIES[ext]

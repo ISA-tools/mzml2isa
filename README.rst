@@ -3,7 +3,7 @@ mzml2isa
 
 Parser to extract meta information from mzML mass spectrometry files and parse relevant information to a ISA-Tab structure
 
-|Version| |Py versions| |Git| |Bioconda| |Build Status| |License| |RTD doc| |DOI|
+|Version| |Py versions| |Git| |Bioconda| |Build Status (Travis)| |Build Status (AppVeyor)| |License| |RTD doc| |DOI| 
 
 Overview
 --------
@@ -76,9 +76,12 @@ Workflow
    :alt: workflow
 
 
-.. |Build Status| image:: https://img.shields.io/travis/althonos/mzml2isa.svg?style=flat&maxAge=2592000
+.. |Build Status (Travis)| image:: https://img.shields.io/travis/althonos/mzml2isa.svg?style=flat&maxAge=2592000
    :target: https://travis-ci.org/althonos/mzml2isa
 
+.. |Build Status (AppVeyor)| image:: https://ci.appveyor.com/api/projects/status/cf19cwwfxjrgr0ai?svg=true
+   :target: https://ci.appveyor.com/project/Tomnl/mzml2isa
+   
 .. |Py versions| image:: https://img.shields.io/pypi/pyversions/mzml2isa.svg?style=flat&maxAge=2592000
    :target: https://pypi.python.org/pypi/mzml2isa/
 

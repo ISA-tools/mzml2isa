@@ -4,5 +4,10 @@
 ./testing/*
 ./archive/*
 ./build/*
+./build/
+./dist/
+./dist/*
+./mzml2isa.egg-info/
+./mzml2isa.egg-info/*
 .codacy.token
 

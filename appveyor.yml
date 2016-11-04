@@ -1,0 +1,37 @@
+environment:
+  matrix:
+    - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Python34"
+    - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Python34-x64"
+
+
+install:
+  - "%PYTHON%/Scripts/pip.exe install six"
+  - "%PYTHON%/Scripts/pip.exe install ."
+
+
+build_script:
+  # Build the compiled extension
+- "%CMD_IN_ENV% python setup.py build"
+
+test_script:
+  - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person01_RBC_youth_NEG.mzML -o Person01_RBC_youth_NEG.mzML
+  - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person02_RBC_youth_NEG.mzML -o Person02_RBC_youth_NEG.mzML
+  - mkdir data
+  - mv Person* data\.
+  - "%PYTHON%\\python.exe mzml2isa\\parsing.py -i data -o out_folder\\metabolights -s MTBLS267"
+  - ps: wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip -o ISA-validator-1.6.5.zip
+  - unzip ISA-validator-1.6.5.zip
+  - ps: wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip -o ISAcreatorMetaboLights.zip
+  - unzip ISAcreatorMetaboLights.zip
+  - java -cp ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267 Configurations\MetaboLightsConfig20140506\
+
+#after_test:
+#  # If tests are successful, create binary packages for the project.
+#  - "%PYTHON%/Scripts/pip.exe install wheel"
+#  - "%CMD_IN_ENV% python setup.py bdist_wheel"
+#  - "%CMD_IN_ENV% python setup.py bdist_wininst"
+#  - "%CMD_IN_ENV% python setup.py bdist_msi"
+#  - ps: "ls dist"
+

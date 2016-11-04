@@ -932,7 +932,9 @@ class imzMLmeta(mzMLmeta):
             warnings.simplefilter('ignore')
             dirname = os.path.dirname(os.path.realpath(__file__))
             obo_path = os.path.join(dirname, "imagingMS.obo")
-            self.obo = Ontology(obo_path, True, import_depth=1)
+            for _ in range(10):
+                self.obo = Ontology(obo_path, True, import_depth=1)
+                if 'IMS:1001212' in self.obo: break
         else:
             self.obo = ontology
 

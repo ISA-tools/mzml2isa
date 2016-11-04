@@ -62,17 +62,21 @@ def _multiparse(filepath, metalist):
     dirname = os.path.dirname(os.path.realpath(__file__))
     if not any(x in sys.argv for x in ('-h', '--help', '--version')):
         _ms = Ontology(os.path.join(dirname, "psi-ms.obo"), False)
-        _ims = Ontology(os.path.join(dirname, "imagingMS.obo"), False)
+
+        for _ in range(10): # patch to fix ontology import issue
+            _ims = Ontology(os.path.join(dirname, "imagingMS.obo"), False)
+            if 'IMS:1001212' in _ims: break
+
         _ims.terms.update(_ms.terms)
     else:
         _ms, _ims = None, None
-        _ims.merge(_ms)
+        #_ims.merge(_ms)
 
     PARSERS = {'mzML': mzml.mzMLmeta,
-                'imzML': mzml.imzMLmeta}
+               'imzML': mzml.imzMLmeta}
 
     ONTOLOGIES = {'mzML': _ms,
-                   'imzML': _ims}
+                  'imzML': _ims}
 
     print('Parsing file: {}'.format(filepath))
 

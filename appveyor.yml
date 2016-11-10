@@ -7,7 +7,7 @@ environment:
 
 
 install:
-  - "%PYTHON%/Scripts/pip.exe install six"
+  #- "%PYTHON%/Scripts/pip.exe install six"
   - "%PYTHON%/Scripts/pip.exe install ."
 
 

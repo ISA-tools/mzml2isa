@@ -1,3 +1,2 @@
-lxml
-pronto
+pronto>=0.6.0
 chainmap

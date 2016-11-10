@@ -6,18 +6,10 @@ import sys
 
 import mzml2isa
 
-if sys.platform.startswith('win'):
-    # Windows
-    if sys.version_info[0]==3:
-        install_requires = open('requirements-win.txt').read().splitlines()
-    else:
-        install_requires = open('requirements-py2-win.txt').read().splitlines(),
+if sys.version_info[0] == 3:
+    install_requires = open('requirements.txt').read().splitlines()
 else:
-    # Linux Mac
-    if sys.version_info[0]==3:
-        install_requires = open('requirements.txt').read().splitlines()
-    else:
-        install_requires = open('requirements-py2.txt').read().splitlines(),
+    install_requires = open('requirements-py2.txt').read().splitlines(),
 
 
 ## SETUPTOOLS VERSION

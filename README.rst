@@ -76,28 +76,28 @@ Workflow
    :alt: workflow
 
 
-.. |Build Status (Travis)| image:: https://img.shields.io/travis/ISA-tools/mzml2isa.svg?style=flat&maxAge=2592000
+.. |Build Status (Travis)| image:: https://img.shields.io/travis/ISA-tools/mzml2isa.svg?style=flat&maxAge=3600&label=Travis-CI
    :target: https://travis-ci.org/ISA-tools/mzml2isa
 
-.. |Build Status (AppVeyor)| image:: https://ci.appveyor.com/api/projects/status/cf19cwwfxjrgr0ai?svg=true
+.. |Build Status (AppVeyor)| image:: https://img.shields.io/appveyor/ci/Tomnl/mzml2isa.svg?style=flat&maxAge=3600&label=AppVeyor   
    :target: https://ci.appveyor.com/project/Tomnl/mzml2isa
    
-.. |Py versions| image:: https://img.shields.io/pypi/pyversions/mzml2isa.svg?style=flat&maxAge=2592000
+.. |Py versions| image:: https://img.shields.io/pypi/pyversions/mzml2isa.svg?style=flat&maxAge=3600
    :target: https://pypi.python.org/pypi/mzml2isa/
 
-.. |Version| image:: https://img.shields.io/pypi/v/mzml2isa.svg?style=flat&maxAge=2592000
+.. |Version| image:: https://img.shields.io/pypi/v/mzml2isa.svg?style=flat&maxAge=3600
    :target: https://pypi.python.org/pypi/mzml2isa/
 
-.. |Git| image:: https://img.shields.io/badge/repository-GitHub-blue.svg?style=flat&maxAge=2592000
+.. |Git| image:: https://img.shields.io/badge/repository-GitHub-blue.svg?style=flat&maxAge=3600
    :target: https://github.com/ISA-tools/mzml2isa
 
-.. |Bioconda| image:: https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat&maxAge=2592000
+.. |Bioconda| image:: https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat&maxAge=3600
    :target: http://bioconda.github.io/recipes/mzml2isa/README.html
 
-.. |License| image:: https://img.shields.io/pypi/l/mzml2isa.svg?style=flat&maxAge=2592000
+.. |License| image:: https://img.shields.io/pypi/l/mzml2isa.svg?style=flat&maxAge=3600
    :target: https://www.gnu.org/licenses/gpl-3.0.html
 
-.. |RTD doc| image:: https://img.shields.io/badge/documentation-RTD-71B360.svg?style=flat&maxAge=2592000
+.. |RTD doc| image:: https://img.shields.io/badge/documentation-RTD-71B360.svg?style=flat&maxAge=3600
    :target: http://2isa.readthedocs.io/en/latest/mzml2isa/index.html
 
 .. |DOI| image:: https://zenodo.org/badge/23304/althonos/mzml2isa.svg

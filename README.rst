@@ -76,8 +76,8 @@ Workflow
    :alt: workflow
 
 
-.. |Build Status (Travis)| image:: https://img.shields.io/travis/althonos/mzml2isa.svg?style=flat&maxAge=2592000
-   :target: https://travis-ci.org/althonos/mzml2isa
+.. |Build Status (Travis)| image:: https://img.shields.io/travis/ISA-tools/mzml2isa.svg?style=flat&maxAge=2592000
+   :target: https://travis-ci.org/ISA-tools/mzml2isa
 
 .. |Build Status (AppVeyor)| image:: https://ci.appveyor.com/api/projects/status/cf19cwwfxjrgr0ai?svg=true
    :target: https://ci.appveyor.com/project/Tomnl/mzml2isa

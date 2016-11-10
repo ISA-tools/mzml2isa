@@ -1,8 +1,9 @@
 """
 Content
 -----------------------------------------------------------------------------
-This module contains a single class, mzMLmeta, which is used to parse and
-serialize an mzML file into a Python dictionnary.
+This module contains two classes, mzMLmeta and imzMLmeta, which are used 
+to parse and serialize the metadata of a mzML or imzML file into a Python 
+dictionary.
 
 Following features are implemented but were commented out:
 - retrieval of sofware version number
@@ -14,8 +15,8 @@ About
 -----------------------------------------------------------------------------
 The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
 as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and small enhancements were carried out by Martin Larralde (ENS Cachan,
-France) in June 2016 during an internship at the EBI Cambridge.
+port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+in June 2016 during an internship at the EBI Cambridge.
 
 License
 -----------------------------------------------------------------------------
@@ -30,8 +31,8 @@ import warnings
 import itertools
 
 from pronto import Ontology
-from mzml2isa.versionutils import *
-
+from mzml2isa.versionutils import * # the etree is the best importable xml parser
+                                    # among: lxml, xml.etree.cElementTree, xml.etree.ElementTree
 
 IDENTITY_THRESHOLD = 0.4
 
@@ -102,8 +103,8 @@ class mzMLmeta(object):
                 self.obo = Ontology('https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo', False)
             except:
                 self.obo = Ontology(os.path.join(
-                                   os.path.dirname(os.path.realpath(__file__)),
-                                  "psi-ms.obo"), False)
+                                    os.path.dirname(os.path.realpath(__file__)),
+                                    "psi-ms.obo"), False)
         elif self.obo is None:
             self.obo = ontology
 
@@ -928,18 +929,20 @@ class imzMLmeta(mzMLmeta):
     def __init__(self, in_file, ontology=None):
         # Extract same informations as mzml file
 
-        if ontology is None:
+        if ontology is None and self.obo is None:
             warnings.simplefilter('ignore')
-            dirname = os.path.dirname(os.path.realpath(__file__))
-            obo_path = os.path.join(dirname, "imagingMS.obo")
-            for _ in range(10):
-                self.obo = Ontology(obo_path, True, import_depth=1)
-                if 'IMS:1001212' in self.obo: break
-        else:
+            try:
+                self.obo = Ontology('https://raw.githubusercontent.com/ISA-tools/mzml2isa/master/mzml2isa/imagingMS.obo', True, 1)
+            except:
+                self.obo = Ontology(os.path.join(
+                                        os.path.dirname(os.path.realpath(__file__)),
+                                        "imagingMS.obo"),
+                                    True, 1)
+        elif self.obo is None:
             self.obo = ontology
 
-        super(imzMLmeta, self).__init__(in_file, self.obo)
 
+        super(imzMLmeta, self).__init__(in_file, self.obo)
 
         xpaths_meta = XPATHS_I_META
 

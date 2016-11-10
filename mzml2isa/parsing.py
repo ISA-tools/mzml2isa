@@ -6,13 +6,12 @@ This module exposes basic API of mzml2isa, either being called from command
 line interface with arguments parsing via **run** function, or from another
 Python program via the **full_parse** function which works the same.
 
-
 About
 -----------------------------------------------------------------------------
 The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
 as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and small enhancements were carried out by Martin Larralde (ENS Cachan,
-France) in June 2016 during an internship at the EBI Cambridge.
+port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+in June 2016 during an internship at the EBI Cambridge.
 
 License
 -----------------------------------------------------------------------------
@@ -52,11 +51,7 @@ from mzml2isa.versionutils import longest_substring
 
 
 
-# def _multiparse(filepath):
-#     print('Parsing file: {}'.format(filepath))
-#     parser = _PARSERS[filepath.split(os.path.extsep)[-1]]
-#     ont = _ONTOLOGIES[filepath.split(os.path.extsep)[-1]]
-#     return parser(filepath, ont).meta_isa
+
 
 def _multiparse(filepath, metalist):
     dirname = os.path.dirname(os.path.realpath(__file__))
@@ -82,9 +77,7 @@ def _multiparse(filepath, metalist):
 
     parser = PARSERS[filepath.split(os.path.extsep)[-1]]
     ont = ONTOLOGIES[filepath.split(os.path.extsep)[-1]]
-
     meta = parser(filepath, ont).meta
-
     metalist.append(meta)
 
 def merge_spectra(metalist):
@@ -196,17 +189,16 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
     dirname = os.path.dirname(os.path.realpath(__file__))
     if not any(x in sys.argv for x in ('-h', '--help', '--version')):
         ms = Ontology(os.path.join(dirname, "psi-ms.obo"), False)
-        ims = Ontology(os.path.join(dirname, "imagingMS.obo"), False)
-        ims.terms.update(ms.terms)
+        ims = Ontology(os.path.join(dirname, "imagingMS.obo"), True, 1)
+        #ims.terms.update(ms.terms)
     else:
         ms, ims = None, None
-        ims.merge(ms)
 
     PARSERS = {'mzML': mzml.mzMLmeta,
-                'imzML': mzml.imzMLmeta}
+               'imzML': mzml.imzMLmeta}
 
     ONTOLOGIES = {'mzML': ms,
-                   'imzML': ims}
+                  'imzML': ims}
 
 
 
@@ -290,12 +282,10 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
                 metalist.append(parser(i, ont).meta)
 
         # update isa-tab file
-
         if merge and ext1=='imzML':
             if verbose:
                 print('Attempting to merge profile and centroid scans')
             metalist = merge_spectra(metalist)
-
 
         if metalist:
             if verbose:
@@ -318,7 +308,6 @@ class _TarFile(object):
         return getattr(self.BufferedReader, attr)
 
 
-
 def compr_extract(compr_pth, type_):
     # extrac zip or tar(gz) files into python tar or zip objects
 
@@ -329,8 +318,6 @@ def compr_extract(compr_pth, type_):
         filelist = [f.filename for f in comp.filelist]
     else:
         comp = tarfile.open(compr_pth, 'r:*')
-        #cfiles = [comp.extractfile(m) for m in comp.getmembers() if m.name.lower().endswith(filend)]
-
         cfiles = [_TarFile(m.name, comp.extractfile(m)) for m in comp.getmembers() if m.name.lower().endswith(filend)]
         filelist = [f for f in comp.getnames()]
 

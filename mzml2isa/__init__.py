@@ -12,10 +12,10 @@ Format reference:
 
 About
 -----------------------------------------------------------------------------
-The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK) 
+The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
 as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and small enhancements were carried out by Martin Larralde (ENS Cachan, 
-France) in June 2016 during an internship at the EBI Cambridge.
+port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+in June 2016 during an internship at the EBI Cambridge.
 
 Authors:
 -----------------------------------------------------------------------------
@@ -36,9 +36,6 @@ Supervisors:
 
 
 __author__ = 'Thomas Lawson, Martin Larralde'
-
-
 __credits__ = 'Thomas Lawson, Martin Larralde, Reza Salek, Ken Haug, Christoph Steinbeck'
-
 __version__ = '0.4.28'
 

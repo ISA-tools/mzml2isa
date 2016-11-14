@@ -49,7 +49,8 @@ except ImportError:
         As xml.ElementTree has no **.getparent** method, the following was
         proposed here : http://stackoverflow.com/questions/2170610#20132342
         """
-        return {c:p for p in tree.iter() for c in p}[element]
+        #return {c:p for p in tree.iter() for c in p}[element]
+        return next(p for p in tree.iter() for c in p if c==element)
 
 
 ## VERSION SPECIFIC UTILS

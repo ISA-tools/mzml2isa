@@ -31,8 +31,27 @@ import mzml2isa
 
 
 class ISA_Tab(object):
+    """Class to export a list of mzML or imzML metadata dictionnaries to ISA-Tab files
+
+    Attributes:
+        usermeta (:obj:`dict`,): a dictionary containing metadata defined
+            by the user, such as "Study Publication" or "Submission Date". Defaults
+            to None.
+        isa_env (:obj:`dict`): a dictionary containing various environment
+            variables associated with the current ISA_Tab object (such as
+            'Study file name', 'Written assays', etc.)
+    """
 
     def __init__(self, out_dir, name, usermeta=None):
+        """Setup the environments and the directories
+
+        Parameters:
+            out_dir (:obj:`str`): the path to the output directory
+            name (:obj:`str`): the name of the *omics study to generate
+            usermeta (:obj:`dict`, optional): a dictionary containing metadata defined
+                by the user, such as "Study Publication" or "Submission Date". Defaults
+                to None.
+        """
 
         # Create one or several study files / one or several study section in investigation
 
@@ -57,7 +76,14 @@ class ISA_Tab(object):
         self.isa_env['Converter version'] = mzml2isa.__version__
 
     def write(self, metalist, datatype, split=True):
+        """Generate and write the ISA files
 
+        Parameters:
+            metalist (:obj:`list`): a list of mzml or imzml metadata dictionaries
+            datatype (:obj:`str`): the datatype of the study (either 'mzML' or 'imzML')
+            split (:obj:`bool`, optional): a boolean stating if assay files should be split
+                based on their polarities. Defaults to True.
+        """
         self.isa_env['Platform'] = [ next((meta['Instrument'] for meta in metalist if 'Instrument' in meta), '') ]
 
         if not os.path.exists(self.isa_env['out_dir']):
@@ -69,9 +95,20 @@ class ISA_Tab(object):
         self.create_study(metalist,datatype)
         self.create_investigation(metalist, datatype)
 
-    def make_assay_template(self, metalist, ext):
+    def make_assay_template(self, metalist, datatype):
+        """Generate the assay template rows
 
-        template_a_path = os.path.join(self.isa_env['default_path'], 'a_{}.txt'.format(ext))
+        Parameters:
+            metalist (:obj:`list`): a list of mzml or imzml metadata dictionaries
+            datatype (:obj:`str`): the datatype of the study (either 'mzML' or 'imzML')
+
+        Returns
+            tuple: a tuple containg the list containing the assay headers row
+                and the list containing the assay data row based on the cardinality
+                of elements in the metalist
+        """
+
+        template_a_path = os.path.join(self.isa_env['default_path'], 'a_{}.txt'.format(datatype))
 
         with open(template_a_path, 'r') as a_in:
             headers, data = [x.strip().replace('"', '').split('\t') for x in a_in.readlines()]
@@ -99,6 +136,15 @@ class ISA_Tab(object):
         return headers, data
 
     def create_assay(self, metalist, headers, data, split=True):
+        """Write the assay file
+
+        Parameters:
+            metalist (:obj:`list`): a list of mzml or imzml metadata dictionaries
+            datatype (:obj:`str`): the datatype of the study (either 'mzML' or 'imzML')
+            headers (:obj:`list`): the list containing the assay headers row
+            split (:obj:`bool`, optional): a boolean stating if assay files should be split
+                based on their polarities. Defaults to True.
+        """
         fmt = PermissiveFormatter()
 
         if split:
@@ -116,7 +162,7 @@ class ISA_Tab(object):
             csv_wopen = functools.partial(open, mode='w', newline='') \
                         if sys.version_info[0]==3 \
                         else functools.partial(open, mode='wb')
-            
+
             with csv_wopen(new_a_path.format(polarity[:3].upper())) as a_out:
 
                 self.isa_env['Written assays'].append(os.path.basename(new_a_path.format(polarity[:3].upper())))
@@ -130,6 +176,12 @@ class ISA_Tab(object):
                     writer.writerow( [ fmt.vformat(x, None, ChainMap(meta, self.usermeta)) for x in data] )
 
     def create_study(self, metalist, datatype):
+        """Write the study file
+
+        Parameters:
+            metalist (:obj:`list`): a list of mzml or imzml metadata dictionaries
+            datatype (:obj:`str`): the datatype of the study (either 'mzML' or 'imzML')
+        """
 
         template_s_path = os.path.join(self.isa_env['default_path'], 's_{}.txt'.format(datatype))
         new_s_path = os.path.join(self.isa_env['out_dir'], self.isa_env['Study file name'])
@@ -145,6 +197,12 @@ class ISA_Tab(object):
                 s_out.write(fmt.vformat(data, None, ChainMap(meta, self.usermeta)))
 
     def create_investigation(self, metalist, datatype):
+        """Write the investigation file
+
+        Parameters:
+            metalist (:obj:`list`): a list of mzml or imzml metadata dictionaries
+            datatype (:obj:`str`): the datatype of the study (either 'mzML' or 'imzML')
+        """
         investigation_file = os.path.join(self.isa_env['default_path'], 'i_{}.txt'.format(datatype))
         new_i_path = os.path.join(self.isa_env['out_dir'], 'i_Investigation.txt')
 
@@ -174,7 +232,16 @@ class ISA_Tab(object):
 
     @staticmethod
     def unparameter(string):
+        """Extract string 's' from 'Parameter Value[s]'
+
+        Parameter:
+            string (:obj:`str`): full string
+
+        Return:
+            :obj:`str`: the extracted substring
+        """
         return string.replace('Parameter Value[', '').replace(']', '')
+
 
 class PermissiveFormatter(string.Formatter):
     """A formatter that replace wrong and missing key with a blank."""

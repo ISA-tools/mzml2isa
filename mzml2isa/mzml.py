@@ -1,8 +1,8 @@
 """
 Content
 -----------------------------------------------------------------------------
-This module contains two classes, mzMLmeta and imzMLmeta, which are used 
-to parse and serialize the metadata of a mzML or imzML file into a Python 
+This module contains two classes, mzMLmeta and imzMLmeta, which are used
+to parse and serialize the metadata of a mzML or imzML file into a Python
 dictionary.
 
 Following features are implemented but were commented out:
@@ -77,10 +77,10 @@ class mzMLmeta(object):
     Attributes:
         tree (:obj:`lxml.etree.ElementTree`): the tree object created from
             the mzML file
-        ns (dict): a dictionary containing the xml namespace mapping
+        ns (:obj:`dict`): a dictionary containing the xml namespace mapping
         obo (:obj:`pronto.Ontology`): the ontology object
-        meta (dict): structured dictionary containing extracted metadata
-        env (dict): the `environment variables`, tag names that are not
+        meta (:obj:`dict`): structured dictionary containing extracted metadata
+        env (:obj:`dict`): the `environment variables`, tag names that are not
             standards among different mzML files.
 
     """
@@ -92,7 +92,7 @@ class mzMLmeta(object):
         """Setup the xpaths and terms. Then run the various extraction methods
 
         Parameters:
-            in_file (str): path to mzML file
+            in_file (:obj:`str`): path to mzML file
             ontology (:obj:`pronto.Ontology`): a cached MS ontology
             complete_parse (bool): parse scan-specific metadata
         """
@@ -242,8 +242,8 @@ class mzMLmeta(object):
 
         Parameters:
             elements (:obj:`iterator`): the element containing the cvParam tags
-            location_name (str): Name of the xml location
-            terms (dict): terms that are to be extracted
+            location_name (:obj:`str`): Name of the xml location
+            terms (:obj:`dict`): terms that are to be extracted
         """
         # get associated meta information from each file
 
@@ -338,8 +338,7 @@ class mzMLmeta(object):
         """Try to convert a string to the appropriate type.
 
         Parameters:
-            value (str): the string to convert
-
+            value (:obj:`str`): the string to convert
         """
         try:
             return int(value)
@@ -454,9 +453,8 @@ class mzMLmeta(object):
         """ Get associated software of cv term. Updates the self.meta dictionary
 
         Parameters:
-            soft_ref (str): the reference to the software found in another xml "ref" attribute.
-            name (str): Name of the associated CV term that the software is associated to.
-
+            soft_ref (:obj:`str`): the reference to the software found in another xml "ref" attribute.
+            name (:obj:`str`): Name of the associated CV term that the software is associated to.
         """
 
         elements = pyxpath(self, XPATHS['software_elements'])
@@ -677,7 +675,7 @@ class mzMLmeta(object):
         way, it is useless to know that for each scan).
 
         Parameters:
-            name (str): the entry to de-duplicate
+            name (:obj:`str`): the entry to de-duplicate
         """
 
         if name in self.meta.keys():
@@ -799,10 +797,10 @@ class mzMLmeta(object):
         """Turn YY:XXXXXXX accession number into an url
 
         Parameters:
-            accession (str): a CV term accession
+            accession (:obj:`str`): a CV term accession
 
         Returns:
-            str: an url version of the accession
+            :obj:`str`: an url version of the accession
 
         """
         if accession.startswith('MS'):
@@ -927,7 +925,13 @@ XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{s
 class imzMLmeta(mzMLmeta):
 
     def __init__(self, in_file, ontology=None):
-        # Extract same informations as mzml file
+         """Setup the xpaths and terms. Then run the various extraction methods
+
+        Parameters:
+            in_file (str): path to imzML file
+            ontology (:obj:`pronto.Ontology`): a cached IMS ontology
+            complete_parse (:obj:`bool`): parse scan-specific metadata
+        """
 
         if ontology is None and self.obo is None:
             warnings.simplefilter('ignore')
@@ -983,6 +987,8 @@ class imzMLmeta(mzMLmeta):
         self.urlize()
 
     def link_files(self):
+        """Put 'Raw Spectral Data File' and 'Spectrum Representation' in entry_lists
+        """
 
         try:
             raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file.name))[0]
@@ -1000,13 +1006,18 @@ class imzMLmeta(mzMLmeta):
         self.meta['High-res image'] = {'value': self.find_img('ndpi') }
         self.meta['Low-res image'] =  {'value': self.find_img('jpg', 'tif') }
 
-    def find_img(self, *img_formats):
+    def find_img(self, *args):
+        """Find associated image files in the same directory as imzML files
+
+        Parameters:
+            *args: Image file extensions to look for
+        """
 
         identity = dict()
         sample_name = self.meta['Sample Name']['value']
 
         # First attempt to find image files named exactly like the imzML file
-        for file in (x for x in os.listdir(self.in_dir) if x.lower().endswith(img_formats)):
+        for file in (x for x in os.listdir(self.in_dir) if x.lower().endswith(args)):
             if os.path.splitext(file)[0] == sample_name:
                 return file
 
@@ -1035,7 +1046,8 @@ class imzMLmeta(mzMLmeta):
             return ''
 
     def scan_meta(self):
-        """Extract scan dependant metadata"""
+        """Extract scan dependant metadata
+        """
 
         scan_refs = { x.attrib['ref'] for x in pyxpath(self, XPATHS_I['scan_ref']) }
 

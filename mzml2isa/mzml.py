@@ -925,7 +925,7 @@ XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{s
 class imzMLmeta(mzMLmeta):
 
     def __init__(self, in_file, ontology=None):
-         """Setup the xpaths and terms. Then run the various extraction methods
+        """Setup the xpaths and terms. Then run the various extraction methods
 
         Parameters:
             in_file (str): path to imzML file
@@ -1022,7 +1022,7 @@ class imzMLmeta(mzMLmeta):
                 return file
 
         # If None is found, attempt comparing identity
-        for img_format in img_formats:
+        for img_format in args:
 
             name = self.meta['Sample Name']['value']
 

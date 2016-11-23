@@ -50,9 +50,6 @@ from mzml2isa.versionutils import longest_substring
 
 
 
-
-
-
 def _multiparse(filepath, metalist):
     dirname = os.path.dirname(os.path.realpath(__file__))
     if not any(x in sys.argv for x in ('-h', '--help', '--version')):
@@ -138,8 +135,8 @@ def run():
     p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
     p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='once', required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
+    p.add_argument('-t', dest='template_dir', help='directory containing default template files', action='store', default=None)
     p.add_argument('--version', action='version', version='mzml2isa {}'.format(mzml2isa.__version__))
-
 
 
     if PB_AVAILABLE:
@@ -176,7 +173,7 @@ def run():
                    usermeta if usermeta else None,
                    args.split, args.merge, args.verbose, args.jobs)
 
-def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, merge=False, verbose=False, multip=False):
+def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, merge=False, verbose=False, multip=False, template_directory=None):
     """ Parses every study from *in_dir* and then creates ISA files.
 
     A new folder is created in the out directory bearing the name of
@@ -260,7 +257,7 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
                    ext = i.name.split(os.path.extsep)[-1]
                 else:
                    ext = i.split(os.path.extsep)[-1]
-                
+
                 parser = PARSERS[ext]
                 ont = ONTOLOGIES[ext]
 
@@ -275,7 +272,7 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
                 else:
                     ext = i.split(os.path.extsep)[-1]
 
-                
+
                 parser = PARSERS[ext]
                 ont = ONTOLOGIES[ext]
 
@@ -290,7 +287,8 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
         if metalist:
             if verbose:
                 print("Parsing mzML meta information into ISA-Tab structure")
-            isa_tab_create = isa.ISA_Tab(out_dir, study_identifier, usermeta or {}).write(metalist, ext1, split)
+            isa_tab = isa.ISA_Tab(out_dir, study_identifier, usermeta=usermeta)
+            isa_tab.write(metalist, ext1, split=split, template_directory=None)
 
     else:
         warnings.warn("No files were found in {}.".format(in_dir), UserWarning)

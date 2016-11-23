@@ -42,7 +42,7 @@ class ISA_Tab(object):
             'Study file name', 'Written assays', etc.)
     """
 
-    def __init__(self, out_dir, name, usermeta=None):
+    def __init__(self, out_dir, name, usermeta=None, template_directory=None):
         """Setup the environments and the directories
 
         Parameters:
@@ -51,6 +51,11 @@ class ISA_Tab(object):
             usermeta (:obj:`dict`, optional): a dictionary containing metadata defined
                 by the user, such as "Study Publication" or "Submission Date". Defaults
                 to None.
+            template_directory (:obj:`str`, optional): the path to a directory containing
+                custom ISA-Tab templates. No all templates are required, so if for instance
+                only your "a_imzML.txt" is non-standard, then you only have to have a new
+                "a_imzML.txt" in your custom template directory.
+                Defaults to None. (uses the internal ones, Metabolights-compatible)
         """
 
         # Create one or several study files / one or several study section in investigation
@@ -64,6 +69,7 @@ class ISA_Tab(object):
             'Assay polar file name': 'a_{}_{{}}_metabolite_profiling_mass_spectrometry.txt'.format(name),
             'Assay file name': 'a_{}_metabolite_profiling_mass_spectrometry.txt'.format(name),
             'default_path': os.path.join(dirname, 'default'),
+            'template_path': template_directory or os.path.join(dirname, 'default'),
             'Technology type': [],
             'Measurement type': [],
             'Written assays': [],
@@ -108,7 +114,9 @@ class ISA_Tab(object):
                 of elements in the metalist
         """
 
-        template_a_path = os.path.join(self.isa_env['default_path'], 'a_{}.txt'.format(datatype))
+        template_a_path = os.path.join(self.isa_env['template_path'], 'a_{}.txt'.format(datatype))
+        if not os.path.exists(template_a_path):
+            template_a_path = os.path.join(self.isa_env['template_path'], 'a_{}.txt'.format(datatype))
 
         with open(template_a_path, 'r') as a_in:
             headers, data = [x.strip().replace('"', '').split('\t') for x in a_in.readlines()]
@@ -182,8 +190,10 @@ class ISA_Tab(object):
             metalist (:obj:`list`): a list of mzml or imzml metadata dictionaries
             datatype (:obj:`str`): the datatype of the study (either 'mzML' or 'imzML')
         """
+        template_s_path = os.path.join(self.isa_env['template_path'], 's_{}.txt'.format(datatype))
+        if not os.path.exists(template_s_path):
+            template_s_path = os.path.join(self.isa_env['default_path'], 's_{}.txt'.format(datatype))
 
-        template_s_path = os.path.join(self.isa_env['default_path'], 's_{}.txt'.format(datatype))
         new_s_path = os.path.join(self.isa_env['out_dir'], self.isa_env['Study file name'])
 
         fmt = PermissiveFormatter()
@@ -203,7 +213,10 @@ class ISA_Tab(object):
             metalist (:obj:`list`): a list of mzml or imzml metadata dictionaries
             datatype (:obj:`str`): the datatype of the study (either 'mzML' or 'imzML')
         """
-        investigation_file = os.path.join(self.isa_env['default_path'], 'i_{}.txt'.format(datatype))
+        template_i_path = os.path.join(self.isa_env['template_path'], 'i_{}.txt'.format(datatype))
+        if not os.path.exists(template_i_path):
+            template_i_path = os.path.join(self.isa_env['default_path'], 'i_{}.txt'.format(datatype))
+
         new_i_path = os.path.join(self.isa_env['out_dir'], 'i_Investigation.txt')
 
         meta = metalist[0]
@@ -211,7 +224,7 @@ class ISA_Tab(object):
 
         chained = ChainMap(self.isa_env, meta, self.usermeta)
 
-        with open(investigation_file, 'r') as i_in:
+        with open(template_i_path, 'r') as i_in:
             with open(new_i_path, "w") as i_out:
                 for l in i_in:
 

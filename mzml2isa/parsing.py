@@ -255,7 +255,7 @@ def full_parse(in_dir, out_dir, study_identifier, usermeta=None, split=True, mer
 
 
         # get meta information for all files
-        elif not verbose:
+        elif not verbose and PB_AVAILABLE:
             pbar = pb.ProgressBar(widgets=['Parsing {:8}: '.format(study_identifier),
                                            pb.FormatLabel('%(value)4d'), '/',
                                            '%4d' % len(mzml_files),

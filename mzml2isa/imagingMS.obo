@@ -12,7 +12,6 @@ remark: 091123 Added attributes for imaging laser shot method. Attribute "one wa
 remark: 091207 Added attributes for SIMS experiments
 remark: "subimage positions" parameters added for images which are composed of several subimages!
 remark: creator: Thorsten Schramm <thorsten.schramm@anorg.chemie.uni-giessen.de>
-import: Unit.obo
 import: psi-ms.obo
 
 [Term]
@@ -65,7 +64,7 @@ relationship: part_of IMS:0000000 ! Imaging Mass Spectrometry Ontology
 
 [Term]
 id: IMS:1000009
-name: ibd checksum 
+name: ibd checksum
 def: "Checksum is a form of redundancy check, a simple way to protect the integrity of data by detecting errors in data of the ibd file." [COMPUTIS:IMS]
 relationship: part_of IMS:0000000 ! Imaging Mass Spectrometry Ontology
 

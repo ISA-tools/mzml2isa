@@ -50,7 +50,7 @@ setup(
 
     entry_points = {
         'console_scripts': [
-            'mzml2isa = mzml2isa.parsing:run',
+            'mzml2isa = mzml2isa.__main__:run',
         ],
     },
     license="GPLv3",

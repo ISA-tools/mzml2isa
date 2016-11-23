@@ -22,6 +22,7 @@ License
 -----------------------------------------------------------------------------
 GNU General Public License version 3.0 (GPLv3)
 """
+from __future__ import absolute_import
 
 import collections
 import json
@@ -31,8 +32,9 @@ import warnings
 import itertools
 
 from pronto import Ontology
-from mzml2isa.versionutils import * # the etree is the best importable xml parser
-                                    # among: lxml, xml.etree.cElementTree, xml.etree.ElementTree
+
+from .versionutils import * # the etree is the best importable xml parser
+                            # among: lxml, xml.etree.cElementTree, xml.etree.ElementTree
 
 IDENTITY_THRESHOLD = 0.4
 

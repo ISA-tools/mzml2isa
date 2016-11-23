@@ -15,6 +15,7 @@ License
 -----------------------------------------------------------------------------
 GNU General Public License version 3.0 (GPLv3)
 """
+from __future__ import absolute_import
 
 import string
 import os
@@ -27,7 +28,7 @@ try:
 except ImportError:
     from chainmap import ChainMap
 
-import mzml2isa
+from . import __name__, __version__
 
 
 class ISA_Tab(object):
@@ -78,8 +79,8 @@ class ISA_Tab(object):
 
         }
 
-        self.isa_env['Converter'] = mzml2isa.__name__
-        self.isa_env['Converter version'] = mzml2isa.__version__
+        self.isa_env['Converter'] = __name__
+        self.isa_env['Converter version'] = __version__
 
     def write(self, metalist, datatype, split=True):
         """Generate and write the ISA files

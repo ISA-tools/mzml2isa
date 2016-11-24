@@ -194,7 +194,7 @@ def pyxpath(meta, query):
         This function also formats the xpath query using the *mzMLmeta.env
         dictionnary created by the **mzml.mzMLmeta.build_env** function.
         """
-        return meta.tree.iterfind(query.format_map(meta.env), meta.ns)
+        return meta.tree.iterfind(query.format(**meta.env), meta.ns)
 
 def longest_substring(string1, string2):
     answer = ""

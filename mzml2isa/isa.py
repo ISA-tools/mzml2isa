@@ -22,11 +22,6 @@ import csv
 import sys
 import functools
 
-try:
-    from collections import ChainMap
-except ImportError:
-    from chainmap import ChainMap
-
 from . import (
     __author__,
     __name__,
@@ -36,6 +31,7 @@ from . import (
 from .utils import (
     PermissiveFormatter,
     TEMPLATES_DIR,
+    _ChainMap
 )
 
 
@@ -199,7 +195,7 @@ class ISA_Tab(object):
                 writer.writerow(headers)
 
                 for meta in ( x for x in metalist if x['Scan polarity']['name']==polarity ):
-                    writer.writerow( [ fmt.vformat(x, None, ChainMap(meta, self.usermeta)) for x in data] )
+                    writer.writerow( [ fmt.vformat(x, None, _ChainMap(meta, self.usermeta)) for x in data] )
 
     def create_study(self, metalist, datatype):
         """Write the study file
@@ -222,7 +218,7 @@ class ISA_Tab(object):
         with open(new_s_path, 'w') as s_out:
             s_out.write(headers)
             for meta in metalist:
-                s_out.write(fmt.vformat(data, None, ChainMap(meta, self.usermeta)))
+                s_out.write(fmt.vformat(data, None, _ChainMap(meta, self.usermeta)))
 
     def create_investigation(self, metalist, datatype):
         """Write the investigation file
@@ -240,7 +236,7 @@ class ISA_Tab(object):
         meta = metalist[0]
         fmt = PermissiveFormatter()
 
-        chained = ChainMap(self.isa_env, meta, self.usermeta)
+        chained = _ChainMap(self.isa_env, meta, self.usermeta)
 
         with open(template_i_path, 'r') as i_in:
             with open(new_i_path, "w") as i_out:

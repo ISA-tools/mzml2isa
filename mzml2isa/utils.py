@@ -3,7 +3,7 @@ Content
 -----------------------------------------------------------------------------
 This module includes some tricks for switching the behaviour of the script
 depending on the Python version, while keeping a proper API in the core of
-the other modules.
+the other modules, as well as miscellaneous class and function definitions.
 
 About
 -----------------------------------------------------------------------------
@@ -28,6 +28,7 @@ import functools
 import string
 import warnings
 import pronto
+import itertools
 
 from . import (
     __author__,
@@ -109,6 +110,31 @@ class _TarFile(tarfile.TarFile):
         if attr=="name":
             return self.name
         return getattr(self.BufferedReader, attr)
+
+class _ChainMap(collections.Mapping):
+    """A quick backport of collections.ChainMap
+    """
+
+    def __init__(self, *maps):
+        self.maps = list(maps)
+
+    def __getitem__(self, key):
+        for mapping in self.maps:
+            try:
+                return mapping[key]
+            except KeyError:
+                pass
+        return self.__missing__(key)
+
+    @staticmethod
+    def __missing__(key):
+        raise KeyError(key)
+
+    def __iter__(self):
+        return itertools.chain(*self.mappings)
+
+    def __len__(self):
+        return sum(len(x) for x in self.mappings)
 
 def merge_spectra(metalist):
     """Merge centroid and spectrum metadata of a same sample

@@ -14747,7 +14747,7 @@ relationship: has_units UO:0000218 ! volt
 
 [Term]
 id: MS:1002274
-name: SQ Detector 2	
+name: SQ Detector 2
 def: "Waters quadrupole based SQ Detector 2." [PSI:MS]
 is_a: MS:1000126 ! Waters instrument model
 
@@ -16369,7 +16369,7 @@ is_a: MS:1002363 ! search engine specific score for proteins
 
 [Term]
 id: MS:1002513
-name: molecules per cell 
+name: molecules per cell
 def: "The absolute abundance of protein in a cell." [PSI:PI]
 xref: value-type:xsd\:double "The allowed value-type for this CV term."
 is_a: MS:1001805 ! quantification datatype
@@ -16594,7 +16594,7 @@ relationship: has_order MS:1002108 ! higher score better
 
 [Term]
 id: MS:1002546
-name: Skyline mzQuantML converter 
+name: Skyline mzQuantML converter
 def: "A software package to convert Skyline report to mzQuantML." [PSI:PI, http://code.google.com/p/srm-mzquantml-convertor/]
 is_a: MS:1001139 ! quantitation software name
 is_a: MS:1001456 ! analysis software
@@ -16608,7 +16608,7 @@ is_a: MS:1001805 ! quantification datatype
 [Term]
 id: MS:1002548
 name: distributed normalized spectral abundance factor
-def: "A distributed normalized spectral abundance factor (dNSAF." [DOI:10.1021/ac9023999, PMID:20166708] 
+def: "A distributed normalized spectral abundance factor (dNSAF." [DOI:10.1021/ac9023999, PMID:20166708]
 is_a: MS:1001805 ! quantification datatype
 
 [Term]

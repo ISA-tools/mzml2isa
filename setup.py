@@ -1,31 +1,15 @@
 #!/usr/bin/env python
 # released under the GNU General Public License version 3.0 (GPLv3)
 
-from setuptools import setup, find_packages
+import setuptools
 import sys
-
 import mzml2isa
 
-if sys.platform.startswith('win'):
-    # Windows
-    if sys.version_info[0]==3:
-        install_requires = open('requirements-win.txt').read().splitlines()
-    else:
-        install_requires = open('requirements-py2-win.txt').read().splitlines(),
-else:
-    # Linux Mac
-    if sys.version_info[0]==3:
-        install_requires = open('requirements.txt').read().splitlines()
-    else:
-        install_requires = open('requirements-py2.txt').read().splitlines(),
-
-
-## SETUPTOOLS VERSION
-setup(
+setuptools.setup(
     name='mzml2isa',
     version=mzml2isa.__version__,
 
-    packages=find_packages(),
+    packages=setuptools.find_packages(),
 
     py_modules=['mzml2isa'],
 
@@ -35,13 +19,13 @@ setup(
     description="mzml2isa - mzML to ISA-tab parsing tool",
     long_description=open('README.rst').read(),
 
-    install_requires=install_requires,
+    install_requires=open('requirements.txt').read().splitlines(),
 
-    extras_require={ 'pb': ['progressbar2'] },
+    extras_require={ 'pb': ['progressbar2'], 'lxml': ['lxml'] },
 
     include_package_data=True,
 
-    url='http://www.biosciences.bham.ac.uk/labs/viant/',
+    url='https://github.com/ISA-tools/mzml2isa',
 
     classifiers=[
     "Programming Language :: Python :: 2",
@@ -58,7 +42,7 @@ setup(
 
     entry_points = {
         'console_scripts': [
-            'mzml2isa = mzml2isa.parsing:run',
+            'mzml2isa = mzml2isa.parsing:main',
         ],
     },
     license="GPLv3",

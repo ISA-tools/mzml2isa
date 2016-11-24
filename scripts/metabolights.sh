@@ -38,7 +38,7 @@ while read study; do
 		echo "Study ${study} was already generated."
 	else
 		## Run mzml2isa parser
-		mzml2isa -i example_files/metabolights/$study -o out_folder/metabolights -s $study
+		mzml2isa -i example_files/metabolights/$study -o out_folder/metabolights -s $study -W ignore
 
 		[ ! $? -eq 0 ] && exit 1 
 

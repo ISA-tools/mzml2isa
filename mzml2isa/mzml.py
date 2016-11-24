@@ -1,8 +1,9 @@
 """
 Content
 -----------------------------------------------------------------------------
-This module contains a single class, mzMLmeta, which is used to parse and
-serialize an mzML file into a Python dictionnary.
+This module contains two classes, mzMLmeta and imzMLmeta, which are used
+to parse and serialize the metadata of a mzML or imzML file into a Python
+dictionary.
 
 Following features are implemented but were commented out:
 - retrieval of sofware version number
@@ -14,23 +15,38 @@ About
 -----------------------------------------------------------------------------
 The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
 as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and small enhancements were carried out by Martin Larralde (ENS Cachan,
-France) in June 2016 during an internship at the EBI Cambridge.
+port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+in June 2016 during an internship at the EBI Cambridge.
 
 License
 -----------------------------------------------------------------------------
 GNU General Public License version 3.0 (GPLv3)
 """
+from __future__ import absolute_import
 
 import collections
 import json
 import os
 import glob
+import six
+import sys
 import warnings
 import itertools
+import pronto
 
-from pronto import Ontology
-from mzml2isa.versionutils import *
+from . import (
+    __author__,
+    __name__,
+    __version__,
+    __license__,
+)
+from .utils import (
+    etree, # best in: lxml, xml.etree.cElementTree, xml.etree.ElementTree
+    pyxpath,
+    longest_substring,
+    get_parent,
+    get_ontology
+)
 
 
 IDENTITY_THRESHOLD = 0.4
@@ -74,10 +90,10 @@ class mzMLmeta(object):
     as name.
 
     Attributes:
-        tree (:obj:`lxml.etree.ElementTree`): the tree object created from
+        tree (lxml.etree.ElementTree): the tree object created from
             the mzML file
         ns (dict): a dictionary containing the xml namespace mapping
-        obo (:obj:`pronto.Ontology`): the ontology object
+        obo (pronto.Ontology): the ontology object
         meta (dict): structured dictionary containing extracted metadata
         env (dict): the `environment variables`, tag names that are not
             standards among different mzML files.
@@ -91,19 +107,13 @@ class mzMLmeta(object):
         """Setup the xpaths and terms. Then run the various extraction methods
 
         Parameters:
-            in_file (str): path to mzML file
+            in_file (:obj:`str`): path to mzML file
             ontology (:obj:`pronto.Ontology`): a cached MS ontology
             complete_parse (bool): parse scan-specific metadata
         """
 
         if ontology is None and self.obo is None:
-            warnings.simplefilter('ignore')
-            try:
-                self.obo = Ontology('https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo', False)
-            except:
-                self.obo = Ontology(os.path.join(
-                                   os.path.dirname(os.path.realpath(__file__)),
-                                  "psi-ms.obo"), False)
+            self.obo = get_ontology('MS')
         elif self.obo is None:
             self.obo = ontology
 
@@ -130,11 +140,11 @@ class mzMLmeta(object):
         # We create a dictionary that contains "search parameters" that we use to parse the xml location from the xpaths
         # above
         #
-        # name: [string], What the CV will be saved as
-        # plus1: [Boolean], If there are multiple of this CV
-        # value: [Boolean], if there is an associated value with this CV
-        # soft: [Boolean], If there is associated software CV associated with this CV
-        # attribute: [Boolean], if the CV is an attribute then has to be handled differently
+        # name (str):  The key the CV will be saved as in self.metaa
+        # plus1 (bool): True if there are multiple of this CV
+        # value (bool): True if there is an associated value with this CV
+        # soft (bool):  True if there is associated software CV associated with this CV
+        # attribute (bool): True if the CV is an attribute to handle differently
         terms = collections.OrderedDict()
         terms['file_content'] = {
                 'MS:1000524': {'attribute': False, 'name': 'Data file content', 'plus1': True, 'value':False, 'soft': False},
@@ -185,29 +195,18 @@ class mzMLmeta(object):
 
         # The instrument information has to be extracted separately
         self.instrument()
-
-        #
         self.polarity()
-
-        #
         self.timerange()
-
-        #
         self.mzrange()
-
-        #
         self.scan_num()
-
-        #
         self.derived()
 
-        #
         if complete_parse:
             self.spectrum_meta()
         elif not 'Data file content' in self.meta:
             self.data_file_content()
 
-        #
+        # Render control vocabularies accession numbers as urls
         self.urlize()
 
         #self.meta['Data Transformation Name'] = self.meta['Data Transformation']
@@ -218,7 +217,7 @@ class mzMLmeta(object):
 
         Updates the self.meta dictionary with the relevant meta information
 
-        Parameters:
+        Arguments:
             terms (dict): The CV and search parameters required at the xml locations
             xpath (dict): the xpath locations to search
 
@@ -227,8 +226,7 @@ class mzMLmeta(object):
         """
 
         # loop though the xpaths
-        for location_name, xpath in iterdict(xpaths):
-
+        for location_name, xpath in six.iteritems(xpaths):
 
             # get the elements from the xpath
             elements = pyxpath(self, xpath)
@@ -239,33 +237,18 @@ class mzMLmeta(object):
     def cvParam_loop(self, elements, location_name, terms):
         """Loop through the elements and eventually update the self.meta dict.
 
-        Parameters:
-            elements (:obj:`iterator`): the element containing the cvParam tags
-            location_name (str): Name of the xml location
-            terms (dict): terms that are to be extracted
+        Arguments:
+            elements (iterator): the element containing the cvParam tags
+            location_name (:obj:`str`): Name of the xml location
+            terms (:obj:`dict`): terms that are to be extracted
         """
-        # get associated meta information from each file
-
-        #descendents = {}
-
-        #for k in terms[location_name]:
-        #    if not k in self._descendents:
-        #        self._descendents[k] = self.obo[k].rchildren().id
-        #    descendents[k] = self._obo_memo[k]
-
+        # memoize the descendents of the current term
         self._descendents.update({k:self.obo[k].rchildren().id for k in terms[location_name] if not k in self._descendents})
-
-        #descendents = {k: self.obo[k].rchildren().id for k in terms[location_name]}
-
-        #c = 0
-
-        #if elements is None:
-        #    return
 
         # go through every cvParam element
         for e in elements:
             # go through the terms available for this location
-            for accession, info in iterdict(terms[location_name]):
+            for accession, info in six.iteritems(terms[location_name]):
 
                 # check if the element is one of the terms we are looking for
                 if e.attrib['accession'] in self._descendents[accession] or e.attrib['accession']==accession:
@@ -273,14 +256,13 @@ class mzMLmeta(object):
                     meta_name = info['name']
 
                     # Check if there can be more than one of the same term
-                    if(info['plus1']):
+                    if info['plus1']:
                         # Setup the dictionary for multiple entries
                         if not meta_name in self.meta:
                             self.meta[meta_name] = {'entry_list': []}
 
                         self.meta[meta_name]['entry_list'].append( {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']} )
 
-                        #if 'unitName' in e.attrib:
                         try:
                             self.meta[meta_name]['entry_list'][-1]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
                                                                               'accession': e.attrib['unitAccession']}
@@ -299,13 +281,9 @@ class mzMLmeta(object):
                         #c += 1
                     else:
 
-                        #if 'name' in info.keys():
-
                         # Standard CV with only with entry
                         self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']}
 
-
-                        #if 'unitName' in e.attrib:
                         try:
                             self.meta[meta_name]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
                                                             'accession': e.attrib['unitAccession']}
@@ -313,7 +291,7 @@ class mzMLmeta(object):
                             pass
 
                         # Check if value associated
-                        if (info['value']):
+                        if info['value']:
                             self.meta[meta_name]['value'] = self._convert(e.attrib['value'])
                             # remove name and accession if only the value is interesting
 
@@ -323,12 +301,12 @@ class mzMLmeta(object):
 
 
                     # Check if there is expected associated software
-                    if (info['soft']):
+                    if info['soft']:
 
-                        try: # softwareRef in <Processing Method>
-                            soft_ref = getparent(e, self.tree).attrib['softwareRef']
+                        try:             # softwareRef in <Processing Method>
+                            soft_ref = get_parent(e, self.tree).attrib['softwareRef']
                         except KeyError: # softwareRef in <DataProcessing>
-                            soft_ref = getparent(getparent(e, self.tree), self.tree).attrib['softwareRef']
+                            soft_ref = get_parent(get_parent(e, self.tree), self.tree).attrib['softwareRef']
 
                         self.software(soft_ref, meta_name)
 
@@ -336,9 +314,13 @@ class mzMLmeta(object):
     def _convert(value):
         """Try to convert a string to the appropriate type.
 
-        Parameters:
+        Arguments:
             value (str): the string to convert
 
+        Returns:
+            int: if the value can be converted to int
+            float: if the value can be converted to float
+            str: if the value could not be converted
         """
         try:
             return int(value)
@@ -376,8 +358,7 @@ class mzMLmeta(object):
 
                         if ie.attrib['name'] != self.obo[ie.attrib['accession']].name:
                             warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(ie.attrib['name']),
-                                                   "does not correspond to the instrument accession ({})".format(self.obo[ie.attrib['accession']].name)]),
-                                          UserWarning)
+                                                   "does not correspond to the instrument accession ({})".format(self.obo[ie.attrib['accession']].name)]))
                             self.meta['Instrument']['name'] = self.obo[ie.attrib['accession']].name
 
                         # get manufacturer (actually just derived from instrument model). Want to get the top level
@@ -415,15 +396,13 @@ class mzMLmeta(object):
             if e.attrib['accession'] == 'MS:1000031':
                 break
 
-
             elif e.attrib['accession'] in self.obo['MS:1000031'].rchildren():
                 self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name'],
                                            'ref':e.attrib['cvRef']}
 
                 if e.attrib['name'] != self.obo[e.attrib['accession']].name:
                     warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(e.attrib['name']),
-                                           "does not correspond to the instrument accession ({})".format(self.obo[e.attrib['accession']].name)]),
-                                  UserWarning)
+                                           "does not correspond to the instrument accession ({})".format(self.obo[e.attrib['accession']].name)]))
                     self.meta['Instrument']['name'] = self.obo[e.attrib['accession']].name
 
                 parents = self.obo[e.attrib['accession']].rparents()
@@ -446,16 +425,14 @@ class mzMLmeta(object):
                                                                                 if 'Instrument' in self.meta
                                                                                 else "<"+self.meta['Instrument serial number']+">"
                                                                                 if 'Instrument serial number' in self.meta
-                                                                                else '?'),
-                           UserWarning)
+                                                                                else '?'))
 
     def software(self, soft_ref, name):
         """ Get associated software of cv term. Updates the self.meta dictionary
 
         Parameters:
-            soft_ref (str): the reference to the software found in another xml "ref" attribute.
-            name (str): Name of the associated CV term that the software is associated to.
-
+            soft_ref (:obj:`str`): the reference to the software found in another xml "ref" attribute.
+            name (:obj:`str`): Name of the associated CV term that the software is associated to.
         """
 
         elements = pyxpath(self, XPATHS['software_elements'])
@@ -495,17 +472,14 @@ class mzMLmeta(object):
         cv = next(pyxpath(self, XPATHS['cv'])).attrib[self.env["cvLabel"]]
 
         if not 'MS' in cv:
-            warnings.warn("Standard controlled vocab not available. Can not parse.", UserWarning)
+            warnings.warn("Standard controlled vocab not available. Cannot parse.")
             return
-        #else:
-        #    self.meta['term_source'] = {'value': 'MS'}
-
 
         try:
             raw_file = next(pyxpath(self, XPATHS['raw_file'])).attrib[self.env["filename"]]
             self.meta['Raw Spectral Data File'] = {'entry_list': [{'value': os.path.basename(raw_file)}] }
         except StopIteration:
-            warnings.warn("Could not find any metadata about Raw Spectral Data File", UserWarning)
+            warnings.warn("Could not find any metadata about Raw Spectral Data File.")
 
         try:
             derived_spectral_data_file = os.path.basename(self.in_file.name)
@@ -544,9 +518,8 @@ class mzMLmeta(object):
         self.meta['Scan polarity'] = polarity
 
     def _make_params(self):
-        """Create a memoized set of xml Elements in `ReferenceableParamGroupList`"""
-
-
+        """Create a memoized set of xml Elements in `ReferenceableParamGroupList`
+        """
         self._params = {x.attrib['id']:x for x in pyxpath(self,
         '{root}/s:referenceableParamGroupList/s:referenceableParamGroup')}
 
@@ -652,8 +625,6 @@ class mzMLmeta(object):
                     params = self._params[ref.attrib['ref']]
                     self.cvParam_loop(params.iterfind('s:cvParam', self.ns), name, terms)
 
-
-
             self.cvParam_loop(spectrum.iterfind('s:cvParam', self.ns), 'sp', terms)
             self.cvParam_loop(spectrum.iterfind('{scanList}/s:cvParam'.format(**self.env), self.ns), 'combination', terms)
             self.cvParam_loop(spectrum.iterfind('{scanList}/s:scan/s:cvParam'.format(**self.env), self.ns), 'configuration', terms)
@@ -675,8 +646,17 @@ class mzMLmeta(object):
         information (for instance, when all binary data is compressed the same
         way, it is useless to know that for each scan).
 
-        Parameters:
+        Arguments:
             name (str): the entry to de-duplicate
+
+        Returns:
+            list: the list of the list with deduplicated arguments
+
+        .. note::
+
+            Using an OrderedSet to deduplicate while preserving order may be a
+            good idea (see http://code.activestate.com/recipes/576694/) for actual
+            implementation
         """
 
         if name in self.meta.keys():
@@ -684,19 +664,12 @@ class mzMLmeta(object):
                 seen = set()
                 return [x for x in self.meta[name]['entry_list'] if str(x) not in seen and not seen.add(str(x))]
 
-
-                #return [next(g) for k,g in itertools.groupby(self.meta[name]['entry_list'], lambda x: x['name'])]
-
-                #self.meta[name]['entry_list'] = [i for n, i in enumerate(self.meta[name]['entry_list'])
-                #                                   if i not in self.meta[name]['entry_list'][n + 1:]]
-
     def timerange(self):
         """Try to extract the Time range of all the scans.
 
         Time range consists in the smallest and largest time the successive scans
         were started. The unit (most of the time `minute`) will be extracted as well
         if possible.
-
         """
 
         try:
@@ -712,7 +685,7 @@ class mzMLmeta(object):
 
         except ValueError:
             # THIS IS NOT SOMETHING TO BE WARNED ABOUT
-            # warnings.warn("Could not find any time range.", UserWarning)
+            # warnings.warn("Could not find any time range.")
             timerange = ''
 
         if timerange:
@@ -744,11 +717,11 @@ class mzMLmeta(object):
 
             minmz = str(int(min(minmz_l)))
             maxmz = str(int(max(maxmz_l)))
-            mzrange = minmz + "-" + maxmz
+            mzrange = '-'.join([minmz, maxmz])
 
         except ValueError: #Case with windowed target
             if not isinstance(self, imzMLmeta): #Warn only if parsing a mzML file
-                warnings.warn("Could not find any m/z range.", UserWarning)
+                warnings.warn("Could not find any m/z range.")
             mzrange = ''
 
         if mzrange:
@@ -771,21 +744,17 @@ class mzMLmeta(object):
             except KeyError:
                 pass
 
-            #if 'unit' in self.meta[meta_name]:
             try:
                 self.meta[meta_name]['unit']['accession'] = self._urlize_name(self.meta[meta_name]['unit']['accession'])
             except KeyError:
                 pass
 
-            #elif 'entry_list' in self.meta[meta_name]:
             try:
                 for index, entry in enumerate(self.meta[meta_name]['entry_list']):
-                    #if 'accession' in entry:
                     try:
                         self.meta[meta_name]['entry_list'][index]['accession'] = self._urlize_name(entry['accession'])
                     except KeyError:
                         pass
-                    #if 'unit' in entry:
                     try:
                         self.meta[meta_name]['entry_list'][index]['unit']['accession'] = self._urlize_name(entry['unit']['accession'])
                     except KeyError:
@@ -889,10 +858,14 @@ class mzMLmeta(object):
 
     @property
     def meta_json(self):
+        """Returns the metadata dictionary in json format
+        """
         return json.dumps(self.meta, indent=4, sort_keys=True)
 
     @property
     def meta_isa(self):
+        """Returns the metadata dictionary with actual ISA headers
+        """
         keep = ["Data Transformation", "Data Transformation software version", "Data Transformation software",
                 "term_source", "Raw Spectral Data File", "MS Assay Name", "Derived Spectral Data File", "Sample Name"]
 
@@ -902,7 +875,7 @@ class mzMLmeta(object):
             if meta_name in keep:
                 meta_isa[meta_name] = self.meta[meta_name]
             else:
-                meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]
+                meta_isa["Parameter Value[{}]".format(meta_name)] = self.meta[meta_name]
 
         return meta_isa
 
@@ -926,20 +899,19 @@ XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{s
 class imzMLmeta(mzMLmeta):
 
     def __init__(self, in_file, ontology=None):
-        # Extract same informations as mzml file
+        """Setup the xpaths and terms. Then run the various extraction methods
 
-        if ontology is None:
-            warnings.simplefilter('ignore')
-            dirname = os.path.dirname(os.path.realpath(__file__))
-            obo_path = os.path.join(dirname, "imagingMS.obo")
-            for _ in range(10):
-                self.obo = Ontology(obo_path, True, import_depth=1)
-                if 'IMS:1001212' in self.obo: break
-        else:
+        Parameters:
+            in_file (str): path to imzML file
+            ontology (pronto.Ontology): a cached IMS ontology
+        """
+
+        if ontology is None and self.obo is None:
+            self.obo = get_ontology('IMS')
+        elif self.obo is None:
             self.obo = ontology
 
-        super(imzMLmeta, self).__init__(in_file, self.obo)
-
+        super(imzMLmeta, self).__init__(in_file)
 
         xpaths_meta = XPATHS_I_META
 
@@ -980,6 +952,8 @@ class imzMLmeta(mzMLmeta):
         self.urlize()
 
     def link_files(self):
+        """Put 'Raw Spectral Data File' and 'Spectrum Representation' in entry_lists
+        """
 
         try:
             raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file.name))[0]
@@ -997,18 +971,26 @@ class imzMLmeta(mzMLmeta):
         self.meta['High-res image'] = {'value': self.find_img('ndpi') }
         self.meta['Low-res image'] =  {'value': self.find_img('jpg', 'tif') }
 
-    def find_img(self, *img_formats):
+    def find_img(self, *args):
+        """Find associated image files in the same directory as imzML files
+
+        Arguments:
+            *args: Image file extensions to look for
+
+        Returns:
+            str: the image file corresponding to the asked extensions
+        """
 
         identity = dict()
         sample_name = self.meta['Sample Name']['value']
 
         # First attempt to find image files named exactly like the imzML file
-        for file in (x for x in os.listdir(self.in_dir) if x.lower().endswith(img_formats)):
+        for file in (x for x in os.listdir(self.in_dir) if x.lower().endswith(args)):
             if os.path.splitext(file)[0] == sample_name:
                 return file
 
         # If None is found, attempt comparing identity
-        for img_format in img_formats:
+        for img_format in args:
 
             name = self.meta['Sample Name']['value']
 
@@ -1032,7 +1014,8 @@ class imzMLmeta(mzMLmeta):
             return ''
 
     def scan_meta(self):
-        """Extract scan dependant metadata"""
+        """Extract scan dependant metadata
+        """
 
         scan_refs = { x.attrib['ref'] for x in pyxpath(self, XPATHS_I['scan_ref']) }
 
@@ -1044,7 +1027,7 @@ class imzMLmeta(mzMLmeta):
         }
 
         if len(scan_refs) != 1:
-            warnings.warn("File contains scans using different parameter values, parsed metadata may be wrong.", UserWarning)
+            warnings.warn("File contains scans using different parameter values, parsed metadata may be wrong.")
 
         for ref in scan_refs:
 
@@ -1057,8 +1040,6 @@ class imzMLmeta(mzMLmeta):
 
 
 if __name__ == '__main__':
-
-    import sys
 
     if sys.argv[-1].endswith('.imzML'):
         print(imzMLmeta(sys.argv[-1]).meta_json)

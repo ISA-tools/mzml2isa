@@ -144,7 +144,40 @@ def convert(in_path, out_path, study_identifier, **kwargs):
                 )
              pbar.start()
         else:
-            pbar = None
+            ext1 = mzml_files[0].split(os.path.extsep)[-1]
+
+        if multip:
+            jobs = []
+
+            for i in mzml_files:
+                p = Process(target=_multiparse, args=(i, metalist))
+                jobs.append(p)
+                p.start()
+
+            for proc in jobs:
+                proc.join()
+
+
+
+        # get meta information for all files
+        elif not verbose and PB_AVAILABLE:
+            pbar = pb.ProgressBar(widgets=['Parsing {:8}: '.format(study_identifier),
+                                           pb.FormatLabel('%(value)4d'), '/',
+                                           '%4d' % len(mzml_files),
+                                           pb.Bar(marker=MARKER, left=" |", right="| "),
+                                           pb.ETA()])
+
+            for i in pbar(mzml_files):
+
+                if compr:
+                   ext = i.name.split(os.path.extsep)[-1]
+                else:
+                   ext = i.split(os.path.extsep)[-1]
+
+                parser = PARSERS[ext]
+                ont = ONTOLOGIES[ext]
+
+                metalist.append(parser(i, ont).meta)
 
         if jobs > 1:
             pool = multiprocessing.pool.ThreadPool(jobs)

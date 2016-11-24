@@ -370,7 +370,6 @@ class UserMetaLoader(object):
             else:
                 header = row[0].value
                 value = [x.value if x.value is not None else '' for x in row[1:]]
-                print(value)
 
             # Skip line if comment or empty headers
             if header is None or header.startswith("#") or not value:

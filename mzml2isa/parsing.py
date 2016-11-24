@@ -117,7 +117,7 @@ def convert(in_path, out_path, study_identifier, **kwargs):
     PARSERS = {'mzML': mzMLmeta, 'imzML': imzMLmeta}
     ONTOLOGIES = {'mzML': get_ontology('MS'), 'imzML': get_ontology('IMS')}
 
-    # open
+    # open user metadata file if any
     meta_loader = UserMetaLoader(kwargs.get('usermeta', None))
 
     # get mzML file in the example_files folder
@@ -138,49 +138,16 @@ def convert(in_path, out_path, study_identifier, **kwargs):
         parser = PARSERS[extension]
 
         if not verbose and progressbar is not None:
-             pbar = progressbar.ProgressBar(
+            pbar = progressbar.ProgressBar(
                 min_value = 0, max_value = len(mzml_files),
                 widgets=['Parsing {:8}: '.format(study_identifier),
                            progressbar.SimpleProgress(),
                            progressbar.Bar(marker=["#","█"][six.PY3], left=" |", right="| "),
                            progressbar.ETA()]
                 )
-             pbar.start()
+            pbar.start()
         else:
-            ext1 = mzml_files[0].split(os.path.extsep)[-1]
-
-        if multip:
-            jobs = []
-
-            for i in mzml_files:
-                p = Process(target=_multiparse, args=(i, metalist))
-                jobs.append(p)
-                p.start()
-
-            for proc in jobs:
-                proc.join()
-
-
-
-        # get meta information for all files
-        elif not verbose and PB_AVAILABLE:
-            pbar = pb.ProgressBar(widgets=['Parsing {:8}: '.format(study_identifier),
-                                           pb.FormatLabel('%(value)4d'), '/',
-                                           '%4d' % len(mzml_files),
-                                           pb.Bar(marker=MARKER, left=" |", right="| "),
-                                           pb.ETA()])
-
-            for i in pbar(mzml_files):
-
-                if compr:
-                   ext = i.name.split(os.path.extsep)[-1]
-                else:
-                   ext = i.split(os.path.extsep)[-1]
-
-                parser = PARSERS[ext]
-                ont = ONTOLOGIES[ext]
-
-                metalist.append(parser(i, ont).meta)
+            pbar = None
 
         if jobs > 1:
             pool = multiprocessing.pool.ThreadPool(jobs)

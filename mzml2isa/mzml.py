@@ -43,6 +43,7 @@ from . import (
 from .utils import (
     etree, # best in: lxml, xml.etree.cElementTree, xml.etree.ElementTree
     pyxpath,
+    longest_substring,
     get_parent,
     get_ontology
 )

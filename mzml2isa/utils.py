@@ -276,3 +276,5 @@ def get_ontology(name):
         raise ValueError("Unknow ontology to import: {}".format(name))
 
     return obo
+
+

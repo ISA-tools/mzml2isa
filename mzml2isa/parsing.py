@@ -79,7 +79,7 @@ def _parse_file(filepath, ontology, parser, pbar=None):
         print("Finished parsing: {}".format(filepath))
     return meta
 
-def parse(in_path, out_path, study_identifier, **kwargs):
+def convert(in_path, out_path, study_identifier, **kwargs):
     """ Parses a study from given *in_path* and then creates an ISA file.
 
     A new folder is created in the out directory bearing the name of
@@ -105,7 +105,6 @@ def parse(in_path, out_path, study_identifier, **kwargs):
             [default: None]
         verbose (bool): display more output [default: True]
     """
-    usermeta = kwargs.get('usermeta', None)
     split = kwargs.get('split', True)
     merge = kwargs.get('merge', False)
     verbose = kwargs.get('verbose', True)
@@ -114,6 +113,9 @@ def parse(in_path, out_path, study_identifier, **kwargs):
 
     PARSERS = {'mzML': mzMLmeta, 'imzML': imzMLmeta}
     ONTOLOGIES = {'mzML': get_ontology('MS'), 'imzML': get_ontology('IMS')}
+
+    # open
+    usermeta = UserMetaLoader(kwargs.get('usermeta', None))
 
     # get mzML file in the example_files folder
     if os.path.isdir(in_path):
@@ -192,18 +194,6 @@ def main(argv=None):
 
     args = p.parse_args(argv or sys.argv[1:])
 
-    if args.usermeta is not None:
-        try:
-            if os.path.isfile(args.usermeta):
-                with open(args.usermeta) as f:
-                    usermeta = json.load(f)
-            else:
-                usermeta = json.loads(args.usermeta)
-        except json.decoder.JSONDecodeError:
-            usermeta = None
-            warnings.warn("Usermeta could not be parsed.")
-    else:
-        usermeta = None
 
     if not progressbar:
         setattr(args, 'verbose', True)
@@ -215,8 +205,8 @@ def main(argv=None):
 
     with warnings.catch_warnings():
         warnings.filterwarnings(args.wrng_ctrl)
-        parse(args.in_path, args.out_path, args.study_id,
-           usermeta=usermeta, split=args.split,
+        convert(args.in_path, args.out_path, args.study_id,
+           usermeta=args.usermeta, split=args.split,
            merge=args.merge, verbose=args.verbose,
            jobs=args.jobs, template_directory=args.template_dir
         )

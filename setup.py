@@ -29,11 +29,11 @@ setup(
 
     install_requires=install_requires,
 
-    extras_require={ 'pb': ['progressbar2'] },
+    extras_require={ 'pb': ['progressbar2'], 'lxml': ['lxml'] },
 
     include_package_data=True,
 
-    url='http://www.biosciences.bham.ac.uk/labs/viant/',
+    url='https://github.com/ISA-tools/mzml2isa',
 
     classifiers=[
     "Programming Language :: Python :: 2",
@@ -50,7 +50,7 @@ setup(
 
     entry_points = {
         'console_scripts': [
-            'mzml2isa = mzml2isa.__main__:run',
+            'mzml2isa = mzml2isa.parsing:main',
         ],
     },
     license="GPLv3",

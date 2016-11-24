@@ -3,8 +3,8 @@
 Content
 -----------------------------------------------------------------------------
 This module exposes basic API of mzml2isa, either being called from command
-line interface with arguments parsing via **run** function, or from another
-Python program via the **full_parse** function which works the same.
+line interface with arguments parsing via **main** function, or from another
+Python program via the **fparse** function which works the same.
 
 About
 -----------------------------------------------------------------------------
@@ -22,6 +22,7 @@ from __future__ import absolute_import
 import io
 import os
 import sys
+import six
 import glob
 import argparse
 import textwrap
@@ -38,16 +39,39 @@ try:
 except ImportError:
     progressbar = None
 
-MARKER = "#" if sys.version_info[0]==2 else "█"
+from . import (
+    __author__,
+    __version__,
+    __name__,
+    __license__,
+)
+from .isa   import ISA_Tab
+from .mzml  import mzMLmeta, imzMLmeta
+from .utils import (
+    longest_substring,
+    merge_spectra,
+    compr_extract,
+    star_args,
+    get_ontology,
+)
 
-from . import isa
-from . import mzml
-from .versionutils import longest_substring
 
+@star_args
+def _parse_file(filepath, ontology, parser, pbar=None):
+    """Parse a single file using a cache ontology and a metadata extractor
 
+    Arguments:
+        filepath (str): path to the mzml/imzml file to parse
+        ontology (pronto.Ontology): the cached ontology to use
+            (either IMS or MS)
+        parser (mzml.mzMLmeta): the parser to use on the file
+            (either mzml2isa.mzml.mzMLmeta or mzml2isa.mzml.imzMLmeta)
+        pbar (progressbar.ProgressBar, optional): a progressbar
+            to display progresses onto [default: None]
 
-def _parse(args):
-    filepath, ontology, parser, pbar = args
+    Returns:
+        dict: a dictionary containing the extracted metadata
+    """
     meta = parser(filepath, ontology).meta
     if pbar is not None:
         pbar.update(pbar.value + 1)
@@ -55,46 +79,17 @@ def _parse(args):
         print("Finished parsing: {}".format(filepath))
     return meta
 
-def merge_spectra(metalist):
-
-    profiles = [m for m in metalist \
-        if m['Spectrum representation']['entry_list'][0]['name']=='profile spectrum']
-    centroid = [m for m in metalist \
-        if m['Spectrum representation']['entry_list'][0]['name']=='centroid spectrum']
-
-    profiles.sort(key=lambda x: x['Sample Name']['value'])
-    centroid.sort(key=lambda x: x['Sample Name']['value'])
-
-    if len(profiles)!=len(centroid):
-        return metalist
-
-    for p,c in zip(profiles, centroid):
-        p['Derived Spectral Data File']['entry_list'].extend(
-            c['Derived Spectral Data File']['entry_list']
-        )
-        p['Raw Spectral Data File']['entry_list'].extend(
-            c['Raw Spectral Data File']['entry_list']
-        )
-        p['Spectrum representation']['entry_list'].extend(
-            c['Spectrum representation']['entry_list']
-        )
-        p['Sample Name']['value'] = longest_substring(
-            p['Sample Name']['value'],c['Sample Name']['value']
-        ).strip('-_;:() \n\t')
-        p['MS Assay Name']['value'] = p['Sample Name']['value']
-
-    return profiles
-
-def full_parse(in_dir, out_dir, study_identifier, **kwargs):
-    """ Parses every study from *in_dir* and then creates ISA files.
+def parse(in_path, out_path, study_identifier, **kwargs):
+    """ Parses a study from given *in_path* and then creates an ISA file.
 
     A new folder is created in the out directory bearing the name of
     the study identifier.
 
     Arguments:
-        in_dir (:obj:`str`): path to the directory containing the study
-        out_dir (:obj:`str`): path to the output directory
-        study_identifier (obj:`str`): the id of the study
+        in_path (str): path to the directory or archive containing mzml files
+        out_path (str): path to the output directory (new directories will be
+            created here)
+        study_identifier (str): study identifier (e.g. MTBLSxxx)
 
     Keyword Arguments:
         usermeta (dict, optional):  dictionary containing user-defined
@@ -104,43 +99,32 @@ def full_parse(in_dir, out_dir, study_identifier, **kwargs):
         merge (bool, optional): for imzML studies, try to merge centroid
             and profile scans in a single sample row [default: False]
         jobs (int, optional): the number of jobs to use for parsing
-            mzML or imzML files [default: CPU count]
+            mzML or imzML files [default: 1]
         template_directory (str, optional): the path to a directory
             containing custom templates to use when importing ISA tab
             [default: None]
         verbose (bool): display more output [default: True]
-
     """
-
     usermeta = kwargs.get('usermeta', None)
     split = kwargs.get('split', True)
     merge = kwargs.get('merge', False)
     verbose = kwargs.get('verbose', True)
-    jobs = kwargs.get('jobs', multiprocessing.cpu_count())
+    jobs = kwargs.get('jobs', 1)
     template_directory = kwargs.get('template_directory', None)
 
-    dirname = os.path.dirname(os.path.realpath(__file__))
-    if not any(x in sys.argv for x in ('-h', '--help', '--version')):
-        ms = pronto.Ontology(os.path.join(dirname, "psi-ms.obo"), False)
-        ims = pronto.Ontology(os.path.join(dirname, "imagingMS.obo"), True, 1)
-    else:
-        ms, ims = None, None
-
-    PARSERS = {'mzML': mzml.mzMLmeta, 'imzML': mzml.imzMLmeta}
-    ONTOLOGIES = {'mzML': ms, 'imzML': ims}
+    PARSERS = {'mzML': mzMLmeta, 'imzML': imzMLmeta}
+    ONTOLOGIES = {'mzML': get_ontology('MS'), 'imzML': get_ontology('IMS')}
 
     # get mzML file in the example_files folder
-    if os.path.isfile(in_dir) and tarfile.is_tarfile(in_dir):
-        compr = True
-        mzml_files = compr_extract(in_dir, "tar")
-    elif os.path.isfile(in_dir) and zipfile.is_zipfile(in_dir):
-        compr = True
-        mzml_files = compr_extract(in_dir, "zip")
-    else:
+    if os.path.isdir(in_path):
         compr = False
-        mzml_path = os.path.join(in_dir, "*mzML")
-        mzml_files = glob.glob(mzml_path)
-        mzml_files.sort()
+        mzml_files = glob.glob(os.path.join(in_path, "*mzML"))
+    elif tarfile.is_tarfile(in_path) or zipfile.is_zipfile(in_path):
+        compr = True
+        mzml_files = compr_extract(in_path)
+    else:
+        raise SystemError("Couldn't recognise format of "
+                          "{} as a source of mzml files".format(in_dir))
 
     if mzml_files:
         # store the first mzml_files extension
@@ -150,13 +134,10 @@ def full_parse(in_dir, out_dir, study_identifier, **kwargs):
 
         if not verbose and progressbar is not None:
              pbar = progressbar.ProgressBar(
-                min_value = 0,
-                max_value = len(mzml_files),
+                min_value = 0, max_value = len(mzml_files),
                 widgets=['Parsing {:8}: '.format(study_identifier),
-                           # pb.FormatLabel('%(value)4d'), '/',
-                           # '%4d' % len(mzml_files),
                            progressbar.SimpleProgress(),
-                           progressbar.Bar(marker=MARKER, left=" |", right="| "),
+                           progressbar.Bar(marker=["#","█"][six.PY3], left=" |", right="| "),
                            progressbar.ETA()]
                 )
              pbar.start()
@@ -165,9 +146,9 @@ def full_parse(in_dir, out_dir, study_identifier, **kwargs):
 
         if jobs > 1:
             pool = multiprocessing.pool.ThreadPool(jobs)
-            metalist = pool.map(_parse, [(mzml_file, ontology, parser, pbar) for mzml_file in mzml_files])
+            metalist = pool.map(_parse_file, [(mzml_file, ontology, parser, pbar) for mzml_file in sorted(mzml_files)])
         else:
-            metalist = [_parse([mzml_file, ontology, parser, pbar]) for mzml_file in mzml_files]
+            metalist = [_parse_file([mzml_file, ontology, parser, pbar]) for mzml_file in sorted(mzml_files)]
 
         # update isa-tab file
         if merge and extension=='imzML':
@@ -178,49 +159,69 @@ def full_parse(in_dir, out_dir, study_identifier, **kwargs):
         if metalist:
             if verbose:
                 print("Parsing mzML meta information into ISA-Tab structure")
-            isa_tab = isa.ISA_Tab(out_dir, study_identifier, usermeta=usermeta, template_directory=template_directory)
+            isa_tab = ISA_Tab(out_path, study_identifier, usermeta=usermeta, template_directory=template_directory)
             isa_tab.write(metalist, extension, split=split)
 
     else:
-        warnings.warn("No files were found in {}.".format(in_dir), UserWarning)
+        warnings.warn("No files were found in {}.".format(in_path), UserWarning)
 
-class _TarFile(object):
+def main(argv=None):
+    """Run **mzml2isa** from the command line
 
-    def __init__(self, name, buffered_reader):
-        self.name = name
-        self.BufferedReader = buffered_reader
+    Arguments
+        argv (list, optional): the list of arguments to run mzml2isa
+            with (if None, then sys.argv is used) [default: None]
+    """
+    p = argparse.ArgumentParser(prog=__name__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description='''Extract meta information from (i)mzML files and create ISA-tab structure''',
+        usage='mzml2isa -i IN_PATH -o OUT_PATH -s STUDY_ID [options]',
+    )
 
-    def __getattr__(self, attr):
-        if attr=="name":
-            return self.name
-        return getattr(self.BufferedReader, attr)
+    p.add_argument('-i', dest='in_path', help='input folder or archive containing mzML files', required=True)
+    p.add_argument('-o', dest='out_path', help='out folder (a new directory will be created here)', required=True)
+    p.add_argument('-s', dest='study_id', help='study identifier (e.g. MTBLSxxx)', required=True)
+    p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', default=None, required=False)#, type=json.loads)
+    p.add_argument('-j', dest='jobs', help='launch different processes for parsing', action='store', required=False, default=1, type=int)
+    p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
+    p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
+    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='once', required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
+    p.add_argument('-t', dest='template_dir', help='directory containing default template files', action='store', default=None)
+    p.add_argument('--version', action='version', version='mzml2isa {}'.format(__version__))
+    p.add_argument('-v', dest='verbose', help="show more output (default if progressbar2 is not installed)", action='store_true', default=False)
 
-def compr_extract(compr_pth, type_):
-    # extrac zip or tar(gz) files into python tar or zip objects
+    args = p.parse_args(argv or sys.argv[1:])
 
-    filend = ('.mzml', '.imzml')
-    if type_ == "zip":
-        comp = zipfile.ZipFile(compr_pth)
-        cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)]
-        filelist = [f.filename for f in comp.filelist]
+    if args.usermeta is not None:
+        try:
+            if os.path.isfile(args.usermeta):
+                with open(args.usermeta) as f:
+                    usermeta = json.load(f)
+            else:
+                usermeta = json.loads(args.usermeta)
+        except json.decoder.JSONDecodeError:
+            usermeta = None
+            warnings.warn("Usermeta could not be parsed.")
     else:
-        comp = tarfile.open(compr_pth, 'r:*')
-        cfiles = [_TarFile(m.name, comp.extractfile(m)) for m in comp.getmembers() if m.name.lower().endswith(filend)]
-        filelist = [f for f in comp.getnames()]
+        usermeta = None
 
-    # And add these file names as additional attribute the compression tar or zip objects
-    for cf in cfiles:
-        cf.filelist = filelist
+    if not progressbar:
+        setattr(args, 'verbose', True)
 
-    return cfiles
+    if args.verbose:
+        print("{} input path: {}".format(os.linesep, args.in_path))
+        print("output path: {}".format(os.path.join(args.out_path, args.study_id)))
+        print("Sample identifier:{}{}".format(args.study_id, os.linesep))
 
-
-
-
-
-
+    with warnings.catch_warnings():
+        warnings.filterwarnings(args.wrng_ctrl)
+        parse(args.in_path, args.out_path, args.study_id,
+           usermeta=usermeta, split=args.split,
+           merge=args.merge, verbose=args.verbose,
+           jobs=args.jobs, template_directory=args.template_dir
+        )
 
 if __name__ == '__main__':
-    run()
+    main()
 
 

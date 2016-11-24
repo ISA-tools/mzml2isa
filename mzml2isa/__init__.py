@@ -1,7 +1,7 @@
 """
 mzml2isa
 =============================================================================
-mzml2isa is a parser/converter that translates mass spectrometry .mzML files 
+mzml2isa is a parser/converter that translates mass spectrometry .mzML files
 (a format based on XML[1]_) to ISA-TAB format (Investigation-Study-Assay with
 TAB separated values)[2]_.
 
@@ -28,14 +28,21 @@ Help provided from:
 - Ken Haug            [kenneth@ebi.ac.uk]
 - Christoph Steinbeck [steinbeck@ebi.ac.uk]
 
-Supervisors: 
+Supervisors:
 -----------------------------------------------------------------------------
 - Prof. Mark Viant (University of Birmingham, UK)
 - Prof. Uriel Hazan (Ecole Normale Superieure de Cachan, France)
 """
-
+from __future__ import absolute_import
 
 __author__ = 'Thomas Lawson, Martin Larralde'
 __credits__ = 'Thomas Lawson, Martin Larralde, Reza Salek, Ken Haug, Christoph Steinbeck'
 __version__ = '0.4.28'
+__license__ = 'GPLv3'
 
+try:
+    from . import parsing
+    from . import mzml
+    from . import isa
+except ImportError:
+    pass

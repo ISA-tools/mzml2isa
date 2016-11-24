@@ -33,6 +33,7 @@ import zipfile
 import multiprocessing
 import multiprocessing.pool
 import pronto
+import functools
 
 try:
     import progressbar
@@ -47,6 +48,7 @@ from . import (
 )
 from .isa   import ISA_Tab
 from .mzml  import mzMLmeta, imzMLmeta
+from .usermeta import UserMetaLoader
 from .utils import (
     longest_substring,
     merge_spectra,
@@ -92,8 +94,9 @@ def convert(in_path, out_path, study_identifier, **kwargs):
         study_identifier (str): study identifier (e.g. MTBLSxxx)
 
     Keyword Arguments:
-        usermeta (dict, optional):  dictionary containing user-defined
-            metadata to include in the final ISA files [default: None]
+        usermeta (str, optional): the path to a json file, a xlsx file or
+            directly a json formatted string containing user-defined
+            metadata [default: None]
         split (bool, optional): split assay files based on the polarity
             of the scans [default: True]
         merge (bool, optional): for imzML studies, try to merge centroid
@@ -115,7 +118,7 @@ def convert(in_path, out_path, study_identifier, **kwargs):
     ONTOLOGIES = {'mzML': get_ontology('MS'), 'imzML': get_ontology('IMS')}
 
     # open
-    usermeta = UserMetaLoader(kwargs.get('usermeta', None))
+    meta_loader = UserMetaLoader(kwargs.get('usermeta', None))
 
     # get mzML file in the example_files folder
     if os.path.isdir(in_path):
@@ -194,7 +197,7 @@ def convert(in_path, out_path, study_identifier, **kwargs):
         if metalist:
             if verbose:
                 print("Parsing mzML meta information into ISA-Tab structure")
-            isa_tab = ISA_Tab(out_path, study_identifier, usermeta=usermeta, template_directory=template_directory)
+            isa_tab = ISA_Tab(out_path, study_identifier, usermeta=meta_loader.usermeta, template_directory=template_directory)
             isa_tab.write(metalist, extension, split=split)
 
     else:
@@ -243,6 +246,23 @@ def main(argv=None):
            merge=args.merge, verbose=args.verbose,
            jobs=args.jobs, template_directory=args.template_dir
         )
+
+
+
+#### DEPRECATED
+
+@functools.wraps(main)
+def run(*args, **kwargs):
+    warnings.warn("mzml2isa.parsing.run is deprecated, use "
+                  "mzml2isa.parsing.main instead", DeprecationWarning)
+    main(*args, **kwargs)
+
+@functools.wraps(convert)
+def full_parse(*args, **kwargs):
+    warnings.warn("mzml2isa.parsing.full_parse is deprecated, use "
+                  "mzml2isa.parsing.convert instead", DeprecationWarning)
+    full_parse(*args, **kwargs)
+
 
 if __name__ == '__main__':
     main()

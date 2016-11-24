@@ -13,7 +13,7 @@ from . import (
     __version__,
 )
 
-class UsermetaImporter(object):
+class UserMetaLoader(object):
 
     CATEGORIZED_MAP = collections.OrderedDict([
 
@@ -434,4 +434,4 @@ class UsermetaImporter(object):
 
 
 if __name__=="__main__":
-    UsermetaImporter.dump_template_xlsx(os.getcwd())
+    UserMetaLoader.dump_template_xlsx(os.getcwd())

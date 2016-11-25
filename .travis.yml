@@ -49,6 +49,7 @@ before_install:
 - sudo apt-get update -qq
 - sudo apt-get install -y python-lxml python3-lxml curlftpfs
 - pip install https://github.com/ISA-tools/isa-api/archive/py2.zip
+- pip install https://github.com/PyFilesystem/pyfilesystem/archive/master.zip
 
 install:
 - pip install .
@@ -59,7 +60,7 @@ before_script:
 - scripts/get-isa-configuration.py -o $MTBLS_CONFIG_DIR
 
 script:
-- mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY -j 2
+- mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
 - scripts/validate.py out_folder/metabolights/$STUDY $MTBLS_CONFIG_DIR
 
 after_script:

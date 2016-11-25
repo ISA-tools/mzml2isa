@@ -25,7 +25,7 @@ test_script:
 
 build_script:
   - "%CMD_IN_ENV% python setup.py build"
-  - cd scripts
+  - cd scripts\\for_pyinstaller
   - pyinstaller mzml2isa_cli.spec mzml2isa_cli.py
 
 artifacts:

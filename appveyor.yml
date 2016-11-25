@@ -8,10 +8,6 @@ install:
   - "%PYTHON%/Scripts/pip.exe install ."
 
 
-build_script:
-  # Build the compiled extension
-- "%CMD_IN_ENV% python setup.py build"
-
 test_script:
   - pip install pyinstaller
   - mkdir data
@@ -28,6 +24,7 @@ test_script:
   - java -cp ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267 Configurations\MetaboLightsConfig20140506\
 
 build_script:
+  - "%CMD_IN_ENV% python setup.py build"
   - cd scripts
   - pyinstaller -F --paths=qt;ontologies;%PYTHON%\Lib\site-packages\PyQt5\Qt\bin -F --icon=qt\assets\graphics\ebi_icon.ico main.py 
 

@@ -13,6 +13,7 @@ build_script:
 - "%CMD_IN_ENV% python setup.py build"
 
 test_script:
+  - mkdir data
   - cd data
   - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person01_RBC_youth_NEG.mzML 
   - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person02_RBC_youth_NEG.mzML 

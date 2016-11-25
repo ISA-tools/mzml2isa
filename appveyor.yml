@@ -5,18 +5,16 @@ environment:
 
 
 install:
+  - pip install pyinstaller
   - "%PYTHON%/Scripts/pip.exe install ."
 
-
-build_script:
-  # Build the compiled extension
-- "%CMD_IN_ENV% python setup.py build"
 
 test_script:
   - mkdir data
   - cd data
-  - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person01_RBC_youth_NEG.mzML 
-  - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person02_RBC_youth_NEG.mzML 
+  - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person01_RBC_youth_NEG.mzML -O Person01_RBC_youth_NEG.mzML
+  - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person02_RBC_youth_NEG.mzML -O Person02_RBC_youth_NEG.mzML 
+  - ps: Get-Content Person02_RBC_youth_NEG.mzML -TotalCount 50 
   - cd ..
   - "%PYTHON%\\python.exe -m mzml2isa -i data -o out_folder\\metabolights -s MTBLS267"
   - ps: wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip -o ISA-validator-1.6.5.zip
@@ -25,11 +23,28 @@ test_script:
   - unzip ISAcreatorMetaboLights.zip
   - java -cp ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267 Configurations\MetaboLightsConfig20140506\
 
-#after_test:
-#  # If tests are successful, create binary packages for the project.
-#  - "%PYTHON%/Scripts/pip.exe install wheel"
-#  - "%CMD_IN_ENV% python setup.py bdist_wheel"
-#  - "%CMD_IN_ENV% python setup.py bdist_wininst"
-#  - "%CMD_IN_ENV% python setup.py bdist_msi"
-#  - ps: "ls dist"
+build_script:
+  - "%CMD_IN_ENV% python setup.py build"
+  - cd scripts\\for_pyinstaller
+  - pyinstaller mzml2isa_cli.spec mzml2isa_cli.py
+
+artifacts:
+   - path: scripts\for_pyinstaller\dist\mzml2isa_cli.exe
+     name: mzml2isa_cli
+
+
+
+deploy:
+  provider: GitHub
+  description: 'Release description'
+  auth_token:
+    secure: a1VIb788bLXA/fLgAoEJshK1aXtGdj79BNvzPg+YfAIrYhp6yaA4gJa6vp4BpWHS
+  artifact: main
+  draft: false
+  prerelease: true
+  force_update: true
+  on:
+    branch: master
+    appveyor_repo_tag: true
+
 

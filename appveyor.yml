@@ -17,7 +17,7 @@ test_script:
   - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person02_RBC_youth_NEG.mzML -o Person02_RBC_youth_NEG.mzML
   - mkdir data
   - mv Person* data\.
-  - "%PYTHON%\\python.exe mzml2isa\\parsing.py -i data -o out_folder\\metabolights -s MTBLS267"
+  - "%PYTHON%\\python.exe -m mzml2isa -i data -o out_folder\\metabolights -s MTBLS267"
   - ps: wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip -o ISA-validator-1.6.5.zip
   - unzip ISA-validator-1.6.5.zip
   - ps: wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip -o ISAcreatorMetaboLights.zip

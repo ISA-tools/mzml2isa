@@ -5,11 +5,11 @@ environment:
 
 
 install:
+  - pip install pyinstaller
   - "%PYTHON%/Scripts/pip.exe install ."
 
 
 test_script:
-  - pip install pyinstaller
   - mkdir data
   - cd data
   - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person01_RBC_youth_NEG.mzML -O Person01_RBC_youth_NEG.mzML
@@ -26,7 +26,7 @@ test_script:
 build_script:
   - "%CMD_IN_ENV% python setup.py build"
   - cd scripts
-  - pyinstaller -F --paths=qt;ontologies;%PYTHON%\Lib\site-packages\PyQt5\Qt\bin -F --icon=qt\assets\graphics\ebi_icon.ico main.py 
+  - pyinstaller mzml2isa_cli.spec mzml2isa_cli.py
 
 artifacts:
    - path: scripts\for_pyinstaller\dist\mzml2isa_cli.exe

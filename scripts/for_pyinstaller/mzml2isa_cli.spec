@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['mzml2isa_cli.py'],
-             pathex=['..\\mzml2isa'],
+             pathex=['..\\mzml2isa','%PYTHON%\Lib\site-packages\\\lib\\site-packages\\pronto'],
              binaries=None,
              datas= [ ('..\\..\\mzml2isa\\templates\\a_imzML.txt', 'mzml2isa\\templates' ),
 		      ('..\\..\\mzml2isa\\templates\\a_mzML.txt', 'mzml2isa\\templates' ),
@@ -14,13 +14,14 @@ a = Analysis(['mzml2isa_cli.py'],
                       ('..\\..\\mzml2isa\\templates\\s_mzML.txt', 'mzml2isa\\templates' ),
                       ('..\\..\\mzml2isa\\ontologies\\imagingMS.obo', 'mzml2isa\\ontologies' ),
 		      ('..\\..\\mzml2isa\\ontologies\\psi-ms.obo', 'mzml2isa\\ontologies' )],
-             hiddenimports=[],
+             hiddenimports=['pronto'],
              hookspath=['.'],
              runtime_hooks=[],
              excludes=[],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher)
+
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,

@@ -20,3 +20,9 @@ MTBLS_URLS = {
     'studies':    "/pub/databases/metabolights/studies/public",
     'isacreator': "/pub/databases/metabolights/submissionTool",
 }
+
+
+
+# stub to mock.patch various functions with
+def stub_find_img(*args, **kwargs):
+    return ''

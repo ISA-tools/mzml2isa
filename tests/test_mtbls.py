@@ -1,4 +1,16 @@
-from __future__ import absolute_import
+# coding: utf-8
+"""
+tests.test_mtbls
+================
+
+This module tests mzml2isa against every mzML/imzML study in
+
+"""
+
+from __future__ import (
+    absolute_import,
+    unicode_literals,
+)
 
 import os
 import sys
@@ -110,7 +122,7 @@ class TestMtbls(unittest.TestCase):
         mzml_files = [f for f in self._ebi_ftp.nlst() if f.endswith('mzML')]
         #mzml_files = itertools.islice(self._ebi_ftp_fs.filterdir(study_url, files=["*mzML"]), self.files_per_study)
         #datatype = next(self._ebi_ftp_fs.filterdir(study_url, files=["*mzML", "*.imzml"])).name.split(os.path.extsep)[-1].lower()
-        return ["http://ftp.ebi.ac.uk{}/{}/{}".format(self.STUDIES_DIR, study_id, f) for f in mzml_files[:self.files_per_study]]
+        return ["http://ftp.ebi.ac.uk{}/{}/{}".format(self.STUDIES_DIR, study_id, f) for f in mzml_files]
 
     def convert(self, study_id, usermeta=None):
         """Convert given MTBLS to ISA-Tab format into out_dir
@@ -121,18 +133,18 @@ class TestMtbls(unittest.TestCase):
         extension = files[0].split('.')[-1]
         #metalist = []
 
-        # Get the right metadata parser
+        # Get the right metadata parser and parse all files
+        # (using HTTP instead of FTP to go quicker)
         if extension == "mzML":
-            metadata_parser = mzml2isa.mzml.mzMLmeta
+            metalist = [mzml2isa.mzml.mzMLmeta(f).meta for f in files[:self.files_per_mzml_study]]
         elif extension == "imzML":
-            metadata_parser = mzml2isa.mzml.imzMLmeta
+            with unittest.mock.patch("mzml2isa.mzml.imzMLmeta.find_img", utils.stub_find_img):
+                metalist = [mzml2isa.mzml.mzMLmeta(f).meta for f in files[:self.files_per_imzml_study]]
 
-        # Parse all files (use HTTP instead of FTP to go quicker)
         # for f in files:
         #     #print("Parsing:", f)
         #     metalist.append(metadata_parser("http://ftp.ebi.ac.uk"+f).meta)
         #metalist = [metadata_parser("http://ftp.ebi.ac.uk{}".format(f)).meta for f in files]
-        metalist = [metadata_parser(f).meta for f in files]
 
         #print("Writing ISA files to", self.run_dir)
         isa_writer = mzml2isa.isa.ISA_Tab(self.run_dir, study_id, usermeta=usermeta)
@@ -188,7 +200,8 @@ class TestMtblsTravis(TestMtbls):
     @classmethod
     def setUpClass(cls):
         super(TestMtblsTravis, cls).setUpClass()
-        cls.files_per_study = 6
+        cls.files_per_mzml_study = 6
+        cls.files_per_imzml_study = 2
 
 
 @unittest.skipIf(utils.IN_CI, "long test takes too much time for CI")
@@ -197,7 +210,6 @@ class TestMtblsDesktop(TestMtbls):
     @classmethod
     def get_concerned_studies(cls):
         study_exts = six.BytesIO()
-
         ebi_ftp = cls.connect_to_ebi_ftp()
         ebi_ftp.cwd("/pub/databases/metabolights/study_file_extensions")
         ebi_ftp.retrbinary("RETR ml_file_extension.json", study_exts.write)
@@ -207,7 +219,8 @@ class TestMtblsDesktop(TestMtbls):
     @classmethod
     def setUpClass(cls):
         super(TestMtblsDesktop, cls).setUpClass()
-        cls.files_per_study = 2
+        cls.files_per_mzml_study = 2
+        cls.files_per_imzml_study = 2
 
 
 

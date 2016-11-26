@@ -1,70 +1,70 @@
-#sudo: false
+sudo: false
 language: python
 python:
 - '3.5'
-#- '2.7'
-cache:
-  directories:
-  - $HOME/mtbls-config
+- '2.7'
+# cache:
+#   directories:
+#   - $HOME/mtbls-config
 
 env:
-  global:
-  - MTBLS_CONFIG_DIR=$HOME/mtbls-config
+  #global:
+  #- MTBLS_CONFIG_DIR=$HOME/mtbls-config
   matrix:
-  - STUDY=MTBLS267
-  - STUDY=MTBLS266
-  - STUDY=MTBLS273
-  - STUDY=MTBLS32
-  - STUDY=MTBLS127
-  - STUDY=MTBLS289
-  - STUDY=MTBLS263
-  - STUDY=MTBLS87
-  - STUDY=MTBLS36
-  - STUDY=MTBLS140
-  - STUDY=MTBLS229
-  - STUDY=MTBLS265
-  - STUDY=MTBLS228
-  - STUDY=MTBLS67
-  - STUDY=MTBLS125
-  - STUDY=MTBLS126
-  - STUDY=MTBLS88
-  - STUDY=MTBLS38
-  - STUDY=MTBLS137
-  - STUDY=MTBLS315
-  - STUDY=MTBLS341
+  - MTBLS_STUDY=MTBLS341
+  - MTBLS_STUDY=MTBLS267
+  - MTBLS_STUDY=MTBLS266
+  - MTBLS_STUDY=MTBLS273
+  - MTBLS_STUDY=MTBLS32
+  - MTBLS_STUDY=MTBLS127
+  - MTBLS_STUDY=MTBLS289
+  - MTBLS_STUDY=MTBLS253
+  - MTBLS_STUDY=MTBLS263
+  - MTBLS_STUDY=MTBLS87
+  - MTBLS_STUDY=MTBLS36
+  - MTBLS_STUDY=MTBLS140
+  - MTBLS_STUDY=MTBLS229
+  - MTBLS_STUDY=MTBLS233
+  - MTBLS_STUDY=MTBLS265
+  - MTBLS_STUDY=MTBLS228
+  - MTBLS_STUDY=MTBLS67
+  - MTBLS_STUDY=MTBLS125
+  - MTBLS_STUDY=MTBLS126
+  - MTBLS_STUDY=MTBLS88
+  - MTBLS_STUDY=MTBLS38
+  - MTBLS_STUDY=MTBLS137
+  - MTBLS_STUDY=MTBLS315
+  - MTBLS_STUDY=MTBLS264
+  - MTBLS_STUDY=MTBLS176
+  - MTBLS_STUDY=MTBLS282
+  - MTBLS_STUDY=MTBLS354
+  - MTBLS_STUDY=MTBLS235
+  - MTBLS_STUDY=MTBLS55
+  - MTBLS_STUDY=MTBLS28
+  - MTBLS_STUDY=MTBLS146
 
 matrix:
-  allow_failures:
-  - env: STUDY=MTBLS289
-  - env: STUDY=MTBLS36
-  - env: STUDY=MTBLS140
-  - env: STUDY=MTBLS125
-  - env: STUDY=MTBLS126
-  - env: STUDY=MTBLS38
-  - env: STUDY=MTBLS137
-  - env: STUDY=MTBLS341
   fast_finish: true
 
+apt:
+  packages:
+    - python-lxml
+    - python3-lxml
+
 before_install:
-- sudo apt-get update -qq
-- sudo apt-get install -y python-lxml python3-lxml curlftpfs
 - pip install https://github.com/ISA-tools/isa-api/archive/py2.zip
-- pip install https://github.com/PyFilesystem/pyfilesystem/archive/master.zip
+- pip install https://github.com/PyFilesystem/pyfilesystem2/archive/master.zip
 
 install:
 - pip install .
 
-before_script:
-- mkdir example_files/metabolights
-- curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
-- scripts/get-isa-configuration.py -o $MTBLS_CONFIG_DIR
-
 script:
-- mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
-- scripts/validate.py out_folder/metabolights/$STUDY $MTBLS_CONFIG_DIR
+#- mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
+#- scripts/validate.py out_folder/metabolights/$STUDY $MTBLS_CONFIG_DIR
+- python -m unittest discover -v
 
-after_script:
-- fusermount -u example_files/metabolights
+# after_script:
+# - fusermount -u example_files/metabolights
 
 notifications:
   email:

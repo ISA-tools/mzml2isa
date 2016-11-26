@@ -10,6 +10,8 @@ import six
 import itertools
 import logging
 import warnings
+import ftplib
+import json
 import isatools.isatab
 import fs.ftpfs
 import fs.tempfs
@@ -33,28 +35,46 @@ class TestMtbls(unittest.TestCase):
         # create temporary filesystem for the test environment
         # and for the EBI FTP server
         cls._test_temp_fs = fs.tempfs.TempFS()
-        cls._ebi_ftp_fs = fs.ftpfs.FTPFS("ftp.ebi.ac.uk", timeout=1)
+        #fs# cls._ebi_ftp_fs = fs.ftpfs.FTPFS("ftp.ebi.ac.uk", timeout=1)
+
+        # create ftp connection to EBI FTP server
+        cls._ebi_ftp = cls.connect_to_ebi_ftp()
 
         # create a directory for the configuration files
         cls._test_temp_fs.makedir("/conf")
 
         # Download latest MetaboLights configurations from
         # the EBI FTP server
-        mtbl_conf_dir = next(cls._ebi_ftp_fs.filterdir(
-                cls.CONFIGS_DIR, exclude_files=True, dirs=["MetaboLights*"])
-            ).make_path(cls.CONFIGS_DIR)
+        cls._ebi_ftp.cwd(cls.CONFIGS_DIR)
+        mtbl_conf_dir = next(f for f in cls._ebi_ftp.nlst() if f.startswith("MetaboLights"))
+        cls._ebi_ftp.cwd(mtbl_conf_dir)
 
-        for conf_file in cls._ebi_ftp_fs.filterdir(mtbl_conf_dir):
-            with cls._ebi_ftp_fs.openbin(conf_file.make_path(mtbl_conf_dir)) as src_file:
-                cls._test_temp_fs.setbin("/conf/{}".format(conf_file.name), src_file)
+        for conf_file in cls._ebi_ftp.nlst():
+            with cls._test_temp_fs.openbin("/conf/{}".format(conf_file), 'w') as out_file:
+                cls._ebi_ftp.retrbinary("RETR {}".format(conf_file), out_file.write)
+
+        # mtbl_conf_dir = next(cls._ebi_ftp_fs.filterdir(
+        #         cls.CONFIGS_DIR, exclude_files=True, dirs=["MetaboLights*"])
+        #     ).make_path(cls.CONFIGS_DIR)
+        # for conf_file in cls._ebi_ftp_fs.filterdir(mtbl_conf_dir):
+        #     with cls._ebi_ftp_fs.openbin(conf_file.make_path(mtbl_conf_dir)) as src_file:
+        #         cls._test_temp_fs.setbin("/conf/{}".format(conf_file.name), src_file)
+
+
+
 
     @classmethod
     def tearDownClass(cls):
-        cls._ebi_ftp_fs.close()
+        #cls._ebi_ftp_fs.close()
         cls._test_temp_fs.close()
+        cls._ebi_ftp.close()
 
 
-
+    @staticmethod
+    def connect_to_ebi_ftp():
+        ebi_ftp = ftplib.FTP("ftp.ebi.ac.uk")
+        ebi_ftp.login()
+        return ebi_ftp
 
 
 
@@ -86,9 +106,11 @@ class TestMtbls(unittest.TestCase):
         """Get a list of handles of all mzml files for given MTBLS study
         """
         study_url = "{}/{}/".format(self.STUDIES_DIR, study_id)
-        mzml_files = itertools.islice(self._ebi_ftp_fs.filterdir(study_url, files=["*mzML"]), self.files_per_study)
+        self._ebi_ftp.cwd(study_url)
+        mzml_files = [f for f in self._ebi_ftp.nlst() if f.endswith('mzML')]
+        #mzml_files = itertools.islice(self._ebi_ftp_fs.filterdir(study_url, files=["*mzML"]), self.files_per_study)
         #datatype = next(self._ebi_ftp_fs.filterdir(study_url, files=["*mzML", "*.imzml"])).name.split(os.path.extsep)[-1].lower()
-        return [f.make_path(study_url) for f in mzml_files]
+        return ["http://ftp.ebi.ac.uk{}/{}/{}".format(self.STUDIES_DIR, study_id, f) for f in mzml_files[:self.files_per_study]]
 
     def convert(self, study_id, usermeta=None):
         """Convert given MTBLS to ISA-Tab format into out_dir
@@ -109,7 +131,8 @@ class TestMtbls(unittest.TestCase):
         # for f in files:
         #     #print("Parsing:", f)
         #     metalist.append(metadata_parser("http://ftp.ebi.ac.uk"+f).meta)
-        metalist = [metadata_parser("http://ftp.ebi.ac.uk{}".format(f)).meta for f in files]
+        #metalist = [metadata_parser("http://ftp.ebi.ac.uk{}".format(f)).meta for f in files]
+        metalist = [metadata_parser(f).meta for f in files]
 
         #print("Writing ISA files to", self.run_dir)
         isa_writer = mzml2isa.isa.ISA_Tab(self.run_dir, study_id, usermeta=usermeta)
@@ -171,18 +194,19 @@ class TestMtblsTravis(TestMtbls):
 @unittest.skipIf(utils.IN_CI, "long test takes too much time for CI")
 class TestMtblsDesktop(TestMtbls):
 
-    @staticmethod
-    def get_concerned_studies():
-        stats = json.loads(
-            six.moves.urllib.request.urlopen(
-                "ftp://ftp.ebi.ac.uk/pub/databases/metabolights/study_file_extensions"
-                "/ml_file_extension.json").read().encode('utf-8')
-        )
+    @classmethod
+    def get_concerned_studies(cls):
+        study_exts = six.BytesIO()
+
+        ebi_ftp = cls.connect_to_ebi_ftp()
+        ebi_ftp.cwd("/pub/databases/metabolights/study_file_extensions")
+        ebi_ftp.retrbinary("RETR ml_file_extension.json", study_exts.write)
+        stats = json.loads(study_exts.getvalue().decode('utf-8'))
         return [s['id'] for s in stats if '.mzML' in s['extensions'] or '.imzML' in s['extensions']]
 
     @classmethod
     def setUpClass(cls):
-        super(TestMtblsTravis, cls).setUpClass()
+        super(TestMtblsDesktop, cls).setUpClass()
         cls.files_per_study = 2
 
 
@@ -192,10 +216,12 @@ def load_tests(loader, tests, pattern):
     suite = unittest.TestSuite()
 
     TestMtblsTravis.register_tests()
-    #TestMtblsDesktop.register_tests()
+    TestMtblsDesktop.register_tests()
 
-    suite.addTests(loader.loadTestsFromTestCase(TestMtblsTravis))
-    suite.addTests(loader.loadTestsFromTestCase(TestMtblsDesktop))
+    if utils.IN_CI:
+        suite.addTests(loader.loadTestsFromTestCase(TestMtblsTravis))
+    else:
+        suite.addTests(loader.loadTestsFromTestCase(TestMtblsDesktop))
 
     return suite
 

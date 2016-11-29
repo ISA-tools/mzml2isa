@@ -14,8 +14,7 @@ build_script:
   - if %MAKE_WINEX%==1	%PYTHON%\Scripts\pyinstaller.exe mzml2isa_cli.spec mzml2isa_cli.py
   - cd ..\..\
 
-test_script: 
-  # Get mzML data for testing
+test_script:
   - mkdir data
   - cd data
   - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person01_RBC_youth_NEG.mzML -O Person01_RBC_youth_NEG.mzML

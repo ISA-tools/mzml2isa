@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['mzml2isa_cli.py'],
-             pathex=['..\\mzml2isa','%PYTHON%\\lib\\site-packages\\pronto'],
+             pathex=['..\\..\\mzml2isa', '..\\..\\.', 'C:\Python35\Lib\site-packages\pronto'],
              binaries=None,
              datas= [ ('..\\..\\mzml2isa\\templates\\a_imzML.txt', 'mzml2isa\\templates' ),
 		      ('..\\..\\mzml2isa\\templates\\a_mzML.txt', 'mzml2isa\\templates' ),

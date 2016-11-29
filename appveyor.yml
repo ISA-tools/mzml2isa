@@ -1,13 +1,18 @@
 environment:
   matrix:
     - PYTHON: "C:\\Python27"
+      MAKE_WINEX: 0
     - PYTHON: "C:\\Python35"
-
-
+      MAKE_WINEX: 1
+    
 install:
-  - pip install pyinstaller
-  - "%PYTHON%/Scripts/pip.exe install ."
+  - if %MAKE_WINEX%==1	%PYTHON%\Scripts\pip.exe install pyinstaller
+  - '%PYTHON%\Scripts\pip.exe install .'
 
+build_script:
+  - if %MAKE_WINEX%==1	cd  scripts\for_pyinstaller
+  - if %MAKE_WINEX%==1	%PYTHON%\Scripts\pyinstaller.exe mzml2isa_cli.spec mzml2isa_cli.py
+  - cd ..\..\
 
 test_script:
   - mkdir data
@@ -16,35 +21,32 @@ test_script:
   - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person02_RBC_youth_NEG.mzML -O Person02_RBC_youth_NEG.mzML 
   - ps: Get-Content Person02_RBC_youth_NEG.mzML -TotalCount 50 
   - cd ..
-  - "%PYTHON%\\python.exe -m mzml2isa -i data -o out_folder\\metabolights -s MTBLS267"
+  # Get ISA validator tools for validating 
   - ps: wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip -o ISA-validator-1.6.5.zip
   - unzip ISA-validator-1.6.5.zip
   - ps: wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip -o ISAcreatorMetaboLights.zip
   - unzip ISAcreatorMetaboLights.zip
+  # Test using just python
+  - "%PYTHON%\\python.exe -m mzml2isa -i data -o out_folder\\metabolights -s MTBLS267"
   - java -cp ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267 Configurations\MetaboLightsConfig20140506\
-
-build_script:
-  - "%CMD_IN_ENV% python setup.py build"
-  - cd scripts\\for_pyinstaller
-  - pyinstaller mzml2isa_cli.spec mzml2isa_cli.py
+  # test using the windows executable (no python requred)
+  - if %MAKE_WINEX%==1	cd scripts\for_pyinstaller\dist\
+  - if %MAKE_WINEX%==1	mzml2isa_cli.exe -i ..\..\..\data\ -o out_folder\metabolights -s MTBLS267_exe
+  - if %MAKE_WINEX%==1	java -cp ..\..\..\ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267_exe ..\..\..\Configurations\MetaboLightsConfig20140506\
 
 artifacts:
    - path: scripts\for_pyinstaller\dist\mzml2isa_cli.exe
      name: mzml2isa_cli
-
-
 
 deploy:
   provider: GitHub
   description: 'Release description'
   auth_token:
     secure: a1VIb788bLXA/fLgAoEJshK1aXtGdj79BNvzPg+YfAIrYhp6yaA4gJa6vp4BpWHS
-  artifact: main
+  artifact: mzml2isa_cli
   draft: false
   prerelease: true
   force_update: true
   on:
     branch: master
     appveyor_repo_tag: true
-
-

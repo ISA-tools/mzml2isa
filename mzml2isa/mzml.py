@@ -448,7 +448,7 @@ class mzMLmeta(object):
 
                     if e.attrib['version']:
                         self.meta[name+' software version'] = {'value': e.attrib['version']}
-                    software_cvParam = e.iterfind('s:cvParam', namespaces=self.ns)
+                    software_cvParam = e.iterfind('s:cvParam', self.ns)
                     for ie in software_cvParam:
                         self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name'],
                                                        'ref': ie.attrib['cvRef']}

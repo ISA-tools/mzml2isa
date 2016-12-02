@@ -228,7 +228,7 @@ def run(*args, **kwargs):
 def full_parse(*args, **kwargs):
     warnings.warn("mzml2isa.parsing.full_parse is deprecated, use "
                   "mzml2isa.parsing.convert instead", DeprecationWarning)
-    full_parse(*args, **kwargs)
+    convert(*args, **kwargs)
 
 
 if __name__ == '__main__':

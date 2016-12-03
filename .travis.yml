@@ -81,4 +81,4 @@ deploy:
     tags: true
     repo: ISA-tools/mzml2isa
     python: '3.5'
-    condition: $STUDY=MTBLS263
+    condition: $STUDY == MTBLS263

@@ -317,18 +317,12 @@ class UserMetaLoader(object):
 
     def __init__(self, usermeta_token):
 
-
         if usermeta_token is None:
             self.usermeta = None
-
         elif usermeta_token.endswith('.xlsx'):
-
             self._parse_xlsx_file(usermeta_token)
-
-
         elif usermeta_token.endswith('.json'):
             self._parse_json_file(usermeta_token)
-
         else:
             self._parse_json_stdin(usermeta_token)
 
@@ -349,7 +343,7 @@ class UserMetaLoader(object):
         """
         """
         try:
-            usermeta = json.loads(usermeta_token)
+            self.usermeta = json.loads(usermeta_token)
         except json.decoder.JSONDecodeError:
             self.usermeta = None
             warnings.warn("JSON usermeta could not be parsed from <stdin>.")

@@ -933,7 +933,6 @@ XPATHS_I_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:
 XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
                  'scan_ref':          '{root}/s:run/{spectrum}List/{spectrum}/s:referenceableParamGroupRef',
                  'ref_param_list':    '{root}/s:referenceableParamGroupList/s:referenceableParamGroup',
-                 'sp_cv':             '{root}/s:run/{spectrum}List/{spectrum}/s:cvParam',
                 }
 
 

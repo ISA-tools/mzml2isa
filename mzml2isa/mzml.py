@@ -170,9 +170,6 @@ class mzMLmeta(object):
 
         # Render control vocabularies accession numbers as urls
         self.urlize()
-
-        #self.meta['Data Transformation Name'] = self.meta['Data Transformation']
-        #del self.meta['Data Transformation']
         
     @staticmethod
     def create_terms():

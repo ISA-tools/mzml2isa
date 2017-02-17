@@ -175,7 +175,7 @@ class mzMLmeta(object):
         #del self.meta['Data Transformation']
         
     @staticmethod
-    def create_terms(self):
+    def create_terms():
         """ We create a dictionary that contains "search parameters" that we use to parse the xml location from the xpaths
         The dictionary contains the following elements
 

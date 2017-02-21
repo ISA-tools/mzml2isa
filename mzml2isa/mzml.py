@@ -45,7 +45,8 @@ from .utils import (
     pyxpath,
     longest_substring,
     get_parent,
-    get_ontology
+    get_ontology,
+    create_terms
 )
 
 
@@ -125,6 +126,9 @@ class mzMLmeta(object):
         except AttributeError:
             self.in_dir = None
 
+        # Create dictionary of terms to search mzML file
+        terms = create_terms()
+
         self.tree = etree.parse(in_file, etree.XMLParser())
 
         self.build_env()
@@ -137,57 +141,8 @@ class mzMLmeta(object):
         # xpaths for the mzML locations that we want the meta information from any cvParam elements
         xpaths_meta = XPATHS_META
 
-        # We create a dictionary that contains "search parameters" that we use to parse the xml location from the xpaths
-        # above
-        #
-        # name (str):  The key the CV will be saved as in self.metaa
-        # plus1 (bool): True if there are multiple of this CV
-        # value (bool): True if there is an associated value with this CV
-        # soft (bool):  True if there is associated software CV associated with this CV
-        # attribute (bool): True if the CV is an attribute to handle differently
-        terms = collections.OrderedDict()
-        terms['file_content'] = {
-                'MS:1000524': {'attribute': False, 'name': 'Data file content', 'plus1': True, 'value':False, 'soft': False},
-                'MS:1000525': {'attribute': False, 'name': 'Spectrum representation', 'plus1': True, 'value':False, 'soft': False}
-        }
 
-        terms['source_file'] = {
-            'MS:1000767': {'attribute': False, 'name':'Native spectrum identifier format', 'plus1': False, 'value':False, 'soft': False},
-            'MS:1000561': {'attribute': False, 'name':'Data file checksum type', 'plus1': False, 'value':True, 'soft': False},
-            'MS:1000560': {'attribute': False, 'name':'Raw data file format', 'plus1': False, 'value':False, 'soft': False},
-        }
-
-        terms['contact'] = {
-            'MS:1000586': {'attribute': False, 'name': 'Contact name', 'plus1':False, 'value':True, 'soft':False},
-            'MS:1000587': {'attribute': False, 'name': 'Contact adress', 'plus1':False, 'value':True, 'soft':False},
-            'MS:1000588': {'attribute': False, 'name': 'Contact url', 'plus1':False, 'value':True, 'soft':False},
-            'MS:1000589': {'attribute': False, 'name': 'Contact email', 'plus1':False, 'value':True, 'soft':False},
-            'MS:1000590': {'attribute': False, 'name': 'Contact affiliation', 'plus1':False, 'value':True, 'soft':False},
-        }
-
-        terms['ionization'] = {
-                'MS:1000482': {'attribute': True, 'name':'source_attribute', 'plus1': True, 'value':True, 'soft': False},
-                'MS:1000008': {'attribute': False, 'name':'Ion source', 'plus1': False, 'value':False, 'soft': False},
-                'MS:1000007': {'attribute': False, 'name':'Inlet type', 'plus1': False, 'value':False, 'soft': False}
-        }
-
-        terms['analyzer'] = {
-                'MS:1000480': {'attribute': True, 'name':'analyzer_attribute', 'plus1': True, 'value':True, 'soft': False},
-                'MS:1000443': {'attribute': False, 'name':'Mass analyzer', 'plus1': False, 'value':False, 'soft': False},
-        }
-
-        terms['detector'] = {
-                'MS:1000481': {'attribute': True, 'name':'detector_attribute', 'plus1': True, 'value': True, 'soft': False},
-                'MS:1000026': {'attribute': False, 'name':'Detector', 'plus1': False, 'value': False, 'soft': False},
-                'MS:1000027': {'attribute': False, 'name':'Detector mode', 'plus1': False, 'value':False, 'soft': False}
-        }
-
-        terms['data_processing'] = {
-                'MS:1000630': {'attribute': True, 'name':'data_processing_parameter', 'plus1': True, 'value': True, 'soft': True},
-                'MS:1000452': {'attribute': False, 'name':'Data Transformation Name', 'plus1': True, 'value': False, 'soft': True},
-        }
-
-        # update self.meta with the relevant meta infromation
+        # update self.meta with the relevant meta information
         self.extract_meta(terms, xpaths_meta)
 
         # make a memoized dict of the referenceable params
@@ -195,7 +150,15 @@ class mzMLmeta(object):
 
         # The instrument information has to be extracted separately
         self.instrument()
+
+        # Get polarity (could be pos neg switching so we need to check all scans)
         self.polarity()
+
+        # Get spectrum rep (as it might not be in file content)
+        self.spectrum_repr(XPATHS['sp_cv'])
+
+        # The following information is calculated from the spectrum information or derived from other details
+        # in the mzML file
         self.timerange()
         self.mzrange()
         self.scan_num()
@@ -208,9 +171,6 @@ class mzMLmeta(object):
 
         # Render control vocabularies accession numbers as urls
         self.urlize()
-
-        #self.meta['Data Transformation Name'] = self.meta['Data Transformation']
-        #del self.meta['Data Transformation']
 
     def extract_meta(self, terms, xpaths):
         """ Extract meta information for CV terms based on their location in the xml file
@@ -516,6 +476,26 @@ class mzMLmeta(object):
             polarity = {'name': "n/a", 'ref':'', 'accession':''}
 
         self.meta['Scan polarity'] = polarity
+
+
+    def spectrum_repr(self, sp_cv):
+        """Checks first spectrum for spectrum representation (profile/centroid)"""
+
+        # Not required if this is already in the 'file content' section
+        if 'Spectrum representation' in self.meta:
+            return
+
+        sp_cv = pyxpath(self, sp_cv)
+
+        for e in sp_cv:
+            if e.attrib['accession'] in self.obo['MS:1000525'].rchildren():
+                self.meta['Spectrum representation'] = \
+                                       {'accession': e.attrib['accession'], 'name': e.attrib['name'],
+                                        'ref': e.attrib['cvRef']}
+                return
+
+
+
 
     def _make_params(self):
         """Create a memoized set of xml Elements in `ReferenceableParamGroupList`
@@ -892,7 +872,7 @@ XPATHS_I_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:
 
 XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
                  'scan_ref':          '{root}/s:run/{spectrum}List/{spectrum}/s:referenceableParamGroupRef',
-                 'ref_param_list':    '{root}/s:referenceableParamGroupList/s:referenceableParamGroup'
+                 'ref_param_list':    '{root}/s:referenceableParamGroupList/s:referenceableParamGroup',
                 }
 
 
@@ -915,7 +895,8 @@ class imzMLmeta(mzMLmeta):
 
         xpaths_meta = XPATHS_I_META
 
-        terms = collections.OrderedDict()
+        terms = create_terms()
+
         terms['file_content'] = {
                 'MS:1000525' : {'attribute': False, 'name': 'Spectrum representation', 'plus1': False, 'value': False, 'soft': False},
                 'IMS:1000008': {'attribute': False, 'name': 'Universally unique identifier', 'plus1': False, 'value': True, 'soft':False},
@@ -943,11 +924,12 @@ class imzMLmeta(mzMLmeta):
                 'IMS:1001212': {'attribute': False, 'name': 'Spray voltage', 'plus1': False, 'value': True, 'soft': False},
         }
 
+
         self.extract_meta(terms, xpaths_meta)
 
-        self.link_files()
-
         self.scan_meta()
+
+        self.link_files()
 
         self.urlize()
 
@@ -1024,6 +1006,7 @@ class imzMLmeta(mzMLmeta):
         terms['scan_meta'] = {
             'MS:1000511': {'attribute': False, 'name':'MS Level', 'plus1': False, 'value':True, 'soft': False},
             'MS:1000465': {'attribute': False, 'name':'Scan polarity', 'plus1': False, 'value':False, 'soft': False},
+            'MS:1000525': {'attribute': False, 'name':'Spectrum representation', 'plus1': False, 'value': False, 'soft': False},
         }
 
         if len(scan_refs) != 1:

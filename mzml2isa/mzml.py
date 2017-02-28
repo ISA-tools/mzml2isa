@@ -49,6 +49,13 @@ from .utils import (
     create_terms
 )
 
+from .meta_collectors import (
+    AbstractCollector,
+    Polarity,
+    TimeRange,
+    MzRange,
+    DataFileContent
+)
 
 IDENTITY_THRESHOLD = 0.4
 
@@ -129,8 +136,10 @@ class mzMLmeta(object):
         # Create dictionary of terms to search mzML file
         terms = create_terms()
 
-        self.tree = etree.parse(in_file, etree.XMLParser())
+        # Parses only the first spectrum...
+        self._parse_pruned_tree()
 
+        # ...because build_env needs at least one.
         self.build_env()
 
         self._make_params()
@@ -151,23 +160,28 @@ class mzMLmeta(object):
         # The instrument information has to be extracted separately
         self.instrument()
 
-        # Get polarity (could be pos neg switching so we need to check all scans)
-        self.polarity()
-
-        # Get spectrum rep (as it might not be in file content)
+        # Get spectrum representation (as it might not be in file content)
         self.spectrum_repr(XPATHS['sp_cv'])
 
-        # The following information is calculated from the spectrum information or derived from other details
-        # in the mzML file
-        self.timerange()
-        self.mzrange()
+        # The following information is derived from other details in the mzML file
         self.scan_num()
         self.derived()
 
+        # Collect information from the scans
+
+        self.meta_collectors = [Polarity(), TimeRange(), MzRange()]
+
         if complete_parse:
-            self.spectrum_meta()
-        elif not 'Data file content' in self.meta:
-            self.data_file_content()
+            self.meta_collectors.append(self.spectrum_meta())
+        elif 'Data file content' not in self.meta:
+            file_contents = self.obo['MS:1000524'].rchildren().id
+            self.meta_collectors.append(DataFileContent(file_contents))
+
+        self._collect_scan_info()
+
+        if 'Scan m/z range' not in self.meta:
+            if not isinstance(self, imzMLmeta):  # Warn only if parsing a mzML file
+                warnings.warn("Could not find any m/z range.")
 
         # Render control vocabularies accession numbers as urls
         self.urlize()
@@ -203,7 +217,11 @@ class mzMLmeta(object):
             terms (:obj:`dict`): terms that are to be extracted
         """
         # memoize the descendents of the current term
-        self._descendents.update({k:self.obo[k].rchildren().id for k in terms[location_name] if not k in self._descendents})
+        self._descendents.update({
+            k: self.obo[k].rchildren().id
+            for k in terms[location_name]
+            if k not in self._descendents
+        })
 
         # go through every cvParam element
         for e in elements:
@@ -211,54 +229,52 @@ class mzMLmeta(object):
             for accession, info in six.iteritems(terms[location_name]):
 
                 # check if the element is one of the terms we are looking for
-                if e.attrib['accession'] in self._descendents[accession] or e.attrib['accession']==accession:
+                if e.attrib['accession'] in self._descendents[accession] or e.attrib['accession'] == accession:
 
                     meta_name = info['name']
+
+                    entry = {
+                        'accession': e.attrib['accession'],
+                        'name': e.attrib['name'],
+                        'ref': e.attrib['cvRef']
+                    }
+
+                    try:
+                        entry['unit'] = {
+                            'accession': e.attrib['unitAccession'],
+                            'name': e.attrib['unitName'],
+                            'ref': e.attrib['unitCvRef']
+                        }
+                    except KeyError:
+                        pass
+
+                    # Check if a value is associated with this CV
+                    if info['value']:
+                        entry['value'] = self._convert(e.attrib['value'])
 
                     # Check if there can be more than one of the same term
                     if info['plus1']:
                         # Setup the dictionary for multiple entries
-                        if not meta_name in self.meta:
+                        if meta_name not in self.meta:
                             self.meta[meta_name] = {'entry_list': []}
 
-                        self.meta[meta_name]['entry_list'].append( {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']} )
+                        if entry['name'].upper() == meta_name.upper():
+                            del entry['accession']
+                            del entry['name']
+                            del entry['ref']
 
-                        try:
-                            self.meta[meta_name]['entry_list'][-1]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
-                                                                              'accession': e.attrib['unitAccession']}
-                        except KeyError:
-                            pass
-
-                        # Check if a value is associated with this CV
-                        if info['value']:
-                            self.meta[meta_name]['entry_list'][-1]['value'] = self._convert(e.attrib['value'])
-
-                        if self.meta[meta_name]['entry_list'][-1]['name'].upper() == meta_name.upper():
-                            del self.meta[meta_name]['entry_list'][-1]['name']
-                            del self.meta[meta_name]['entry_list'][-1]['accession']
-                            del self.meta[meta_name]['entry_list'][-1]['ref']
-
+                        self.meta[meta_name]['entry_list'].append(entry)
                         #c += 1
                     else:
-
-                        # Standard CV with only with entry
-                        self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']}
-
-                        try:
-                            self.meta[meta_name]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
-                                                            'accession': e.attrib['unitAccession']}
-                        except KeyError:
-                            pass
-
-                        # Check if value associated
                         if info['value']:
-                            self.meta[meta_name]['value'] = self._convert(e.attrib['value'])
                             # remove name and accession if only the value is interesting
 
-                            if self.meta[meta_name]['name'].upper() == meta_name.upper():
-                                del self.meta[meta_name]['name']
-                                del self.meta[meta_name]['accession']
+                            if entry['name'].upper() == meta_name.upper():
+                                del entry['name']
+                                del entry['accession']
 
+                        # Standard CV with only with entry
+                        self.meta[meta_name] = entry
 
                     # Check if there is expected associated software
                     if info['soft']:
@@ -289,6 +305,50 @@ class mzMLmeta(object):
                 return float(value)
             except ValueError:
                 return value
+
+    def _parse_pruned_tree(self):
+        """Partially parse XML file, keeping metadata and one of the spectra/chromatogram
+
+        Since the number of spectra might be very large, parsing the whole XML into memory
+        might easily consume several gigabytes of RAM which is what we try to avoid here.
+        """
+        elements = etree.iterparse(self.in_file, events=('start', 'end'))
+        _, self.root = next(elements)
+
+        self.build_ns()
+        prefix = '{' + self.ns['s'] + '}'
+
+        spectrum_tags = set([prefix + tag for tag in ['spectrum', 'chromatogram']])
+        sp_idx = 0
+        for event, elem in elements:
+            if event == 'start':
+                continue
+            if elem.tag in spectrum_tags:
+                sp_idx += 1
+                if sp_idx > 1:
+                    elem.clear()  # keep only the first spectrum in memory
+
+    def _collect_scan_info(self):
+        """Iterate over scans and pass each scan to all meta_collectors"""
+        spectrum_tag = self.env['spectrum'].replace('s:', '{' + self.ns['s'] + '}')
+
+        elements = etree.iterparse(self.in_file)
+        for _, elem in elements:
+            if elem.tag == spectrum_tag:
+                for collector in self.meta_collectors:
+                    collector.process_scan(elem, self.env, self.ns)
+                elem.clear()
+
+        for collector in self.meta_collectors:
+            collector.populate_meta(self.meta)
+
+        # for entry in ('Collision Energy', 'Data file content', 'Dissociation method', 'Spectrum combination',
+        #               'Binary data array', 'Binary data compression type', 'Binary data type'):
+        #     self.merge_entries(entry)
+
+    @property
+    def tree(self):
+        return self.root
 
     def _instrument_byref(self):
         """Extract the instrument from its referenceableParamList entry.
@@ -452,32 +512,6 @@ class mzMLmeta(object):
         self.meta['Derived Spectral Data File'] = {'entry_list': [{'value': derived_spectral_data_file}] } # mzML file name
         self.meta['Sample Name'] = {'value': ms_assay_name} # mzML file name w/o extension
 
-    def polarity(self):
-        """Iterates over all scans to get the `average` polarity."""
-
-        sp_cv = pyxpath(self, XPATHS['sp_cv'])
-
-        pos = False
-        neg = False
-
-        for i in sp_cv:
-            if i.attrib['accession'] == 'MS:1000130':
-                pos = True
-            if i.attrib['accession'] == 'MS:1000129':
-                neg = True
-
-        if pos & neg:
-            polarity = {'name': "alternating scan", 'ref':'', 'accession':''}
-        elif pos:
-            polarity = {'name':"positive scan", 'ref':'MS', 'accession':'MS:1000130'}
-        elif neg:
-            polarity = {'name':"negative scan", 'ref':'MS', 'accession':'MS:1000129'}
-        else:
-            polarity = {'name': "n/a", 'ref':'', 'accession':''}
-
-        self.meta['Scan polarity'] = polarity
-
-
     def spectrum_repr(self, sp_cv):
         """Checks first spectrum for spectrum representation (profile/centroid)"""
 
@@ -494,40 +528,11 @@ class mzMLmeta(object):
                                         'ref': e.attrib['cvRef']}
                 return
 
-
-
-
     def _make_params(self):
         """Create a memoized set of xml Elements in `ReferenceableParamGroupList`
         """
         self._params = {x.attrib['id']:x for x in pyxpath(self,
         '{root}/s:referenceableParamGroupList/s:referenceableParamGroup')}
-
-    def data_file_content(self):
-        """Extract the `Data file content` from all scans.
-
-        This method is called only in the case the FileContent xml Element
-        contained no actual cvParam elements. This was witnessed in at least
-        one file from a Waters instrument.
-        """
-
-        file_contents = self.obo['MS:1000524'].rchildren().id
-
-        def unseen(accession, memo=set()):
-            if accession in memo:
-                return False
-            else:
-                memo.add(accession)
-                return True
-
-        self.meta['Data file content'] = {'entry_list':
-
-            [ {'name': cv.attrib['name'], 'ref': cv.attrib['cvRef'], 'accession': cv.attrib['accession'] }
-                for cv in pyxpath(self, XPATHS['sp_cv'])
-                    if cv.attrib['accession'] in file_contents and unseen(cv.attrib['accession'])
-            ]
-
-        }
 
     def spectrum_meta(self):
         """Extract information of each spectrum in entry lists.
@@ -594,29 +599,30 @@ class mzMLmeta(object):
             'MS:1000513': {'attribute': False, 'name': 'Binary data array', 'plus1': True, 'value': False, 'soft': False},
         }
 
-        for spectrum in pyxpath(self, XPATHS['sp']):
+        cvParam_loop = self.cvParam_loop
+        _params = self._params
 
-            for path,name in [('./s:referenceableParamGroupRef', 'sp'),
-                              ('{scanList}/s:scan/s:referenceableParamGroupRef', 'combination'),
-                              ('{root}/s:referenceableParamGroupList/s:referenceableParamGroup', 'binary')]:
+        class SpectrumMeta(AbstractCollector):
+            def process_scan(self, spectrum, env, ns):
+                for path, name in [('./s:referenceableParamGroupRef', 'sp'),
+                                   ('{scanList}/s:scan/s:referenceableParamGroupRef', 'combination'),
+                                   ('{root}/s:referenceableParamGroupList/s:referenceableParamGroup', 'binary')]:
 
-                refs = spectrum.iterfind(path.format(**self.env), self.ns)
-                for ref in refs:
-                    params = self._params[ref.attrib['ref']]
-                    self.cvParam_loop(params.iterfind('s:cvParam', self.ns), name, terms)
+                    refs = spectrum.iterfind(path.format(**env), ns)
+                    for ref in refs:
+                        params = _params[ref.attrib['ref']]
+                        cvParam_loop(params.iterfind('s:cvParam', ns), name, terms)
 
-            self.cvParam_loop(spectrum.iterfind('s:cvParam', self.ns), 'sp', terms)
-            self.cvParam_loop(spectrum.iterfind('{scanList}/s:cvParam'.format(**self.env), self.ns), 'combination', terms)
-            self.cvParam_loop(spectrum.iterfind('{scanList}/s:scan/s:cvParam'.format(**self.env), self.ns), 'configuration', terms)
-            self.cvParam_loop(spectrum.iterfind('s:binaryDataArrayList/s:binaryDataArray/s:cvParam'.format(**self.env), self.ns), 'binary', terms)
+                cvParam_loop(spectrum.iterfind('s:cvParam', ns), 'sp', terms)
+                cvParam_loop(spectrum.iterfind('{scanList}/s:cvParam'.format(**env), ns), 'combination', terms)
+                cvParam_loop(spectrum.iterfind('{scanList}/s:scan/s:cvParam'.format(**env), ns), 'configuration', terms)
+                cvParam_loop(spectrum.iterfind('s:binaryDataArrayList/s:binaryDataArray/s:cvParam'.format(**env), ns), 'binary', terms)
 
-            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:activation/s:cvParam', self.ns), 'activation', terms)
-            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:isolationWindow/s:cvParam', self.ns), 'isolation_window', terms)
-            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:selectedIonList/s:selectedIon/s:cvParam', self.ns), 'selected_ion', terms)
+                cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:activation/s:cvParam', ns), 'activation', terms)
+                cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:isolationWindow/s:cvParam', ns), 'isolation_window', terms)
+                cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:selectedIonList/s:selectedIon/s:cvParam', ns), 'selected_ion', terms)
 
-        # for entry in ('Collision Energy', 'Data file content', 'Dissociation method', 'Spectrum combination',
-        #               'Binary data array', 'Binary data compression type', 'Binary data type'):
-        #     self.merge_entries(entry)
+        return SpectrumMeta()
 
     def merge_entries(self, name):
         """An unoptimized way of merging meta entries only made of duplicates.
@@ -643,71 +649,6 @@ class mzMLmeta(object):
             if 'entry_list' in self.meta[name].keys():
                 seen = set()
                 return [x for x in self.meta[name]['entry_list'] if str(x) not in seen and not seen.add(str(x))]
-
-    def timerange(self):
-        """Try to extract the Time range of all the scans.
-
-        Time range consists in the smallest and largest time the successive scans
-        were started. The unit (most of the time `minute`) will be extracted as well
-        if possible.
-        """
-
-        try:
-            scan_cv =  pyxpath(self, XPATHS['scan_cv'])
-
-            time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
-            unit = next( ( {'name': i.attrib['unitName'],'accession': i.attrib['unitAccession'],'ref': i.attrib['unitCvRef'] }
-                            for i in pyxpath(self, XPATHS['scan_cv']) if i.attrib['accession'] == 'MS:1000016' and 'unitName' in i.attrib ), None)
-
-            minrt = str(round(min(time),4))
-            maxrt = str(round(max(time),4))
-            timerange = minrt + "-" + maxrt
-
-        except ValueError:
-            # THIS IS NOT SOMETHING TO BE WARNED ABOUT
-            # warnings.warn("Could not find any time range.")
-            timerange = ''
-
-        if timerange:
-            self.meta['Time range'] = {'value': timerange}
-            if unit is not None:
-                self.meta['Time range']['unit'] = unit
-
-    def mzrange(self):
-        """Try to extract the m/z range of all scans."""
-
-
-        try: #case with detection range
-            scan_window_cv = pyxpath(self, XPATHS['scan_window_cv'])
-            minmz_l = []
-            maxmz_l = []
-
-            unit = None
-
-            for i in scan_window_cv:
-                if i.attrib['accession'] == 'MS:1000501':
-                    minmz_l.append(float(i.attrib['value']))
-
-                    unit = unit or {'name': i.attrib['unitName'],
-                                    'ref': i.attrib['unitCvRef'],
-                                    'accession': i.attrib['unitAccession']}
-
-                if i.attrib['accession'] == 'MS:1000500':
-                    maxmz_l.append(float(i.attrib['value']))
-
-            minmz = str(int(min(minmz_l)))
-            maxmz = str(int(max(maxmz_l)))
-            mzrange = '-'.join([minmz, maxmz])
-
-        except ValueError: #Case with windowed target
-            if not isinstance(self, imzMLmeta): #Warn only if parsing a mzML file
-                warnings.warn("Could not find any m/z range.")
-            mzrange = ''
-
-        if mzrange:
-            self.meta['Scan m/z range'] = {'value': mzrange}
-            if unit is not None:
-                self.meta['Scan m/z range']['unit'] = unit
 
     def scan_num(self):
         """Extract the total number of scans."""
@@ -761,17 +702,22 @@ class mzMLmeta(object):
             return "http://purl.obolibrary.org/obo/{}".format(accession.replace(':', '_'))
         return accession
 
-    def build_env(self):
-        """Build the env and the ns dictionaries."""
+    def _getroot(self):
+        return self.root
 
-        self.env = collections.OrderedDict()
-
+    def build_ns(self):
+        """Build the ns dictionary."""
         try: #lxml
-            self.ns = self.tree.getroot().nsmap
+            self.ns = self._getroot().nsmap
             self.ns['s'] = self.ns[None] # namespace
             del self.ns[None]
         except AttributeError: #xml.(c)ElementTree
-            self.ns = {'s': self.tree.getroot().tag[1:].split("}")[0]}
+            self.ns = {'s': self._getroot().tag[1:].split("}")[0]}
+
+    def build_env(self):
+        """Build the env dictionary."""
+
+        self.env = collections.OrderedDict()
 
         # Check if indexedmzML/mzML or mzML
         if isinstance(self, mzMLmeta):
@@ -995,11 +941,21 @@ class imzMLmeta(mzMLmeta):
         else:
             return ''
 
+    def _collect_scan_info(self):
+        self.scan_refs = set()
+        scan_refs = self.scan_refs
+
+        class ScanRefs(AbstractCollector):
+            def process_scan(self, elem, env, ns):
+                for x in elem.iterfind('./s:referenceableParamGroupRef', ns):
+                    scan_refs.add(x.attrib['ref'])
+
+        self.meta_collectors.append(ScanRefs())
+        super(imzMLmeta, self)._collect_scan_info()
+
     def scan_meta(self):
         """Extract scan dependant metadata
         """
-
-        scan_refs = { x.attrib['ref'] for x in pyxpath(self, XPATHS_I['scan_ref']) }
 
         terms = collections.OrderedDict()
 
@@ -1009,18 +965,14 @@ class imzMLmeta(mzMLmeta):
             'MS:1000525': {'attribute': False, 'name':'Spectrum representation', 'plus1': False, 'value': False, 'soft': False},
         }
 
-        if len(scan_refs) != 1:
+        if len(self.scan_refs) != 1:
             warnings.warn("File contains scans using different parameter values, parsed metadata may be wrong.")
 
-        for ref in scan_refs:
-
-            param_group = next( x for x in pyxpath(self, XPATHS_I['ref_param_list']) if x.attrib['id'] == ref)
+        for ref in self.scan_refs:
+            param_group = next(x for x in pyxpath(self, XPATHS_I['ref_param_list']) if x.attrib['id'] == ref)
 
             self.cvParam_loop(param_group.iterfind('s:cvParam', self.ns),
                               'scan_meta', terms)
-
-
-
 
 if __name__ == '__main__':
 

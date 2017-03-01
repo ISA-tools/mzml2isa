@@ -15,15 +15,6 @@ License
 GNU General Public License version 3.0 (GPLv3)
 """
 
-import six
-
-from . import (
-    __author__,
-    __name__,
-    __version__,
-    __license__,
-)
-
 SCAN_XPATHS = {
     'cv': './s:cvParam',
     'scan_cv': './{scanList}/s:scan/s:cvParam',
@@ -151,7 +142,7 @@ class DataFileContent(AbstractCollector):
         self._memo.add(accession)
         return False
 
-    def process_scan(self, elem, ns):
+    def process_scan(self, elem, env, ns):
         for cv in elem.iterfind(SCAN_XPATHS['cv'], ns):
             if cv.attrib['accession'] not in self.file_contents:
                 continue

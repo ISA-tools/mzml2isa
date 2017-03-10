@@ -1,0 +1,9 @@
+six
+pronto>=0.6.0
+openpyxl
+
+[lxml]
+lxml
+
+[pb]
+progressbar2

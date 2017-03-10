@@ -1,0 +1,3 @@
+[console_scripts]
+mzml2isa = mzml2isa.parsing:main
+

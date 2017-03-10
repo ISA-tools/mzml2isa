@@ -107,12 +107,14 @@ def convert(in_path, out_path, study_identifier, **kwargs):
             containing custom templates to use when importing ISA tab
             [default: None]
         verbose (bool): display more output [default: True]
+        OUT_dir (str, optional): Out directory 'as is'. For situations when a user want's full control of the out path.
     """
     split = kwargs.get('split', True)
     merge = kwargs.get('merge', False)
     verbose = kwargs.get('verbose', True)
     jobs = kwargs.get('jobs', 1)
     template_directory = kwargs.get('template_directory', None)
+    OUT_dir = kwargs.get('OUT_dir', None)
 
     PARSERS = {'mzML': mzMLmeta, 'imzML': imzMLmeta}
     ONTOLOGIES = {'mzML': get_ontology('MS'), 'imzML': get_ontology('IMS')}
@@ -164,7 +166,8 @@ def convert(in_path, out_path, study_identifier, **kwargs):
         if metalist:
             if verbose:
                 print("Parsing mzML meta information into ISA-Tab structure")
-            isa_tab = ISA_Tab(out_path, study_identifier, usermeta=meta_loader.usermeta, template_directory=template_directory)
+            isa_tab = ISA_Tab(out_path, study_identifier, usermeta=meta_loader.usermeta,
+                              template_directory=template_directory, OUT_dir=OUT_dir)
             isa_tab.write(metalist, extension, split=split)
 
     else:
@@ -184,7 +187,11 @@ def main(argv=None):
     )
 
     p.add_argument('-i', dest='in_path', help='input folder or archive containing mzML files', required=True)
-    p.add_argument('-o', dest='out_path', help='out folder (a new directory will be created here)', required=True)
+
+    group = p.add_mutually_exclusive_group(required=True)
+    group.add_argument('-o', dest='out_path', help='out folder (a new directory will be created here)')
+    group.add_argument('-O', dest='OUT_path', help='Out folder "as is". For situations when a user want\'s '
+                                                   'full control of the out path', required=False)
     p.add_argument('-s', dest='study_id', help='study identifier (e.g. MTBLSxxx)', required=True)
     p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', default=None, required=False)#, type=json.loads)
     p.add_argument('-j', dest='jobs', help='launch different processes for parsing', action='store', required=False, default=1, type=int)
@@ -203,7 +210,10 @@ def main(argv=None):
 
     if args.verbose:
         print("{} input path: {}".format(os.linesep, args.in_path))
-        print("output path: {}".format(os.path.join(args.out_path, args.study_id)))
+        if args.OUT_path:
+            print("output path: {}".format(args.OUT_path))
+        else:
+            print("output path: {}".format(os.path.join(args.out_path, args.study_id)))
         print("Sample identifier:{}{}".format(args.study_id, os.linesep))
 
     with warnings.catch_warnings():
@@ -211,7 +221,7 @@ def main(argv=None):
         convert(args.in_path, args.out_path, args.study_id,
            usermeta=args.usermeta, split=args.split,
            merge=args.merge, verbose=args.verbose,
-           jobs=args.jobs, template_directory=args.template_dir
+           jobs=args.jobs, template_directory=args.template_dir, OUT_dir=args.OUT_path
         )
 
 
@@ -233,5 +243,4 @@ def full_parse(*args, **kwargs):
 
 if __name__ == '__main__':
     main()
-
 

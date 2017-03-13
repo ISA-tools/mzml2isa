@@ -63,14 +63,23 @@ class ISA_Tab(object):
                 only your "a_imzML.txt" is non-standard, then you only have to have a new
                 "a_imzML.txt" in your custom template directory. If None, the uses the
                 ones shipping with mzml2isa, compatible with MetaboLights [default: None]
+            OUT_dir (str, optional): Out directory 'as is'. For situations when a user want's full
+                            control of the out path
         """
         usermeta = kwargs.get('usermeta', None)
         template_directory = kwargs.get('template_directory', None)
+        OUT_dir = kwargs.get('OUT_dir', None)
+
+
+        if OUT_dir:
+            out_pth = OUT_dir
+        else:
+            out_pth = os.path.join(out_dir, name)
 
         # Create one or several study files / one or several study section in investigation
         self.usermeta = usermeta or {}
         self.isa_env = {
-            'out_dir': os.path.join(out_dir, name),
+            'out_dir': out_pth,
             'Study Identifier':  name,
             'Study file name': 's_{}.txt'.format(name),
             'Assay polar file name': 'a_{}_{{}}_metabolite_profiling_mass_spectrometry.txt'.format(name),

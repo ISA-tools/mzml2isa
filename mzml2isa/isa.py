@@ -110,17 +110,20 @@ class ISA_Tab(object):
         """
         split = kwargs.get('split', True)
 
-        platforms = [meta['Instrument'] for meta in metalist if 'Instrument' in meta]
+        platforms = [meta['Instrument']['name'] for meta in metalist if 'Instrument' in meta]
 
-        if len(set([p['name'] for p in platforms])) > 1:
+        if len(set(platforms)) > 1:
             print('WARNING: The mzML files are derived from multiple instrument types, this can be problematic'
-                  'as the "platform" used in the ISAcreator templates uses 1 instrument type per assay,'
-                  'please check the Investigation file to ensure the correct "platform" is being used')
+                  'as the "platform" used in the ISAcreator typically uses 1 instrument type per assay,'
+                  'please check the Investigation output file to ensure the correct "platform" has been assigned'
+                  'to the correct assay file.')
+
+        platform_str = ", ".join(set(platforms))
 
         if split:
-            self.isa_env['Platform'] = platforms[:2]
+            self.isa_env['Platform'] = [platform_str]*2
         else:
-            self.isa_env['Platform'] = platforms[0]
+            self.isa_env['Platform'] = [platform_str]
 
         if not os.path.exists(self.isa_env['out_dir']):
             os.makedirs(self.isa_env['out_dir'])

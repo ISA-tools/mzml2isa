@@ -37,7 +37,7 @@ from __future__ import absolute_import
 
 __author__ = 'Thomas Lawson, Martin Larralde'
 __credits__ = 'Thomas Lawson, Martin Larralde, Reza Salek, Ken Haug, Christoph Steinbeck'
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 __license__ = 'GPLv3'
 
 try:

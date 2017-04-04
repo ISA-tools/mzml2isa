@@ -64,7 +64,7 @@ Study Assay Measurement Type Term Source REF	"{{Measurement type[{}][ref]}}"
 Study Assay Technology Type	"{{Technology type[{}][name]}}"
 Study Assay Technology Type Term Accession Number	"{{Technology type[{}][accession]}}"
 Study Assay Technology Type Term Source REF	"{{Technology type[{}][ref]}}"
-Study Assay Technology Platform	"{{Platform[{}][name]}}"
+Study Assay Technology Platform	"{{Platform[{}]}}"
 STUDY PROTOCOLS
 Study Protocol Name	"Sample collection"	"Preparation"	"Mass spectrometry"	"Histology"	"Data transformation"	"Metabolite identification"
 Study Protocol Type	"Sample collection"	"Preparation"	"Mass spectrometry"	"Histology"	"Data transformation"	"Metabolite identification"

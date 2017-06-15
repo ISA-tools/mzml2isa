@@ -964,7 +964,7 @@ class imzMLmeta(mzMLmeta):
         sample_name = self.meta['Sample Name']['value']
 
         # First attempt to find image files named exactly like the imzML file
-        for f in self.in_dir.filterdir(files=args):
+        for f in self.in_dir.filterdir("/", files=args, exclude_dirs=["*"]):
             if os.path.splitext(f.name)[0] == sample_name:
                 return f.name
 
@@ -972,7 +972,7 @@ class imzMLmeta(mzMLmeta):
         for img_format in args:
             name = self.meta['Sample Name']['value']
             # Get a reduced file list with just the img_format that is in the loop
-            rfilelist = list(self.in_dir.filterdir(files=[img_format]))
+            rfilelist = list(self.in_dir.filterdir("/", files=[img_format], exclude_dirs=["*"]))
             # loop through the reduced file list, compute and add to the identity dicitonary
             for file in rfilelist:
                 filename = os.path.splitext(file.name)[0]

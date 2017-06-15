@@ -138,7 +138,8 @@ def convert(in_path, out_path, study_identifier, **kwargs):
     else:
         in_dir = fs.open_fs(in_path)
 
-    mzml_files = list(in_dir.filterdir("/", files=["*.mzML", "*.imzML", "*.mzml", "*.imzml"]))
+    mzml_files = list(in_dir.filterdir("/", exclude_dirs=["*"],
+        files=["*.mzML", "*.imzML", "*.mzml", "*.imzml"]))
     mzml_files.sort(key=operator.attrgetter("name"))
 
     if mzml_files:
@@ -146,7 +147,7 @@ def convert(in_path, out_path, study_identifier, **kwargs):
         extension = mzml_files[0].name.split(os.path.extsep)[-1].lower()
         ontology = ONTOLOGIES[extension]
         parser = PARSERS[extension]
-
+in_file.name
         if not verbose and progressbar is not None:
             pbar = progressbar.ProgressBar(
                 min_value = 0, max_value = len(mzml_files),

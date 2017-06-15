@@ -27,6 +27,7 @@ from __future__ import absolute_import
 import collections
 import json
 import os
+import fs
 import glob
 import six
 import sys
@@ -121,11 +122,8 @@ class mzMLmeta(object):
         # setup lxml parsing
         self.in_file = in_file
 
-        self.in_dir = in_dir
-        # try:
-        #     self.in_dir = os.path.dirname(in_file)
-        # except (AttributeError, TypeError):
-        #     self.in_dir = None
+        self.in_dir = fs.open_fs(in_dir)
+
 
         # Create dictionary of terms to search mzML file
         terms = create_terms()
@@ -938,21 +936,19 @@ class imzMLmeta(mzMLmeta):
         """Put 'Raw Spectral Data File' and 'Spectrum Representation' in entry_lists
         """
 
-        try:
-            raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file.name))[0]
-        except AttributeError:
-            raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file))[0]
+        raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file.name))[0]
 
-        self.meta['Raw Spectral Data File'] =  {'entry_list': [{'value': raw_spectral_data_file \
-                                                                          + os.path.extsep + 'ibd'}] }
 
+        self.meta['Raw Spectral Data File'] =  {'entry_list': [
+            {'value': os.path.extsep.join([raw_spectral_data_file, 'ibd'])}
+        ]}
         self.meta['Spectrum representation'] = {'entry_list': [ self.meta['Spectrum representation'] ] }
 
         #if group_spectra:
         #    self.meta['MS Assay Name']['value'] = self.meta['MS Assay Name']['value']
 
-        self.meta['High-res image'] = {'value': self.find_img('ndpi') }
-        self.meta['Low-res image'] =  {'value': self.find_img('jpg', 'tif') }
+        self.meta['High-res image'] = {'value': self.find_img('*.ndpi') }
+        self.meta['Low-res image'] =  {'value': self.find_img('*.jpg', '*.tif') }
 
     def find_img(self, *args):
         """Find associated image files in the same directory as imzML files
@@ -968,28 +964,19 @@ class imzMLmeta(mzMLmeta):
         sample_name = self.meta['Sample Name']['value']
 
         # First attempt to find image files named exactly like the imzML file
-        for file in (x for x in os.listdir(self.in_dir) if x.lower().endswith(args)):
-            if os.path.splitext(file)[0] == sample_name:
-                return file
+        for f in self.in_dir.filterdir(files=args):
+            if os.path.splitext(f.name)[0] == sample_name:
+                return f.name
 
         # If None is found, attempt comparing identity
         for img_format in args:
-
             name = self.meta['Sample Name']['value']
-
-            try:
-                # Get a reduced file list with just the img_format that is in the loop
-                rfilelist = [f for f in self.in_file.filelist if f.lower().endswith(img_format)]
-                # loop through the reduced file list, compute and add to the identity dicitonary
-                for file in rfilelist:
-                    filename = os.path.splitext(os.path.basename(file))[0]
-                    identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
-
-            except AttributeError:
-
-                for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
-                    filename = os.path.splitext(os.path.basename(file))[0]
-                    identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
+            # Get a reduced file list with just the img_format that is in the loop
+            rfilelist = list(self.in_dir.filterdir(files=[img_format]))
+            # loop through the reduced file list, compute and add to the identity dicitonary
+            for file in rfilelist:
+                filename = os.path.splitext(file.name)[0]
+                identity[file.name] = len(longest_substring(filename, name)) / len(name)
 
         if identity and max(identity.values()) > IDENTITY_THRESHOLD:
             return max(identity, key=identity.get)

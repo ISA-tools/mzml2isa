@@ -41,7 +41,7 @@ from . import (
 TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 ONTOLOGIES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ontologies")
 MS_CV_URL = 'https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo'
-IMS_CV_URL = 'https://raw.githubusercontent.com/ISA-tools/mzml2isa/master/mzml2isa/imagingMS.obo'
+IMS_CV_URL = 'https://raw.githubusercontent.com/ISA-tools/mzml2isa/master/mzml2isa/ontologies/imagingMS.obo'
 
 ## AVAILABLE XML PARSER
 try:

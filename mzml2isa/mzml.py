@@ -128,7 +128,8 @@ class mzMLmeta(object):
         # Create dictionary of terms to search mzML file
         terms = create_terms()
 
-        self.tree = etree.parse(in_dir.openbin(in_file.name), etree.XMLParser())
+        with in_dir.openbin(in_file.name) as f:
+            self.tree = etree.parse(f, etree.XMLParser())
 
         self.build_env()
 

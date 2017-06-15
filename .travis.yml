@@ -1,8 +1,9 @@
-#sudo: false
+sudo: false
 language: python
 python:
 - '3.5'
 #- '2.7'
+
 cache:
   directories:
   - $HOME/mtbls-config
@@ -49,18 +50,16 @@ before_install:
 - sudo apt-get update -qq
 - sudo apt-get install -y python-lxml python3-lxml curlftpfs
 - pip install https://github.com/ISA-tools/isa-api/archive/py2.zip
-- pip install https://github.com/PyFilesystem/pyfilesystem/archive/master.zip
 
 install:
 - pip install .
 
 before_script:
 - mkdir example_files/metabolights
-- curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
 - scripts/get-isa-configuration.py -o $MTBLS_CONFIG_DIR
 
 script:
-- mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
+- mzml2isa -i ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/$STUDY -o out_folder/metabolights -s $STUDY
 - scripts/validate.py out_folder/metabolights/$STUDY $MTBLS_CONFIG_DIR
 
 after_script:

@@ -62,11 +62,11 @@ from .utils import (
 
 
 #@star_args
-def _parse_file(handle, ontology=None, parser=None, in_dir=None, pbar=None):
+def _parse_file(info, ontology=None, parser=None, in_dir=None, pbar=None):
     """Parse a single file using a cache ontology and a metadata extractor
 
     Arguments:
-        filepath (str): path to the mzml/imzml file to parse
+        filepath (fs.info.Info): details about the mzml/imzml file to parse
         ontology (pronto.Ontology): the cached ontology to use
             (either IMS or MS)
         parser (mzml.mzMLmeta): the parser to use on the file
@@ -77,11 +77,11 @@ def _parse_file(handle, ontology=None, parser=None, in_dir=None, pbar=None):
     Returns:
         dict: a dictionary containing the extracted metadata
     """
-    meta = parser(handle, ontology, in_dir=in_dir).meta
+    meta = parser(info, ontology, in_dir=in_dir).meta
     if pbar is not None:
         pbar.update(pbar.value + 1)
     else:
-        print("Finished parsing: {}".format(filepath))
+        print("Finished parsing: {}".format(info.name))
     return meta
 
 

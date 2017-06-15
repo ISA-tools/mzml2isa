@@ -153,9 +153,9 @@ def convert(in_path, out_path, study_identifier, **kwargs):
 
         if jobs > 1:
             pool = multiprocessing.pool.ThreadPool(jobs)
-            metalist = pool.map(_parse_file, [(mzml_file, ontology, parser, pbar) for mzml_file in sorted(mzml_files)])
+            metalist = pool.map(_parse_file, [(mzml_file, ontology, parser, pbar) for mzml_file in sorted(mzml_files, key=str)])
         else:
-            metalist = [_parse_file([mzml_file, ontology, parser, pbar]) for mzml_file in sorted(mzml_files)]
+            metalist = [_parse_file([mzml_file, ontology, parser, pbar]) for mzml_file in sorted(mzml_files, key=str)]
 
         # update isa-tab file
         if merge and extension=='imzML':
@@ -243,4 +243,3 @@ def full_parse(*args, **kwargs):
 
 if __name__ == '__main__':
     main()
-

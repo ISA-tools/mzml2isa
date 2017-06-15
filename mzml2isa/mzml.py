@@ -123,7 +123,7 @@ class mzMLmeta(object):
 
         try:
             self.in_dir = os.path.dirname(in_file)
-        except AttributeError:
+        except (AttributeError, TypeError):
             self.in_dir = None
 
         # Create dictionary of terms to search mzML file

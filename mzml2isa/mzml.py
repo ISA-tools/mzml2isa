@@ -877,7 +877,7 @@ XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{s
 
 class imzMLmeta(mzMLmeta):
 
-    def __init__(self, in_file, ontology=None):
+    def __init__(self, in_file, ontology=None, in_dir=None):
         """Setup the xpaths and terms. Then run the various extraction methods
 
         Parameters:
@@ -890,7 +890,7 @@ class imzMLmeta(mzMLmeta):
         elif self.obo is None:
             self.obo = ontology
 
-        super(imzMLmeta, self).__init__(in_file)
+        super(imzMLmeta, self).__init__(in_file, in_dir=in_dir)
 
         xpaths_meta = XPATHS_I_META
 

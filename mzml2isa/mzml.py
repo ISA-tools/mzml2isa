@@ -104,7 +104,7 @@ class mzMLmeta(object):
     obo = None
     _descendents = dict()
 
-    def __init__(self, in_file, ontology=None, complete_parse=False):
+    def __init__(self, in_file, ontology=None, complete_parse=False, in_dir=None):
         """Setup the xpaths and terms. Then run the various extraction methods
 
         Parameters:
@@ -121,15 +121,16 @@ class mzMLmeta(object):
         # setup lxml parsing
         self.in_file = in_file
 
-        try:
-            self.in_dir = os.path.dirname(in_file)
-        except (AttributeError, TypeError):
-            self.in_dir = None
+        self.in_dir = in_dir
+        # try:
+        #     self.in_dir = os.path.dirname(in_file)
+        # except (AttributeError, TypeError):
+        #     self.in_dir = None
 
         # Create dictionary of terms to search mzML file
         terms = create_terms()
 
-        self.tree = etree.parse(in_file, etree.XMLParser())
+        self.tree = etree.parse(in_dir.openbin(in_file.name), etree.XMLParser())
 
         self.build_env()
 
@@ -1024,7 +1025,7 @@ class imzMLmeta(mzMLmeta):
 
 if __name__ == '__main__':
 
-    if sys.argv[-1].endswith('.imzML'):
+    if sys.argv[-1].lower().endswith('.imzml'):
         print(imzMLmeta(sys.argv[-1]).meta_json)
     else:
         print(mzMLmeta(sys.argv[-1]).meta_json)

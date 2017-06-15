@@ -21,12 +21,15 @@ from __future__ import absolute_import
 
 import io
 import os
+import fs
 import sys
 import six
 import glob
 import argparse
 import textwrap
 import warnings
+import operator
+import functools
 import json
 import tarfile
 import zipfile
@@ -58,8 +61,8 @@ from .utils import (
 )
 
 
-@star_args
-def _parse_file(filepath, ontology, parser, pbar=None):
+#@star_args
+def _parse_file(handle, ontology=None, parser=None, in_dir=None, pbar=None):
     """Parse a single file using a cache ontology and a metadata extractor
 
     Arguments:
@@ -74,12 +77,13 @@ def _parse_file(filepath, ontology, parser, pbar=None):
     Returns:
         dict: a dictionary containing the extracted metadata
     """
-    meta = parser(filepath, ontology).meta
+    meta = parser(handle, ontology, in_dir=in_dir).meta
     if pbar is not None:
         pbar.update(pbar.value + 1)
     else:
         print("Finished parsing: {}".format(filepath))
     return meta
+
 
 def convert(in_path, out_path, study_identifier, **kwargs):
     """ Parses a study from given *in_path* and then creates an ISA file.
@@ -116,26 +120,30 @@ def convert(in_path, out_path, study_identifier, **kwargs):
     template_directory = kwargs.get('template_directory', None)
     OUT_dir = kwargs.get('OUT_dir', None)
 
-    PARSERS = {'mzML': mzMLmeta, 'imzML': imzMLmeta}
-    ONTOLOGIES = {'mzML': get_ontology('MS'), 'imzML': get_ontology('IMS')}
+    PARSERS = {'mzml': mzMLmeta, 'imzml': imzMLmeta}
+    ONTOLOGIES = {'mzml': get_ontology('MS'), 'imzml': get_ontology('IMS')}
 
     # open user metadata file if any
     meta_loader = UserMetaLoader(kwargs.get('usermeta', None))
 
-    # get mzML file in the example_files folder
-    if os.path.isdir(in_path):
-        compr = False
-        mzml_files = glob.glob(os.path.join(in_path, "*mzML"))
-    elif tarfile.is_tarfile(in_path) or zipfile.is_zipfile(in_path):
-        compr = True
-        mzml_files = compr_extract(in_path)
+    if os.path.isfile(in_path):
+        tar_formats = (".tar.gz", ".tar.xz", ".tar.bz2", ".tgz", ".txz", ".tbz")
+        if in_path.lower().endswith(".zip"):
+            in_dir = fs.open_fs("zip://{}".format(in_path))
+        elif in_path.lower().endswith(tar_formats):
+            in_path = fs.open_fs("tar://{}".format(tar_path))
+        else:
+            raise SystemError("Couldn't recognise format of "
+                              "{} as a source of mzml files".format(in_dir))
     else:
-        raise SystemError("Couldn't recognise format of "
-                          "{} as a source of mzml files".format(in_dir))
+        in_dir = fs.open_fs(in_path)
+
+    mzml_files = list(in_dir.filterdir("/", files=["*.mzML", "*.imzML", "*.mzml", "*.imzml"]))
+    mzml_files.sort(key=operator.attrgetter("name"))
 
     if mzml_files:
         # store the first mzml_files extension
-        extension = getattr(mzml_files[0], 'name', mzml_files[0]).split(os.path.extsep)[-1]
+        extension = mzml_files[0].name.split(os.path.extsep)[-1].lower()
         ontology = ONTOLOGIES[extension]
         parser = PARSERS[extension]
 
@@ -151,14 +159,19 @@ def convert(in_path, out_path, study_identifier, **kwargs):
         else:
             pbar = None
 
+        parse_file = functools.partial(_parse_file, ontology=ontology,
+                                       parser=parser, pbar=pbar, in_dir=in_dir)
+
+
         if jobs > 1:
             pool = multiprocessing.pool.ThreadPool(jobs)
-            metalist = pool.map(_parse_file, [(mzml_file, ontology, parser, pbar) for mzml_file in sorted(mzml_files, key=str)])
+            metalist = pool.map(parse_file, mzml_files)
         else:
-            metalist = [_parse_file([mzml_file, ontology, parser, pbar]) for mzml_file in sorted(mzml_files, key=str)]
+            metalist = [parse_file(mzml_file) for mzml_file in mzml_files]
+
 
         # update isa-tab file
-        if merge and extension=='imzML':
+        if merge and extension=='imzml':
             if verbose:
                 print('Attempting to merge profile and centroid scans')
             metalist = merge_spectra(metalist)

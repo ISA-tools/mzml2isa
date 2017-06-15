@@ -1,3 +1,4 @@
 six
+fs>=2
 pronto>=0.6.0
 openpyxl

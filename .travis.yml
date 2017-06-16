@@ -1,7 +1,7 @@
 sudo: false
 language: python
 python:
-- '3.5'
+- '3.6'
 #- '2.7'
 
 cache:
@@ -11,54 +11,55 @@ cache:
 env:
   global:
   - MTBLS_CONFIG_DIR=$HOME/mtbls-config
-  matrix:
-  - STUDY=MTBLS267
-  - STUDY=MTBLS266
-  - STUDY=MTBLS273
-  - STUDY=MTBLS32
-  - STUDY=MTBLS127
-  - STUDY=MTBLS289
-  - STUDY=MTBLS263
-  - STUDY=MTBLS87
-  - STUDY=MTBLS36
-  - STUDY=MTBLS140
-  - STUDY=MTBLS229
-  - STUDY=MTBLS265
-  - STUDY=MTBLS228
-  - STUDY=MTBLS67
-  - STUDY=MTBLS125
-  - STUDY=MTBLS126
-  - STUDY=MTBLS88
-  - STUDY=MTBLS38
-  - STUDY=MTBLS137
-  - STUDY=MTBLS315
-  - STUDY=MTBLS341
+#  matrix:
+#  - STUDY=MTBLS267
+#  - STUDY=MTBLS266
+#  - STUDY=MTBLS273
+#  - STUDY=MTBLS32
+#  - STUDY=MTBLS127
+#  - STUDY=MTBLS289
+#  - STUDY=MTBLS263
+#  - STUDY=MTBLS87
+#  - STUDY=MTBLS36
+#  - STUDY=MTBLS140
+#  - STUDY=MTBLS229
+#  - STUDY=MTBLS265
+#  - STUDY=MTBLS228
+#  - STUDY=MTBLS67
+#  - STUDY=MTBLS125
+#  - STUDY=MTBLS126
+#  - STUDY=MTBLS88
+#  - STUDY=MTBLS38
+#  - STUDY=MTBLS137
+#  - STUDY=MTBLS315
+#  - STUDY=MTBLS341
 
-matrix:
-  allow_failures:
-  - env: STUDY=MTBLS289
-  - env: STUDY=MTBLS36
-  - env: STUDY=MTBLS140
-  - env: STUDY=MTBLS125
-  - env: STUDY=MTBLS126
-  - env: STUDY=MTBLS38
-  - env: STUDY=MTBLS137
-  - env: STUDY=MTBLS341
-  fast_finish: true
+#matrix:
+#  allow_failures:
+#  - env: STUDY=MTBLS289
+#  - env: STUDY=MTBLS36
+#  - env: STUDY=MTBLS140
+#  - env: STUDY=MTBLS125
+#  - env: STUDY=MTBLS126
+#  - env: STUDY=MTBLS38
+#  - env: STUDY=MTBLS137
+#  - env: STUDY=MTBLS341
+#  fast_finish: true
 
-before_install:
-- pip install https://github.com/ISA-tools/isa-api/archive/py2.zip
+#before_install:
+#- pip install https://github.com/ISA-tools/isa-api/archive/py2.zip
 
 install:
 - pip install .
 
-before_script:
-- mkdir example_files/metabolights
-- scripts/get-isa-configuration.py -o $MTBLS_CONFIG_DIR
+#before_script:
+#- mkdir example_files/metabolights
+#- scripts/get-isa-configuration.py -o $MTBLS_CONFIG_DIR
 
 script:
-- mzml2isa -i ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/$STUDY -o out_folder/metabolights -s $STUDY
-- scripts/validate.py out_folder/metabolights/$STUDY $MTBLS_CONFIG_DIR
+#- mzml2isa -i ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/$STUDY -o out_folder/metabolights -s $STUDY
+#- scripts/validate.py out_folder/metabolights/$STUDY $MTBLS_CONFIG_DIR
+- python -W ignore::DeprecationWarning -m unittest discover -v
 
 notifications:
   email:

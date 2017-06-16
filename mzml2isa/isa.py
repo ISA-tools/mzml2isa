@@ -102,7 +102,7 @@ class ISA_Tab(object):
 
         Arguments:
             metalist (list): a list of mzml or imzml metadata dictionaries
-            datatype (str): the datatype of the study (either 'mzML' or 'imzML')
+            datatype (str): the datatype of the study (either 'mzml' or 'imzml')
 
         Keyword Arguments:
             split (bool, optional): a boolean stating if assay files should be split

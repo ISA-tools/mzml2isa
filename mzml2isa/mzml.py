@@ -112,6 +112,9 @@ class mzMLmeta(object):
             in_file (:obj:`str`): path to mzML file
             ontology (:obj:`pronto.Ontology`): a cached MS ontology
             complete_parse (bool): parse scan-specific metadata
+            in_dir (:obj:`fs.base.FS`): the filesystem mapping to the
+                directory containing the mzML file (can also just be
+                a regular path).
         """
 
         if ontology is None and self.obo is None:
@@ -122,13 +125,13 @@ class mzMLmeta(object):
         # setup lxml parsing
         self.in_file = in_file
 
-        self.in_dir = fs.open_fs(in_dir)
+        self.in_dir = fs.open_fs(in_dir or os.getcwd())
 
 
         # Create dictionary of terms to search mzML file
         terms = create_terms()
 
-        with in_dir.openbin(in_file.name) as f:
+        with in_dir.openbin(in_file) as f:
             self.tree = etree.parse(f, etree.XMLParser())
 
         self.build_env()
@@ -441,12 +444,8 @@ class mzMLmeta(object):
         except StopIteration:
             warnings.warn("Could not find any metadata about Raw Spectral Data File.")
 
-        try:
-            derived_spectral_data_file = os.path.basename(self.in_file.name)
-            ms_assay_name = os.path.splitext(derived_spectral_data_file)[0]
-        except AttributeError:
-            derived_spectral_data_file = os.path.basename(self.in_file)
-            ms_assay_name = os.path.splitext(derived_spectral_data_file)[0]
+        derived_spectral_data_file = os.path.basename(self.in_file)
+        ms_assay_name = os.path.splitext(derived_spectral_data_file)[0]
 
         self.meta['MS Assay Name'] = {'value': ms_assay_name}
         self.meta['Derived Spectral Data File'] = {'entry_list': [{'value': derived_spectral_data_file}] } # mzML file name
@@ -937,7 +936,7 @@ class imzMLmeta(mzMLmeta):
         """Put 'Raw Spectral Data File' and 'Spectrum Representation' in entry_lists
         """
 
-        raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file.name))[0]
+        raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file))[0]
 
 
         self.meta['Raw Spectral Data File'] =  {'entry_list': [

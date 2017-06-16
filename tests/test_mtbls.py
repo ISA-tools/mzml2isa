@@ -38,28 +38,25 @@ class TestMetabolightsStudies(unittest.TestCase):
     @classmethod
     def add_test(cls, study_id):
 
-        def parse_study(self):
-            with self.mtbls_ftp.opendir(study_id) as in_dir:
-                files_it = in_dir.filterdir("/", files=["*"+cls.extension], exclude_dirs=["*"])
-
-                for f in itertools.islice(files_it, cls.FILES):
-                    print("Parsing: {} in {}".format(f.name, study_id))
-                    meta = mzml2isa.mzml.mzMLmeta(in_file=f.name, in_dir=in_dir)
-
-
         def convert_study(self):
             with self.mtbls_ftp.opendir(study_id) as in_dir:
-                files_it = in_dir.filterdir("/", files=["*"+cls.extension], exclude_dirs=["*"])
+                files_it = in_dir.filterdir("/",
+                    files=["*"+cls.extension], exclude_dirs=["*"],
+                    namespaces=["details"],
+                )
 
-                metalist = [
-                    mzml2isa.mzml.mzMLmeta(in_file=f.name, in_dir=in_dir).meta
-                        for f in itertools.islice(files_it, cls.FILES)
-                ]
+                metalist = []
+                total_size = count = 0
+                while (not metalist or total_size < 100000000) and count < cls.FILES:
+                    f = next(files_it)
+                    print("Parsing {} from {} ({}B)".format(f.name, study_id, f.size))
+                    metalist.append(mzml2isa.mzml.mzMLmeta(in_file=f.name, in_dir=in_dir).meta)
+                    total_size += f.size
+                    count += 1
 
             isa_writer = mzml2isa.isa.ISA_Tab(self.tmpdir, study_id)
             isa_writer.write(metalist, self.extension[1:].lower())
 
-        setattr(cls, 'test_parse_study_{}'.format(study_id), parse_study)
         setattr(cls, 'test_convert_study_{}'.format(study_id), convert_study)
 
 

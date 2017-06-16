@@ -59,7 +59,7 @@ install:
 script:
 #- mzml2isa -i ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/$STUDY -o out_folder/metabolights -s $STUDY
 #- scripts/validate.py out_folder/metabolights/$STUDY $MTBLS_CONFIG_DIR
-- python -W ignore::DeprecationWarning -m unittest discover -v
+- python -W ignore::DeprecationWarning -m unittest discover -vb
 
 notifications:
   email:

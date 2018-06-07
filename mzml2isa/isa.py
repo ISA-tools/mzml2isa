@@ -121,7 +121,7 @@ class ISA_Tab(object):
         platform_str = ", ".join(set(platforms))
 
         if split:
-            self.isa_env['Platform'] = [platform_str]*2
+            self.isa_env['Platform'] = [platform_str] * len(set( meta['Scan polarity']['name'] for meta in metalist ))
         else:
             self.isa_env['Platform'] = [platform_str]
 

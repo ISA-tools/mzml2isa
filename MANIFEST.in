@@ -1,5 +1,6 @@
 include mzml2isa/ontologies/*.obo
 include mzml2isa/templates/*.txt
 include README.rst
+include COPYING
 include requirements*.txt
 include isa_config/mzml2isa.png

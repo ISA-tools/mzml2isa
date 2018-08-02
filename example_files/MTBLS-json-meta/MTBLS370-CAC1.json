@@ -1,0 +1,134 @@
+{
+    "Data file content": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000579",
+                "name": "MS1 spectrum",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Native spectrum identifier format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000768",
+        "name": "Thermo nativeID format",
+        "ref": "MS"
+    },
+    "Raw data file format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000563",
+        "name": "Thermo RAW file",
+        "ref": "MS"
+    },
+    "Data file checksum type": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000569",
+        "name": "SHA-1",
+        "ref": "MS",
+        "value": "3b681d9bcb30d666f835b1c31f5e8cf8564ff0dc"
+    },
+    "Ion source": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000389",
+        "name": "electron ionization",
+        "ref": "MS"
+    },
+    "Mass analyzer": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000484",
+        "name": "orbitrap",
+        "ref": "MS"
+    },
+    "Detector": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000624",
+        "name": "inductive detector",
+        "ref": "MS"
+    },
+    "Data Transformation Name": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000544",
+                "name": "Conversion to mzML",
+                "ref": "MS"
+            },
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000035",
+                "name": "peak picking",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Data Transformation software version": {
+        "value": "3.0.3324"
+    },
+    "Data Transformation software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000615",
+        "name": "ProteoWizard",
+        "ref": "MS"
+    },
+    "Instrument": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000649",
+        "name": "Exactive",
+        "ref": "MS"
+    },
+    "Instrument manufacturer": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000483",
+        "name": "Thermo Fisher Scientific instrument model",
+        "ref": "MS"
+    },
+    "Instrument serial number": {
+        "value": "Exactive Series slot #2401"
+    },
+    "Instrument software version": {
+        "value": "2.6-264001/2.6.0.2640"
+    },
+    "Instrument software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000532",
+        "name": "Xcalibur",
+        "ref": "MS"
+    },
+    "Scan polarity": {
+        "name": "positive scan",
+        "ref": "MS",
+        "accession": "http://purl.obolibrary.org/obo/MS_1000130"
+    },
+    "Spectrum representation": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000127",
+        "name": "centroid spectrum",
+        "ref": "MS"
+    },
+    "Time range": {
+        "value": "5.3036-24.0042",
+        "unit": {
+            "name": "minute",
+            "accession": "http://purl.obolibrary.org/obo/UO_0000031",
+            "ref": "UO"
+        }
+    },
+    "Scan m/z range": {
+        "value": "50-650",
+        "unit": {
+            "name": "m/z",
+            "ref": "MS",
+            "accession": "http://purl.obolibrary.org/obo/MS_1000040"
+        }
+    },
+    "Number of scans": {
+        "value": 4600
+    },
+    "Raw Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "CAC1.raw"
+            }
+        ]
+    },
+    "MS Assay Name": {
+        "value": "CAC1"
+    },
+    "Derived Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "CAC1.mzML"
+            }
+        ]
+    },
+    "Sample Name": {
+        "value": "CAC1"
+    }
+}

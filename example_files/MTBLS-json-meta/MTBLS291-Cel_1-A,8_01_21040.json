@@ -1,0 +1,167 @@
+{
+    "Data file content": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000579",
+                "name": "MS1 spectrum",
+                "ref": "MS"
+            },
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000580",
+                "name": "MSn spectrum",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Spectrum representation": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000127",
+        "name": "centroid spectrum",
+        "ref": "MS"
+    },
+    "Native spectrum identifier format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000772",
+        "name": "Bruker BAF nativeID format",
+        "ref": "MS"
+    },
+    "Raw data file format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000815",
+        "name": "Bruker BAF file",
+        "ref": "MS"
+    },
+    "Data file checksum type": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000569",
+        "name": "SHA-1",
+        "ref": "MS",
+        "value": "3f363d92050f55fae1c3a3d0f119cd7a1560da35"
+    },
+    "Ion source": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000073",
+        "name": "electrospray ionization",
+        "ref": "MS"
+    },
+    "Mass analyzer": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000081",
+        "name": "quadrupole",
+        "ref": "MS"
+    },
+    "Detector": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000253",
+        "name": "electron multiplier",
+        "ref": "MS"
+    },
+    "Data Transformation Name": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000035",
+                "name": "peak picking",
+                "ref": "MS"
+            },
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1001485",
+                "name": "m/z calibration",
+                "ref": "MS"
+            },
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000544",
+                "name": "Conversion to mzML",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Data Transformation software version": {
+        "value": "3.0.9"
+    },
+    "Data Transformation software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000717",
+        "name": "CompassXport",
+        "ref": "MS"
+    },
+    "data_processing_parameter": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000747",
+                "name": "completion time",
+                "ref": "MS",
+                "value": ""
+            },
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000747",
+                "name": "completion time",
+                "ref": "MS",
+                "value": "2015-12-11T13:08:52"
+            }
+        ]
+    },
+    "data_processing_parameter software version": {
+        "value": "3.0.9"
+    },
+    "data_processing_parameter software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000717",
+        "name": "CompassXport",
+        "ref": "MS"
+    },
+    "Contact name": {
+        "ref": "MS",
+        "value": " BDAL@DE"
+    },
+    "Contact affiliation": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000590",
+        "name": "contact organization",
+        "ref": "MS",
+        "value": ""
+    },
+    "Instrument": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1001541",
+        "name": "maXis",
+        "ref": "MS"
+    },
+    "Instrument manufacturer": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000122",
+        "name": "Bruker Daltonics instrument model",
+        "ref": "MS"
+    },
+    "Instrument software version": {
+        "value": "3.0.66.0"
+    },
+    "Instrument software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000692",
+        "name": "Bruker software",
+        "ref": "MS"
+    },
+    "Scan polarity": {
+        "name": "negative scan",
+        "ref": "MS",
+        "accession": "http://purl.obolibrary.org/obo/MS_1000129"
+    },
+    "Time range": {
+        "value": "0.012-30.0353",
+        "unit": {
+            "name": "minute",
+            "accession": "http://purl.obolibrary.org/obo/UO_0000031",
+            "ref": "UO"
+        }
+    },
+    "Number of scans": {
+        "value": 2173
+    },
+    "Raw Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "analysis.baf"
+            }
+        ]
+    },
+    "MS Assay Name": {
+        "value": "Cel_1-A,8_01_21040"
+    },
+    "Derived Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "Cel_1-A,8_01_21040.mzML"
+            }
+        ]
+    },
+    "Sample Name": {
+        "value": "Cel_1-A,8_01_21040"
+    }
+}

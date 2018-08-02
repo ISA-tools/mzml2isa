@@ -1,0 +1,103 @@
+{
+    "Data file content": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000579",
+                "name": "MS1 spectrum",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Native spectrum identifier format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000771",
+        "name": "Bruker/Agilent YEP nativeID format",
+        "ref": "MS"
+    },
+    "Raw data file format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000567",
+        "name": "Bruker/Agilent YEP file",
+        "ref": "MS"
+    },
+    "Data file checksum type": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000569",
+        "name": "SHA-1",
+        "ref": "MS",
+        "value": "b78822c378f942918b1beed13944decd70d606fe"
+    },
+    "Data Transformation Name": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000544",
+                "name": "Conversion to mzML",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Data Transformation software version": {
+        "value": "3.0.5622"
+    },
+    "Data Transformation software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000615",
+        "name": "ProteoWizard software",
+        "ref": "MS"
+    },
+    "Instrument": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000122",
+        "name": "Bruker Daltonics instrument model",
+        "ref": "MS"
+    },
+    "Instrument manufacturer": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000122",
+        "name": "Bruker Daltonics instrument model",
+        "ref": "MS"
+    },
+    "Scan polarity": {
+        "name": "positive scan",
+        "ref": "MS",
+        "accession": "http://purl.obolibrary.org/obo/MS_1000130"
+    },
+    "Spectrum representation": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000128",
+        "name": "profile spectrum",
+        "ref": "MS"
+    },
+    "Time range": {
+        "value": "3.087-899.9549",
+        "unit": {
+            "name": "second",
+            "accession": "http://purl.obolibrary.org/obo/UO_0000010",
+            "ref": "UO"
+        }
+    },
+    "Scan m/z range": {
+        "value": "550-1800",
+        "unit": {
+            "name": "m/z",
+            "ref": "MS",
+            "accession": "http://purl.obolibrary.org/obo/MS_1000040"
+        }
+    },
+    "Number of scans": {
+        "value": 467
+    },
+    "Raw Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "Analysis.yep"
+            }
+        ]
+    },
+    "MS Assay Name": {
+        "value": "37382-A03-1 SW620_01"
+    },
+    "Derived Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "37382-A03-1 SW620_01.mzML"
+            }
+        ]
+    },
+    "Sample Name": {
+        "value": "37382-A03-1 SW620_01"
+    }
+}

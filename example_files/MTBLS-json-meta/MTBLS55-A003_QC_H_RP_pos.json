@@ -1,0 +1,113 @@
+{
+    "Native spectrum identifier format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000824",
+        "name": "no nativeID format",
+        "ref": "MS"
+    },
+    "Raw data file format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000526",
+        "name": "Waters raw file",
+        "ref": "MS"
+    },
+    "Data file checksum type": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000569",
+        "name": "SHA-1",
+        "ref": "MS",
+        "value": "cd3efcb01ea0dc1e61c4de99778bc519d840b89d"
+    },
+    "Data Transformation Name": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000544",
+                "name": "Conversion to mzML",
+                "ref": "MS"
+            },
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000035",
+                "name": "peak picking",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Data Transformation software version": {
+        "value": "3.0.4833"
+    },
+    "Data Transformation software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000615",
+        "name": "ProteoWizard",
+        "ref": "MS"
+    },
+    "Instrument": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000126",
+        "name": "Waters instrument model",
+        "ref": "MS"
+    },
+    "Instrument manufacturer": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000126",
+        "name": "Waters instrument model",
+        "ref": "MS"
+    },
+    "Scan polarity": {
+        "name": "positive scan",
+        "ref": "MS",
+        "accession": "http://purl.obolibrary.org/obo/MS_1000130"
+    },
+    "Spectrum representation": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000127",
+        "name": "centroid spectrum",
+        "ref": "MS"
+    },
+    "Time range": {
+        "value": "0.0-25.9987",
+        "unit": {
+            "name": "minute",
+            "accession": "http://purl.obolibrary.org/obo/UO_0000031",
+            "ref": "UO"
+        }
+    },
+    "Scan m/z range": {
+        "value": "50-2000",
+        "unit": {
+            "name": "m/z",
+            "ref": "MS",
+            "accession": "http://purl.obolibrary.org/obo/MS_1000040"
+        }
+    },
+    "Number of scans": {
+        "value": 2436
+    },
+    "Raw Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "_FUNC001.DAT"
+            }
+        ]
+    },
+    "MS Assay Name": {
+        "value": "A003_QC_H_RP_pos"
+    },
+    "Derived Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "A003_QC_H_RP_pos.mzML"
+            }
+        ]
+    },
+    "Sample Name": {
+        "value": "A003_QC_H_RP_pos"
+    },
+    "Data file content": {
+        "entry_list": [
+            {
+                "name": "MS1 spectrum",
+                "ref": "MS",
+                "accession": "http://purl.obolibrary.org/obo/MS_1000579"
+            },
+            {
+                "name": "electromagnetic radiation spectrum",
+                "ref": "MS",
+                "accession": "http://purl.obolibrary.org/obo/MS_1000804"
+            }
+        ]
+    }
+}

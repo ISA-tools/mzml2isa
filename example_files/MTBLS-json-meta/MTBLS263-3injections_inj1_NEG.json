@@ -1,0 +1,144 @@
+{
+    "Data file content": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000579",
+                "name": "MS1 spectrum",
+                "ref": "MS"
+            },
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000580",
+                "name": "MSn spectrum",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Native spectrum identifier format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000768",
+        "name": "Thermo nativeID format",
+        "ref": "MS"
+    },
+    "Raw data file format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000563",
+        "name": "Thermo RAW format",
+        "ref": "MS"
+    },
+    "Data file checksum type": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000569",
+        "name": "SHA-1",
+        "ref": "MS",
+        "value": "2c2b418b267a0ba0e6c0e930e05d963b7ddf7ce4"
+    },
+    "Ion source": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000073",
+        "name": "electrospray ionization",
+        "ref": "MS"
+    },
+    "Inlet type": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000057",
+        "name": "electrospray inlet",
+        "ref": "MS"
+    },
+    "Mass analyzer": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000083",
+        "name": "radial ejection linear ion trap",
+        "ref": "MS"
+    },
+    "Detector": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000253",
+        "name": "electron multiplier",
+        "ref": "MS"
+    },
+    "Data Transformation Name": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000544",
+                "name": "Conversion to mzML",
+                "ref": "MS"
+            },
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000035",
+                "name": "peak picking",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Data Transformation software version": {
+        "value": "3.0.6002"
+    },
+    "Data Transformation software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000615",
+        "name": "ProteoWizard software",
+        "ref": "MS"
+    },
+    "Instrument": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000449",
+        "name": "LTQ Orbitrap",
+        "ref": "MS"
+    },
+    "Instrument manufacturer": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000483",
+        "name": "Thermo Fisher Scientific instrument model",
+        "ref": "MS"
+    },
+    "Instrument serial number": {
+        "value": "SN1057B"
+    },
+    "Instrument software version": {
+        "value": "2.2"
+    },
+    "Instrument software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000532",
+        "name": "Xcalibur",
+        "ref": "MS"
+    },
+    "Scan polarity": {
+        "name": "negative scan",
+        "ref": "MS",
+        "accession": "http://purl.obolibrary.org/obo/MS_1000129"
+    },
+    "Spectrum representation": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000127",
+        "name": "centroid spectrum",
+        "ref": "MS"
+    },
+    "Time range": {
+        "value": "0.006-30.0252",
+        "unit": {
+            "name": "minute",
+            "accession": "http://purl.obolibrary.org/obo/UO_0000031",
+            "ref": "UO"
+        }
+    },
+    "Scan m/z range": {
+        "value": "50-1845",
+        "unit": {
+            "name": "m/z",
+            "ref": "MS",
+            "accession": "http://purl.obolibrary.org/obo/MS_1000040"
+        }
+    },
+    "Number of scans": {
+        "value": 1108
+    },
+    "Raw Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "20130909_SAM929_NEG1.RAW"
+            }
+        ]
+    },
+    "MS Assay Name": {
+        "value": "3injections_inj1_NEG"
+    },
+    "Derived Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "3injections_inj1_NEG.mzML"
+            }
+        ]
+    },
+    "Sample Name": {
+        "value": "3injections_inj1_NEG"
+    }
+}

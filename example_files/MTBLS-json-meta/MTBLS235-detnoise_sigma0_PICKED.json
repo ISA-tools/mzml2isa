@@ -1,0 +1,98 @@
+{
+    "Data file content": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000294",
+                "name": "mass spectrum",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Data Transformation Name": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000544",
+                "name": "Conversion to mzML",
+                "ref": "MS"
+            },
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000035",
+                "name": "peak picking",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Data Transformation software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000799",
+        "name": "custom unreleased software tool",
+        "ref": "MS"
+    },
+    "Data Transformation software version": {
+        "value": "1.10.0"
+    },
+    "data_processing_parameter": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000747",
+                "name": "completion time",
+                "ref": "MS",
+                "value": "2012-04-16+18:58"
+            }
+        ]
+    },
+    "data_processing_parameter software version": {
+        "value": "1.10.0"
+    },
+    "data_processing_parameter software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000799",
+        "name": "custom unreleased software tool",
+        "ref": "MS"
+    },
+    "Instrument software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000799",
+        "name": "custom unreleased software tool",
+        "ref": "MS"
+    },
+    "Scan polarity": {
+        "name": "n/a",
+        "ref": "",
+        "accession": ""
+    },
+    "Spectrum representation": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000127",
+        "name": "centroid spectrum",
+        "ref": "MS"
+    },
+    "Time range": {
+        "value": "0.0-1500.0",
+        "unit": {
+            "name": "second",
+            "accession": "http://purl.obolibrary.org/obo/UO_0000010",
+            "ref": "UO"
+        }
+    },
+    "Scan m/z range": {
+        "value": "100-1000",
+        "unit": {
+            "name": "m/z",
+            "ref": "MS",
+            "accession": "http://purl.obolibrary.org/obo/MS_1000040"
+        }
+    },
+    "Number of scans": {
+        "value": 6001
+    },
+    "MS Assay Name": {
+        "value": "detnoise_sigma0_PICKED"
+    },
+    "Derived Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "detnoise_sigma0_PICKED.mzML"
+            }
+        ]
+    },
+    "Sample Name": {
+        "value": "detnoise_sigma0_PICKED"
+    }
+}

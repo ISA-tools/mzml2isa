@@ -1,0 +1,87 @@
+{
+    "Native spectrum identifier format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000824",
+        "name": "no nativeID format",
+        "ref": "MS"
+    },
+    "Raw data file format": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000526",
+        "name": "Waters raw format",
+        "ref": "MS"
+    },
+    "Data file checksum type": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000569",
+        "name": "SHA-1",
+        "ref": "MS",
+        "value": "8aa9d6001d8c0d707e3aff0f2a7fb7990138639d"
+    },
+    "Data Transformation Name": {
+        "entry_list": [
+            {
+                "accession": "http://purl.obolibrary.org/obo/MS_1000544",
+                "name": "Conversion to mzML",
+                "ref": "MS"
+            }
+        ]
+    },
+    "Data Transformation software version": {
+        "value": "3.0.5759"
+    },
+    "Data Transformation software": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000615",
+        "name": "ProteoWizard software",
+        "ref": "MS"
+    },
+    "Instrument": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000126",
+        "name": "Waters instrument model",
+        "ref": "MS"
+    },
+    "Instrument manufacturer": {
+        "accession": "http://purl.obolibrary.org/obo/MS_1000126",
+        "name": "Waters instrument model",
+        "ref": "MS"
+    },
+    "Scan polarity": {
+        "name": "n/a",
+        "ref": "",
+        "accession": ""
+    },
+    "Number of scans": {
+        "value": 91
+    },
+    "Raw Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "_FUNC001.DAT"
+            }
+        ]
+    },
+    "MS Assay Name": {
+        "value": "1358BZU_0001_A1"
+    },
+    "Derived Spectral Data File": {
+        "entry_list": [
+            {
+                "value": "1358BZU_0001_A1.mzML"
+            }
+        ]
+    },
+    "Sample Name": {
+        "value": "1358BZU_0001_A1"
+    },
+    "Data file content": {
+        "entry_list": [
+            {
+                "name": "total ion current chromatogram",
+                "ref": "MS",
+                "accession": "http://purl.obolibrary.org/obo/MS_1000235"
+            },
+            {
+                "name": "selected reaction monitoring chromatogram",
+                "ref": "MS",
+                "accession": "http://purl.obolibrary.org/obo/MS_1001473"
+            }
+        ]
+    }
+}

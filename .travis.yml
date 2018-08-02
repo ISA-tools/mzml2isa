@@ -56,7 +56,6 @@ install:
 
 before_script:
 - mkdir example_files/metabolights
-- curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
 - scripts/mtbls_single_data_files.py
 
 script:

@@ -57,7 +57,7 @@ install:
 before_script:
 - mkdir example_files/metabolights
 - curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
-- scripts/get-isa-configuration.py -o $MTBLS_CONFIG_DIR
+- scripts/mtbls_single_data_files.py
 
 script:
 - mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY

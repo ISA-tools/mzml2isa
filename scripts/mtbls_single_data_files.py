@@ -10,6 +10,7 @@ import posixpath
 
 
 ftp = ftplib.FTP("ftp.ebi.ac.uk")
+ftp.set_pasv(False)
 ftp.connect()
 ftp.login()
 

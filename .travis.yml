@@ -1,8 +1,10 @@
-#sudo: false
+sudo: false
+dist: trusty
 language: python
+
 python:
 - '3.5'
-#- '2.7'
+
 cache:
   directories:
   - $HOME/mtbls-config

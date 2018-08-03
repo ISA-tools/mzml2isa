@@ -41,7 +41,7 @@ from .utils import etree, get_parent
 
 class _CVParameter(
     collections.namedtuple(
-        "_CVParameter", ["accession", "cv", "name", "plus1", "value", "software"]
+        "_CVParameter", ["accession", "cv", "name", "plus1", "value", "software", "merge"]
     )
 ):
     """A named tuple with controlled vocabulary parameter information.
@@ -165,6 +165,7 @@ class MzMLFile(object):
                     [
                         "{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@cvLabel]",
                         "{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@cvRef]",
+                        "{root}/s:run/{spectrum}List/{spectrum}/s:cvParam[@cvRef]",
                     ],
                 ),
                 ("cvLabel", ["{root}/s:cvList/s:cv[@id]", "{root}/s:cvList/s:cv[@cvLabel]"]),
@@ -185,14 +186,16 @@ class MzMLFile(object):
                 plus1=True,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000525",
                 cv=True,
                 name="Spectrum representation",
-                plus1=True,
+                plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
         ]
 
@@ -204,6 +207,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000561",
@@ -212,6 +216,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000560",
@@ -220,6 +225,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
         ]
 
@@ -231,6 +237,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000587",
@@ -239,6 +246,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000588",
@@ -247,6 +255,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000589",
@@ -255,6 +264,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000590",
@@ -263,6 +273,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
         ]
 
@@ -274,6 +285,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000008",
@@ -282,6 +294,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000007",
@@ -290,6 +303,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
         ]
 
@@ -301,6 +315,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000443",
@@ -309,6 +324,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
         ]
 
@@ -320,6 +336,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000026",
@@ -328,6 +345,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000027",
@@ -336,6 +354,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
         ]
 
@@ -347,6 +366,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=True,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000452",
@@ -355,6 +375,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=False,
                 software=True,
+                merge=False,
             ),
         ]
 
@@ -372,6 +393,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=False,
                 software=False,
+                merge=True,
             ),
             _CVParameter(
                 accession="MS:1000796",
@@ -380,6 +402,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000465",
@@ -388,6 +411,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000511",
@@ -396,14 +420,16 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000525",
                 cv=True,
                 name="Spectrum representation",
-                plus1=True,
+                plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000504",
@@ -412,6 +438,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000505",
@@ -420,6 +447,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000285",
@@ -428,6 +456,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000927",
@@ -436,6 +465,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000512",
@@ -444,6 +474,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000528",
@@ -452,6 +483,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000527",
@@ -460,6 +492,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
         }
 
@@ -471,6 +504,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=False,
                 software=False,
+                merge=False,
             )
         }
 
@@ -482,6 +516,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000512",
@@ -490,6 +525,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000616",
@@ -498,6 +534,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000927",
@@ -506,6 +543,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000018",
@@ -514,6 +552,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000019",
@@ -522,6 +561,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
         }
 
@@ -533,6 +573,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000828",
@@ -541,6 +582,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000829",
@@ -549,6 +591,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
         }
 
@@ -560,6 +603,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000041",
@@ -568,6 +612,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000042",
@@ -576,6 +621,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
         }
 
@@ -587,6 +633,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000045",
@@ -595,6 +642,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=True,
                 software=False,
+                merge=False,
             ),
         }
 
@@ -606,6 +654,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000572",
@@ -614,6 +663,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000513",
@@ -622,6 +672,7 @@ class MzMLFile(object):
                 plus1=True,
                 value=False,
                 software=False,
+                merge=False,
             ),
         }
 
@@ -785,9 +836,9 @@ class MzMLFile(object):
 
                 if param_info.plus1:
                     # setup the dictionary for multiple entries
-                    meta.setdefault(param_info.name, dict(entry_list=[]))["entry_list"].append(
-                        param
-                    )
+                    entries = meta.setdefault(param_info.name, dict(entry_list=[]))["entry_list"]
+                    if not param_info.merge or param not in entries:
+                        entries.append(param)
                 else:
                     meta[param_info.name] = param
 
@@ -951,6 +1002,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="MS:1000529",
@@ -959,6 +1011,7 @@ class MzMLFile(object):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
         ]
 
@@ -1051,7 +1104,7 @@ class MzMLFile(object):
         self._extract_timerange(meta)
         self._extract_mzrange(meta)
         self._extract_scan_number(meta)
-        self._collect_scan_info(meta)
+        self._extract_scan_parameters(meta)
 
         if "Spectrum representation" not in meta:
             self._extract_spectrum_representation(meta)

@@ -30,7 +30,7 @@ class ImzMLFile(MzMLFile):
         terms = super(ImzMLFile, cls)._assay_parameters()
 
         terms["file_content"] = [
-            # _CVParameter(accession='MS:1000525', cv=True, name='Spectrum representation', plus1=True, value=False, software=False),
+            # _CVParameter(accession='MS:1000525', cv=True, name='Spectrum representation', plus1=True, value=False, software=False), merge=False,
             _CVParameter(
                 accession="IMS:1000008",
                 cv=True,
@@ -38,6 +38,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000009",
@@ -46,6 +47,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000003",
@@ -54,6 +56,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
         ]
 
@@ -65,6 +68,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000041",
@@ -73,6 +77,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000042",
@@ -81,6 +86,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000043",
@@ -89,6 +95,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000044",
@@ -97,6 +104,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000045",
@@ -105,6 +113,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000046",
@@ -113,6 +122,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000047",
@@ -121,6 +131,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000048",
@@ -129,6 +140,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000049",
@@ -137,6 +149,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=False,
                 software=False,
+                merge=False,
             ),
         ]
 
@@ -148,6 +161,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1001211",
@@ -156,6 +170,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1000202",
@@ -164,6 +179,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
             _CVParameter(
                 accession="IMS:1001212",
@@ -172,6 +188,7 @@ class ImzMLFile(MzMLFile):
                 plus1=False,
                 value=True,
                 software=False,
+                merge=False,
             ),
         ]
 

@@ -281,7 +281,7 @@ class MzMLFile(object):
             _CVParameter(
                 accession="MS:1000482",
                 cv=False,
-                name="source_attribute",
+                name="Source attribute",
                 plus1=True,
                 value=True,
                 software=False,
@@ -311,7 +311,7 @@ class MzMLFile(object):
             _CVParameter(
                 accession="MS:1000480",
                 cv=False,
-                name="analyzer_attribute",
+                name="Analyzer attribute",
                 plus1=True,
                 value=True,
                 software=False,
@@ -332,7 +332,7 @@ class MzMLFile(object):
             _CVParameter(
                 accession="MS:1000481",
                 cv=False,
-                name="detector_attribute",
+                name="Detector attribute",
                 plus1=True,
                 value=True,
                 software=False,
@@ -362,7 +362,7 @@ class MzMLFile(object):
             _CVParameter(
                 accession="MS:1000630",
                 cv=False,
-                name="data_processing_parameter",
+                name="Data Processing Parameter",
                 plus1=True,
                 value=True,
                 software=True,

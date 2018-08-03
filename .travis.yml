@@ -47,21 +47,18 @@ matrix:
 
 before_install:
 - sudo apt-get update -qq
-- sudo apt-get install -y python-lxml python3-lxml curlftpfs
-- pip install https://github.com/ISA-tools/isa-api/archive/py2.zip
-- pip install https://github.com/PyFilesystem/pyfilesystem/archive/master.zip
+- sudo apt-get install -y curlftpfs
 
 install:
 - pip install .
 
 before_script:
 - mkdir example_files/metabolights
-- curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files/metabolights
-- scripts/get-isa-configuration.py -o $MTBLS_CONFIG_DIR
 
 script:
-- mzml2isa -i example_files/metabolights/$STUDY -o out_folder/metabolights -s $STUDY
-- scripts/validate.py out_folder/metabolights/$STUDY $MTBLS_CONFIG_DIR
+- ./test.sh
+
+
 
 after_script:
 - fusermount -u example_files/metabolights

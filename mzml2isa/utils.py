@@ -188,14 +188,6 @@ def dict_update(d, u):
             d[k] = u[k]
     return d
 
-def pyxpath(meta, query):
-        """Finds every occurence of *query* in *mzMLmeta.tree* with proper namespace
-
-        This function also formats the xpath query using the *mzMLmeta.env
-        dictionnary created by the **mzml.mzMLmeta.build_env** function.
-        """
-        return meta.tree.iterfind(query.format(**meta.env), meta.ns)
-
 def longest_substring(string1, string2):
     answer = ""
     len1, len2 = len(string1), len(string2)
@@ -247,97 +239,32 @@ def star_args(func):
             return func(*args)
     return new_func
 
-def get_ontology(name):
-    """Imports the requested ontology with pronto
-
-    Tries to reach the online version, and if it fails then
-    use the local version instead.
-
-    Arguments:
-        name (str): the name of the ontology to import (either
-            'MS' or 'IMS')
-    """
-    warnings.simplefilter('ignore', pronto.utils.ProntoWarning)
-    if name == 'MS':
-        try:
-            obo = pronto.Ontology(MS_CV_URL, False)
-        except BaseException as be:
-            obo = pronto.Ontology(os.path.join(ONTOLOGIES_DIR,"psi-ms.obo"), False)
-            warnings.warn("Could not use latest online MS ontology, "
-                          "using local (version {})".format(obo.meta['version']))
-    elif name == 'IMS':
-        try:
-            obo = pronto.Ontology(IMS_CV_URL, True, 1)
-        except BaseException as be:
-            obo = pronto.Ontology(os.path.join(ONTOLOGIES_DIR,"imagingMS.obo"), True, 1)
-            warnings.warn("Could not use latest online IMS ontology, "
-                          "using local (version {})".format(obo.meta['version']))
-    else:
-        raise ValueError("Unknow ontology to import: {}".format(name))
-
-    return obo
-
-
-def create_terms():
-    """ We create a dictionary that contains "search parameters" that we use to parse the xml location from the xpaths
-    The dictionary contains the following elements
-
-    name (str):  The key the CV will be saved as in self.metaa
-    plus1 (bool): True if there are multiple of this CV
-    value (bool): True if there is an associated value with this CV
-    soft (bool):  True if there is associated software CV associated with this CV
-    attribute (bool): True if the CV is an attribute to handle differently
-
-    Returns:
-         dict: of terms used to search the xml file
-    """
-
-    terms = collections.OrderedDict()
-    terms['file_content'] = {
-        'MS:1000524': {'attribute': False, 'name': 'Data file content', 'plus1': True, 'value': False, 'soft': False},
-        'MS:1000525': {'attribute': False, 'name': 'Spectrum representation', 'plus1': False, 'value': False,
-                       'soft': False}
-    }
-
-    terms['source_file'] = {
-        'MS:1000767': {'attribute': False, 'name': 'Native spectrum identifier format', 'plus1': False, 'value': False,
-                       'soft': False},
-        'MS:1000561': {'attribute': False, 'name': 'Data file checksum type', 'plus1': False, 'value': True,
-                       'soft': False},
-        'MS:1000560': {'attribute': False, 'name': 'Raw data file format', 'plus1': False, 'value': False,
-                       'soft': False},
-    }
-
-    terms['contact'] = {
-        'MS:1000586': {'attribute': False, 'name': 'Contact name', 'plus1': False, 'value': True, 'soft': False},
-        'MS:1000587': {'attribute': False, 'name': 'Contact adress', 'plus1': False, 'value': True, 'soft': False},
-        'MS:1000588': {'attribute': False, 'name': 'Contact url', 'plus1': False, 'value': True, 'soft': False},
-        'MS:1000589': {'attribute': False, 'name': 'Contact email', 'plus1': False, 'value': True, 'soft': False},
-        'MS:1000590': {'attribute': False, 'name': 'Contact affiliation', 'plus1': False, 'value': True, 'soft': False},
-    }
-
-    terms['ionization'] = {
-        'MS:1000482': {'attribute': True, 'name': 'source_attribute', 'plus1': True, 'value': True, 'soft': False},
-        'MS:1000008': {'attribute': False, 'name': 'Ion source', 'plus1': False, 'value': False, 'soft': False},
-        'MS:1000007': {'attribute': False, 'name': 'Inlet type', 'plus1': False, 'value': False, 'soft': False}
-    }
-
-    terms['analyzer'] = {
-        'MS:1000480': {'attribute': True, 'name': 'analyzer_attribute', 'plus1': True, 'value': True, 'soft': False},
-        'MS:1000443': {'attribute': False, 'name': 'Mass analyzer', 'plus1': False, 'value': False, 'soft': False},
-    }
-
-    terms['detector'] = {
-        'MS:1000481': {'attribute': True, 'name': 'detector_attribute', 'plus1': True, 'value': True, 'soft': False},
-        'MS:1000026': {'attribute': False, 'name': 'Detector', 'plus1': False, 'value': False, 'soft': False},
-        'MS:1000027': {'attribute': False, 'name': 'Detector mode', 'plus1': False, 'value': False, 'soft': False}
-    }
-
-    terms['data_processing'] = {
-        'MS:1000630': {'attribute': True, 'name': 'data_processing_parameter', 'plus1': True, 'value': True,
-                       'soft': True},
-        'MS:1000452': {'attribute': False, 'name': 'Data Transformation Name', 'plus1': True, 'value': False,
-                       'soft': True},
-    }
-
-    return terms
+# def get_ontology(name):
+#     """Imports the requested ontology with pronto
+#
+#     Tries to reach the online version, and if it fails then
+#     use the local version instead.
+#
+#     Arguments:
+#         name (str): the name of the ontology to import (either
+#             'MS' or 'IMS')
+#     """
+#     warnings.simplefilter('ignore', pronto.utils.ProntoWarning)
+#     if name == 'MS':
+#         try:
+#             obo = pronto.Ontology(MS_CV_URL, False)
+#         except BaseException as be:
+#             obo = pronto.Ontology(os.path.join(ONTOLOGIES_DIR,"psi-ms.obo"), False)
+#             warnings.warn("Could not use latest online MS ontology, "
+#                           "using local (version {})".format(obo.meta['version']))
+#     elif name == 'IMS':
+#         try:
+#             obo = pronto.Ontology(IMS_CV_URL, True, 1)
+#         except BaseException as be:
+#             obo = pronto.Ontology(os.path.join(ONTOLOGIES_DIR,"imagingMS.obo"), True, 1)
+#             warnings.warn("Could not use latest online IMS ontology, "
+#                           "using local (version {})".format(obo.meta['version']))
+#     else:
+#         raise ValueError("Unknow ontology to import: {}".format(name))
+#
+#     return obo

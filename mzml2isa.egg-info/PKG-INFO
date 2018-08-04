@@ -124,5 +124,5 @@ Classifier: Topic :: Scientific/Engineering :: Chemistry
 Classifier: Topic :: Utilities
 Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Classifier: Operating System :: OS Independent
-Provides-Extra: pb
 Provides-Extra: lxml
+Provides-Extra: pb

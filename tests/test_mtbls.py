@@ -3,6 +3,9 @@
 import unittest
 import os
 import re
+
+from typing import Dict, Any, Union
+
 import mzml2isa
 from fs import open_fs
 from fs.tarfs import TarFS
@@ -10,24 +13,22 @@ from fs.copy import copy_fs
 from fs.tempfs import TempFS
 import json
 import six
-import sys
-from isatools import isatab
-import subprocess
+
 
 def get_json_meta_results():
     example_files_dir = os.path.join(os.path.abspath(os.path.join(__file__, os.pardir, os.pardir)), 'example_files')
-    json_meta_pth = os.path.join(example_files_dir, 'MTBLS-json-meta')
-    json_meta_fs = open_fs(json_meta_pth)
+    json_meta_pth = os.path.join(example_files_dir, 'MTBLS-json-meta.tar.lzma')
 
+    tmpfs = TempFS()
+    copy_fs(TarFS(json_meta_pth), tmpfs)
     json_results = {}
 
-    for path in json_meta_fs.walk.files(filter=['*.json']):
+    for path in tmpfs.walk.files(filter=['*.json']):
+        json_pth = tmpfs.getospath(path.strip("/"))
         # get dictionary of pre made json meta
-
-        mtch = re.match("^(MTBLS\d*)-(.*).json", os.path.basename(path))
-
+        mtch = re.match("^(MTBLS\d*)-(.*).json", os.path.basename(json_pth).decode())
         if mtch:
-            with open(os.path.join(json_meta_pth, os.path.basename(path))) as f:
+            with open(json_pth) as f:
                 json_results[mtch.group(1)] = {mtch.group(2): json.load(f)}
 
     return json_results
@@ -58,7 +59,6 @@ class MtblsTestCase(unittest.TestCase):
         # check each meta data for all the files
         for study, file_details in six.iteritems(meta_results_original):
             for mzml_file, details in six.iteritems(file_details):
-                print(study, mzml_file)
                 if 'Data Transformation Name' in meta_results_new[study][mzml_file]:
                     self.assertEqual(meta_results_new[study][mzml_file]['Data Transformation Name'],
                                  details['Data Transformation Name']

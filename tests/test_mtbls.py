@@ -30,9 +30,6 @@ class TestMTBLS(unittest.TestCase):
     def tearDownClass(cls):
         cls.ebifs.close()
 
-    def test_MTBLS341(self):
-        self._test_study('MTBLS341', instrument='micrOTOF-Q')
-
     def _test_study(self, study_id, instrument=None):
         study_fs = self.ebifs.opendir(study_id)
         file_info = next(iter(sorted(
@@ -48,3 +45,15 @@ class TestMTBLS(unittest.TestCase):
         # check instrument
         if instrument is not None:
             self.assertEqual(mzml_file.metadata['Instrument']['name'], instrument)
+
+
+    ### METABOLIGHTS STUDIES #################################################
+
+    def test_MTBLS126(self):
+        self._test_study('MTBLS126', instrument='LTQ Orbitrap')
+
+    def test_MTBLS267(self):
+        self._test_study('MTBLS267', instrument='LTQ Orbitrap')
+
+    def test_MTBLS341(self):
+        self._test_study('MTBLS341', instrument='micrOTOF-Q')

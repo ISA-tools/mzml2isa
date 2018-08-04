@@ -4,10 +4,9 @@ import unittest
 import os
 import re
 
-from typing import Dict, Any, Union
+
 
 import mzml2isa
-from fs import open_fs
 from fs.tarfs import TarFS
 from fs.copy import copy_fs
 from fs.tempfs import TempFS

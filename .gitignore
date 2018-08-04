@@ -1,4 +1,6 @@
 *.pyc
+./.idea
+./.idea/*
 ./idea
 ./idea/*
 ./testing/*

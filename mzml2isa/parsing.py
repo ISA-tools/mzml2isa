@@ -55,7 +55,6 @@ from .usermeta import UserMetaLoader
 from .utils import (
     longest_substring,
     merge_spectra,
-    compr_extract,
     star_args,
 )
 

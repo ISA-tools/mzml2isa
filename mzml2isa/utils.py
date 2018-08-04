@@ -39,9 +39,8 @@ from . import (
 
 ## RESOURCES
 TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
-ONTOLOGIES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ontologies")
-MS_CV_URL = 'https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo'
-IMS_CV_URL = 'https://raw.githubusercontent.com/ISA-tools/mzml2isa/master/mzml2isa/imagingMS.obo'
+# MS_CV_URL = 'https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo'
+# IMS_CV_URL = 'https://raw.githubusercontent.com/ISA-tools/mzml2isa/master/mzml2isa/imagingMS.obo'
 
 ## AVAILABLE XML PARSER
 try:
@@ -76,7 +75,8 @@ except ImportError:
 class PermissiveFormatter(string.Formatter):
     """A formatter that replace wrong and missing key with a blank."""
     def __init__(self, missing='', bad_fmt=''):
-        self.missing, self.bad_fmt=missing, bad_fmt
+        self.missing = missing
+        self.bad_fmt = bad_fmt
 
     def get_field(self, field_name, args, kwargs):
         # Handle a key not found
@@ -98,18 +98,18 @@ class PermissiveFormatter(string.Formatter):
             else:
                 raise
 
-class _TarFile(tarfile.TarFile):
-    """A TarFile proxy with a setable name
-    """
-
-    def __init__(self, name, buffered_reader):
-        self.name = name
-        self.BufferedReader = buffered_reader
-
-    def __getattr__(self, attr):
-        if attr=="name":
-            return self.name
-        return getattr(self.BufferedReader, attr)
+# class _TarFile(tarfile.TarFile):
+#     """A TarFile proxy with a setable name
+#     """
+#
+#     def __init__(self, name, buffered_reader):
+#         self.name = name
+#         self.BufferedReader = buffered_reader
+#
+#     def __getattr__(self, attr):
+#         if attr=="name":
+#             return self.name
+#         return getattr(self.BufferedReader, attr)
 
 class _ChainMap(collections.Mapping):
     """A quick backport of collections.ChainMap
@@ -167,26 +167,26 @@ def merge_spectra(metalist):
 
     return profiles
 
-def dict_update(d, u):
-    """Update a nested dictionnary of various depth
-
-    Shamelessly taken from here: http://stackoverflow.com/a/3233356/623424
-    And updated to work with dictionaries nested in lists.
-    """
-    for k, v in six.iteritems(u):
-        if isinstance(v, collections.Mapping):
-            if not k in d:
-                warnings.warn("Unrecognized key: {}".format(k), UserWarning)
-            r = dict_update(d.get(k, {}), v)
-            d[k] = r
-        elif isinstance(v, list):
-            r = []
-            for x in v:                      # v Mandatory because of Python linking lists
-                r.append(dict_update(copy.deepcopy(d[k][0]), copy.deepcopy(x)))
-            d[k] = r
-        else:
-            d[k] = u[k]
-    return d
+# def dict_update(d, u):
+#     """Update a nested dictionnary of various depth
+#
+#     Shamelessly taken from here: http://stackoverflow.com/a/3233356/623424
+#     And updated to work with dictionaries nested in lists.
+#     """
+#     for k, v in six.iteritems(u):
+#         if isinstance(v, collections.Mapping):
+#             if not k in d:
+#                 warnings.warn("Unrecognized key: {}".format(k), UserWarning)
+#             r = dict_update(d.get(k, {}), v)
+#             d[k] = r
+#         elif isinstance(v, list):
+#             r = []
+#             for x in v:                      # v Mandatory because of Python linking lists
+#                 r.append(dict_update(copy.deepcopy(d[k][0]), copy.deepcopy(x)))
+#             d[k] = r
+#         else:
+#             d[k] = u[k]
+#     return d
 
 def longest_substring(string1, string2):
     answer = ""
@@ -201,33 +201,6 @@ def longest_substring(string1, string2):
                 match = ""
     return answer
 
-def compr_extract(compr_pth):
-    """Extract tar.gz or .zip files into Python objects
-
-    Arguments:
-        compr_path (str): the path to the compressed file
-
-    Returns:
-        tarfile.TarFile: if the file is a gzipped tar file
-        zipfile.ZipFile: if the file is a zipped file
-    """
-
-    filend = ('.mzml', '.imzml')
-    if zipfile.is_zipfile(compr_pth):
-        comp = zipfile.ZipFile(compr_pth)
-        cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)]
-        filelist = [f.filename for f in comp.filelist]
-    else:
-        comp = tarfile.open(compr_pth, 'r:*')
-        cfiles = [_TarFile(m.name, comp.extractfile(m)) for m in comp.getmembers() if m.name.lower().endswith(filend)]
-        filelist = [f for f in comp.getnames()]
-
-    # And add these file names as additional attribute the compression tar or zip objects
-    for cf in cfiles:
-        cf.filelist = filelist
-
-    return cfiles
-
 def star_args(func):
     """Unpack arguments if they come packed
     """
@@ -238,33 +211,3 @@ def star_args(func):
         else:
             return func(*args)
     return new_func
-
-# def get_ontology(name):
-#     """Imports the requested ontology with pronto
-#
-#     Tries to reach the online version, and if it fails then
-#     use the local version instead.
-#
-#     Arguments:
-#         name (str): the name of the ontology to import (either
-#             'MS' or 'IMS')
-#     """
-#     warnings.simplefilter('ignore', pronto.utils.ProntoWarning)
-#     if name == 'MS':
-#         try:
-#             obo = pronto.Ontology(MS_CV_URL, False)
-#         except BaseException as be:
-#             obo = pronto.Ontology(os.path.join(ONTOLOGIES_DIR,"psi-ms.obo"), False)
-#             warnings.warn("Could not use latest online MS ontology, "
-#                           "using local (version {})".format(obo.meta['version']))
-#     elif name == 'IMS':
-#         try:
-#             obo = pronto.Ontology(IMS_CV_URL, True, 1)
-#         except BaseException as be:
-#             obo = pronto.Ontology(os.path.join(ONTOLOGIES_DIR,"imagingMS.obo"), True, 1)
-#             warnings.warn("Could not use latest online IMS ontology, "
-#                           "using local (version {})".format(obo.meta['version']))
-#     else:
-#         raise ValueError("Unknow ontology to import: {}".format(name))
-#
-#     return obo

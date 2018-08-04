@@ -22,7 +22,8 @@ class ImzMLFile(MzMLFile):
     )
 
     _VOCABULARY = pronto.Ontology(
-        pkg_resources.resource_stream("mzml2isa", "ontologies/imagingMS.obo"), import_depth=1
+        pkg_resources.resource_stream("mzml2isa", "ontologies/imagingMS.obo"),
+        import_depth=1,
     )
 
     @classmethod
@@ -30,7 +31,15 @@ class ImzMLFile(MzMLFile):
         terms = super(ImzMLFile, cls)._assay_parameters()
 
         terms["file_content"] = [
-            # _CVParameter(accession='MS:1000525', cv=True, name='Spectrum representation', plus1=True, value=False, software=False), merge=False,
+            # _CVParameter(
+            #     accession="MS:1000525",
+            #     cv=True,
+            #     name="Spectrum representation",
+            #     plus1=True,
+            #     value=False,
+            #     software=False,
+            #     merge=False,
+            # ),
             _CVParameter(
                 accession="IMS:1000008",
                 cv=True,

@@ -24,6 +24,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import collections
+import ntpath
 import os
 import posixpath
 import re
@@ -41,7 +42,8 @@ from .utils import etree, get_parent
 
 class _CVParameter(
     collections.namedtuple(
-        "_CVParameter", ["accession", "cv", "name", "plus1", "value", "software", "merge"]
+        "_CVParameter",
+        ["accession", "cv", "name", "plus1", "value", "software", "merge"],
     )
 ):
     """A named tuple with controlled vocabulary parameter information.
@@ -55,11 +57,14 @@ class _CVParameter(
         value (bool): `True` if a *value* should be checked for the parameter.
         software (bool): `True` if *software information* should be checked for
             the parameter.
+        merge (bool): `True` if several occurrences of the same value should
+            be kept or dropped.
     """
 
 
 class MzMLFile(object):
 
+    # dict: all XPaths used during ``mzML`` files parsing.
     _XPATHS = {
         "file_content": "{root}/s:fileDescription/s:fileContent/s:cvParam",
         "source_file": "{root}/s:fileDescription/s:sourceFileList/s:sourceFile/s:cvParam",
@@ -92,11 +97,23 @@ class MzMLFile(object):
         "ref_binary": "{scanList}/s:scan/s:referenceableParamGroupRef",
     }
 
+    # pronto.Ontology: the default MS controlled vocabulary to use.
     _VOCABULARY = pronto.Ontology(
-        pkg_resources.resource_stream("mzml2isa", "ontologies/psi-ms.obo"), imports=False
+        pkg_resources.resource_stream("mzml2isa", "ontologies/psi-ms.obo"),
+        imports=False,
     )
 
     def __init__(self, filesystem, path, vocabulary=None):
+        """Open an ``mzML`` file from the given filesystem and path.
+
+        Arguments:
+            filesystem (FS URL or `fs.base.FS`): the filesystem the file is
+                located on.
+            path (str): the path to the file on the provided filesystem.
+            vocabulary (`~pronto.Ontology`, optional): a controlled vocabulary
+                to use (or `None` to use the default one).
+
+        """
         self.fs = fs.open_fs(filesystem)
         self.path = path
         self.vocabulary = vocabulary or self._VOCABULARY
@@ -106,6 +123,13 @@ class MzMLFile(object):
     # NB: OVERRIDE ME IN SUBCLASSES
     @classmethod
     def _environment_paths(cls):
+        """Return a mapping of XPaths to build the environment with.
+
+        The key corresponds to a location name (*spectrum*, *root*, etc.),
+        while the value for each key are several different paths to test the
+        existence of. When an element is found, the last component of the
+        path is used as the shortcut.
+        """
         return collections.OrderedDict(
             [
                 ("root", ["./s:mzML", "."]),
@@ -150,6 +174,11 @@ class MzMLFile(object):
     # NB: OVERRIDE ME IN SUBCLASSES
     @classmethod
     def _environment_attributes(cls):
+        """Return a mapping of attribute XPaths to build the environment with.
+
+        Works like `~MzMLFile._environment_paths`, except that the attribute
+        name is used as the shortcut instead of the last path component.
+        """
         return collections.OrderedDict(
             [
                 (
@@ -168,14 +197,25 @@ class MzMLFile(object):
                         "{root}/s:run/{spectrum}List/{spectrum}/s:cvParam[@cvRef]",
                     ],
                 ),
-                ("cvLabel", ["{root}/s:cvList/s:cv[@id]", "{root}/s:cvList/s:cv[@cvLabel]"]),
-                ("softwareRef", ["{root}/{instrument}List/{instrument}/{software}[@ref]"]),
+                (
+                    "cvLabel",
+                    [
+                        "{root}/s:cvList/s:cv[@id]",
+                        "{root}/s:cvList/s:cv[@cvLabel]",
+                    ],
+                ),
+                (
+                    "softwareRef",
+                    ["{root}/{instrument}List/{instrument}/{software}[@ref]"],
+                ),
             ]
         )
 
     # NB:
     @classmethod
     def _assay_parameters(cls):
+        """Return a collection of CV parameters to extract from the file.
+        """
         terms = collections.OrderedDict()
 
         terms["file_content"] = [
@@ -383,6 +423,8 @@ class MzMLFile(object):
 
     @classmethod
     def _scan_parameters(cls):
+        """Return a collection of CV parameters to extract from each scan.
+        """
         terms = collections.OrderedDict()
 
         terms["scan_sp"] = terms["ref_sp"] = {
@@ -682,21 +724,36 @@ class MzMLFile(object):
 
     @classmethod
     def _urlize_meta(cls, meta):
+        """Rewrite CV accessions in the given dictionary using URLs.
+        """
         for key, nested in six.iteritems(meta):
             if "accession" in nested:
                 nested["accession"] = cls._urlize_accession(nested["accession"])
             if "accession" in nested.get("unit", {}):
-                nested["unit"]["accession"] = cls._urlize_accession(nested["unit"]["accession"])
+                nested["unit"]["accession"] = cls._urlize_accession(
+                    nested["unit"]["accession"]
+                )
             for entry in nested.get("entry_list", []):
                 if "accession" not in entry and "unit" not in entry:
                     break
                 if "accession" in entry:
-                    entry["accession"] = cls._urlize_accession(entry["accession"])
+                    entry["accession"] = cls._urlize_accession(
+                        entry["accession"]
+                    )
                 if "accession" in entry.get("unit", {}):
-                    entry["unit"]["accession"] = cls._urlize_accession(entry["unit"]["accession"])
+                    entry["unit"]["accession"] = cls._urlize_accession(
+                        entry["unit"]["accession"]
+                    )
 
     @classmethod
     def _urlize_accession(cls, accession):
+        """Return an URL version of `accession`.
+
+        Arguments:
+            accession (str): an ontology accession (e.g. *MS:1000031*), from
+                one of the following ontologies: **MS**, **UO**, or **IMS**.
+
+        """
         try:
             namespace, id_ = accession.split(":", 1)
             if namespace in {"MS", "UO"}:
@@ -734,6 +791,12 @@ class MzMLFile(object):
 
     @cached_property
     def environment(self):
+        """The ``mzML`` file environment.
+
+        The environment is built using `~MzMLFile._environment_paths` and
+        `~MzMLFile._environment_attributes`, in order to know the actual
+        location in the XML tree of elements with several naming alternatives.
+        """
         ns = self.namespace
         env = collections.OrderedDict()
 
@@ -762,15 +825,33 @@ class MzMLFile(object):
         # if self.tree.find(path.format(**env))
 
     def _find_xpath(self, query):
-        return self.tree.iterfind(query.format(**self.environment), self.namespace)
+        """Return an iterator over the XML element satisfying the query.
+
+        If the query contains environment shortcuts, it will be expanded using
+        the `~MzMLFile.environment` of the current instance.
+
+        Arguments:
+            query (str): an XPath query to find elements with.
+
+        """
+        return self.tree.iterfind(
+            query.format(**self.environment), self.namespace
+        )
 
     @cached_property
     def _referenceable_parameters(self):
-        return {x.attrib["id"]: x for x in self._find_xpath(self._XPATHS["ic_elements"])}
+        """A collection of XML referenceable parameters, indexed by their ID.
+        """
+        return {
+            x.attrib["id"]: x
+            for x in self._find_xpath(self._XPATHS["ic_elements"])
+        }
 
     ### METADATA #############################################################
 
     def _extract_software(self, software_ref, name, meta):
+        """Extract software metadata using the provided software reference.
+        """
 
         if name.endswith("Name"):
             name = name.replace(" Name", "")
@@ -791,7 +872,9 @@ class MzMLFile(object):
                             "ref": ie.attrib[self.environment["cvRef"]],
                         }
                 except KeyError:  # <SoftwareList <software <softwareParam>>>
-                    params = element.find("s:softwareParam", namespaces=self.namespace)
+                    params = element.find(
+                        "s:softwareParam", namespaces=self.namespace
+                    )
                     if params.attrib["version"]:
                         version = {"value": params.attrib["version"]}
                     software = {
@@ -806,7 +889,15 @@ class MzMLFile(object):
                     meta["{} software version".format(name)] = version
 
     def _extract_cv_params(self, element, parameters, meta):
+        """Attempt to extract some CV parameters from the given element.
 
+        Arguments:
+            element (`~xml.etree.ElementTree.Element`): an XML element with
+                possible ``cvParam`` children.
+            parameters (list): a list of `_CVParameter` to use as a reference.
+            meta (dict): the metadata dictionary to enrich.
+
+        """
         descendents = {
             k: self.vocabulary[k].rchildren().id + [k]
             for k in (param_info.accession for param_info in parameters)
@@ -836,7 +927,9 @@ class MzMLFile(object):
 
                 if param_info.plus1:
                     # setup the dictionary for multiple entries
-                    entries = meta.setdefault(param_info.name, dict(entry_list=[]))["entry_list"]
+                    entries = meta.setdefault(
+                        param_info.name, dict(entry_list=[])
+                    )["entry_list"]
                     if not param_info.merge or param not in entries:
                         entries.append(param)
                 else:
@@ -844,36 +937,52 @@ class MzMLFile(object):
 
                 if param_info.software:
                     try:  # softwareRef in <Processing Method>
-                        soft_ref = get_parent(element, self.tree).attrib["softwareRef"]
-                    except KeyError:  # softwareRef in <DataProcessing>
-                        soft_ref = get_parent(get_parent(element, self.tree), self.tree).attrib[
+                        soft_ref = get_parent(element, self.tree).attrib[
                             "softwareRef"
                         ]
+                    except KeyError:  # softwareRef in <DataProcessing>
+                        soft_ref = get_parent(
+                            get_parent(element, self.tree), self.tree
+                        ).attrib["softwareRef"]
                     self._extract_software(soft_ref, param_info.name, meta)
 
     def _extract_assay_parameters(self, meta):
+        """Extract assay parameters into the metadata dictionary.
+        """
         terms = self._assay_parameters()
         for location, term in six.iteritems(terms):
             for element in self._find_xpath(self._XPATHS[location]):
                 self._extract_cv_params(element, terms[location], meta)
 
     def _extract_derived_file(self, meta):
+        """Extract derived file information into the metadata dictionary.
+        """
         spectral_file = fs.path.basename(self.path)
         ms_assay_name, _ = fs.path.splitext(spectral_file)
-        meta["Derived Spectral Data File"] = {"entry_list": [{"value": spectral_file}]}
+        meta["Derived Spectral Data File"] = {
+            "entry_list": [{"value": spectral_file}]
+        }
         meta["MS Assay Name"] = meta["Sample Name"] = {"value": ms_assay_name}
 
     def _extract_raw_file(self, meta):
+        """Extract raw spectral data file into the metadata dictionary.
+        """
         try:
-            raw_file = next(self._find_xpath(self._XPATHS["raw_file"])).attrib[
-                self.environment["filename"]
-            ]
-            meta["Raw Spectral Data File"] = {"entry_list": [{"value": os.path.basename(raw_file)}]}
+            raw_file = next(self._find_xpath(self._XPATHS["raw_file"]))
+            filename = ntpath.basename(
+                raw_file.attrib[self.environment["filename"]]
+            )
+            meta["Raw Spectral Data File"] = {
+                "entry_list": [{"value": filename}]
+            }
         except StopIteration:
-            warnings.warn("Could not find any metadata about Raw Spectral Data File.")
+            warnings.warn(
+                "Could not find any metadata about Raw Spectral Data File."
+            )
 
     def _extract_polarity(self, meta):
-
+        """Extract scan polarity information into the metadata dictionary.
+        """
         sp_cv = self._find_xpath(self._XPATHS["sp_cv"])
         pos = neg = False
 
@@ -884,14 +993,24 @@ class MzMLFile(object):
         meta["Scan polarity"] = (
             {"name": "alternating scan", "ref": "", "accession": ""}
             if pos and neg
-            else {"name": "positive scan", "ref": "MS", "accession": "MS:1000130"}
+            else {
+                "name": "positive scan",
+                "ref": "MS",
+                "accession": "MS:1000130",
+            }
             if pos
-            else {"name": "negative scan", "ref": "MS", "accession": "MS:1000129"}
+            else {
+                "name": "negative scan",
+                "ref": "MS",
+                "accession": "MS:1000129",
+            }
             if neg
             else {"name": "n/a", "ref": "", "accession": ""}
         )
 
     def _extract_spectrum_representation(self, meta):
+        """Extract spectrum representation into the metadata dictionary.
+        """
         representations = self.vocabulary["MS:1000525"].rchildren()
         for element in self._find_xpath(self._XPATHS["sp_cv"]):
             if element.attrib["accession"] in representations:
@@ -903,19 +1022,25 @@ class MzMLFile(object):
                 return
 
     def _extract_timerange(self, meta):
-
+        """Extract scan timerange into the metadata dictionary.
+        """
         try:
             scan_cv = self._find_xpath(self._XPATHS["scan_cv"])
             times = [
-                float(i.attrib["value"]) for i in scan_cv if i.attrib["accession"] == "MS:1000016"
+                float(i.attrib["value"])
+                for i in scan_cv
+                if i.attrib["accession"] == "MS:1000016"
             ]
-            meta["Time range"] = {"value": "{:.3f}-{:.3f}".format(min(times), max(times))}
+            meta["Time range"] = {
+                "value": "{:.3f}-{:.3f}".format(min(times), max(times))
+            }
 
             unit = next(
                 (
                     i
                     for i in self._find_xpath(self._XPATHS["scan_cv"])
-                    if i.attrib["accession"] == "MS:1000016" and "unitName" in i.attrib
+                    if i.attrib["accession"] == "MS:1000016"
+                    and "unitName" in i.attrib
                 ),
                 None,
             )
@@ -924,14 +1049,17 @@ class MzMLFile(object):
                 meta["Time range"]["unit"] = {
                     "name": unit.attrib["unitName"],
                     "accession": unit.attrib["unitAccession"],
-                    "ref": unit.attrib.get("unitCvRef", unit.attrib[self.environment["cvRef"]]),
+                    "ref": unit.attrib.get(
+                        "unitCvRef", unit.attrib[self.environment["cvRef"]]
+                    ),
                 }
 
         except ValueError:
             pass
 
     def _extract_mzrange(self, meta):
-
+        """Extract scan m/z range into the metadata dictionary.
+        """
         try:
             minmz = []
             maxmz = []
@@ -949,7 +1077,9 @@ class MzMLFile(object):
                 elif element.attrib["accession"] == "MS:1000500":
                     maxmz.append(float(element.attrib["value"]))
 
-            meta["Scan m/z range"] = {"value": "{}-{}".format(int(min(minmz)), int(max(maxmz)))}
+            meta["Scan m/z range"] = {
+                "value": "{}-{}".format(int(min(minmz)), int(max(maxmz)))
+            }
 
             if unit is not None:
                 meta["Scan m/z range"]["unit"] = unit
@@ -959,6 +1089,8 @@ class MzMLFile(object):
                 warnings.warn("Could not find any m/z range")
 
     def _extract_data_file_content(self, meta):
+        """Extract data file content into the metadata dictionary.
+        """
 
         file_contents = self.vocabulary["MS:1000524"].rchildren().id
 
@@ -978,13 +1110,16 @@ class MzMLFile(object):
                     "accession": cv.attrib["accession"],
                 }
                 for cv in unique_everseen(
-                    self._find_xpath(self._XPATHS["sp_cv"]), key=lambda cv: cv.attrib["accession"]
+                    self._find_xpath(self._XPATHS["sp_cv"]),
+                    key=lambda cv: cv.attrib["accession"],
                 )
                 if cv.attrib["accession"] in file_contents
             ]
         }
 
     def _extract_instrument(self, meta):
+        """Extract instrument parameters into the metadata dictionary.
+        """
 
         # Find the instrument config: either directly the instrument element
         # with its attached parameters or a referenceableParamGroup referenced
@@ -1015,7 +1150,7 @@ class MzMLFile(object):
             ),
         ]
 
-        # Extract the parameters
+        # Extract the CV parameters
         for param in instrument.iterfind("s:cvParam", self.namespace):
             self._extract_cv_params(param, parameters, meta)
 
@@ -1028,7 +1163,9 @@ class MzMLFile(object):
                 meta["Instrument"]["name"] = term.name
 
             # Get the instrument manufacturer
-            man = next((p for p in term.rparents() if p.id in manufacturers), term)
+            man = next(
+                (p for p in term.rparents() if p.id in manufacturers), term
+            )
             meta["Instrument manufacturer"] = {
                 "accession": man.id,
                 "name": man.name,
@@ -1050,13 +1187,22 @@ class MzMLFile(object):
                 instrument = "<{}>".format(meta["Instrument serial number"])
             else:
                 instrument = "?"
-            warnings.warn("Instrument {} does not have a software tag.".format(instrument))
+            warnings.warn(
+                "Instrument {} does not have a software tag.".format(instrument)
+            )
 
     def _extract_scan_number(self, meta):
+        """Extract the number of scans into the metadata dictionary.
+        """
         scan_num = next(self._find_xpath(self._XPATHS["scan_num"]))
         meta["Number of scans"] = {"value": int(scan_num.attrib["count"])}
 
     def _extract_scan_parameters(self, meta):
+        """Extract parameters from each scan into the metadata dictionary.
+
+        Depending on the `_CVParameter.merge` attribute, some entry list will
+        be deduplicated.
+        """
         terms = self._scan_parameters()
 
         for spectrum in self._find_xpath(self._XPATHS["sp"]):
@@ -1073,7 +1219,9 @@ class MzMLFile(object):
                     elements = (
                         element
                         for param in params
-                        for element in param.iterfind("s:cvParam", self.namespace)
+                        for element in param.iterfind(
+                            "s:cvParam", self.namespace
+                        )
                     )
                 # we can extract the CV parameters directly
                 else:
@@ -1083,6 +1231,8 @@ class MzMLFile(object):
                     self._extract_cv_params(element, parameters, meta)
 
     def _find_instrument_config(self):
+        """Find the instrument configuration XML element.
+        """
         # Get the instrument configuration reference if it exists or None
         ic_ref = next(self._find_xpath(self._XPATHS["ic_ref"]), None)
         # if the configuration exist, find it in the referenceable parameters

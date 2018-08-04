@@ -54,7 +54,7 @@ class MtblsTestCase(unittest.TestCase):
             mzml_name, mzml_ext = os.path.splitext(os.path.basename(mzml_pth))
             mz = mzml2isa.mzml.mzMLmeta(mzml_pth)
             meta_results_new[study] = {mzml_name.decode(): mz.meta}
-
+            del mzml_ext
 
         # check each meta data for all the files
         for study, file_details in six.iteritems(meta_results_original):

@@ -50,7 +50,7 @@ class TestMTBLS(unittest.TestCase):
     ### METABOLIGHTS STUDIES #################################################
 
     def test_MTBLS126(self):
-        self._test_study('MTBLS126', instrument='LTQ Orbitrap')
+        self._test_study('MTBLS126', instrument='LTQ Orbitrap XL')
 
     def test_MTBLS267(self):
         self._test_study('MTBLS267', instrument='LTQ Orbitrap')

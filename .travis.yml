@@ -1,7 +1,11 @@
 sudo: false
 dist: trusty
 language: python
-cache: pip
+
+cache:
+  pip: true
+  directories:
+    - $HOME/.config/isatools/
 
 python:
 - '2.7'
@@ -59,10 +63,13 @@ install:
 - pip install .
 
 before_script:
-- pip install -U green
+- pip install -U -r ci/requirements.txt
 
 script:
 - green
+
+after_script:
+- python -m codecov
 
 notifications:
   email:

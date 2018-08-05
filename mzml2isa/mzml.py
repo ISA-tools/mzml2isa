@@ -26,7 +26,6 @@ from __future__ import unicode_literals
 
 import collections
 import ntpath
-import os
 import posixpath
 import re
 import warnings
@@ -61,10 +60,13 @@ class _CVParameter(
             the parameter.
         merge (bool): `True` if several occurrences of the same value should
             be kept or dropped.
+
     """
 
 
 class MzMLFile(object):
+    """An ``mzML`` file.
+    """
 
     # dict: all XPaths used during ``mzML`` files parsing.
     _XPATHS = {
@@ -99,7 +101,7 @@ class MzMLFile(object):
         "ref_binary": "{scanList}/s:scan/s:referenceableParamGroupRef",
     }
 
-    # pronto.Ontology: the default MS controlled vocabulary to use.
+    # `~pronto.Ontology`: the default MS controlled vocabulary to use.
     _VOCABULARY = pronto.Ontology(
         pkg_resources.resource_stream("mzml2isa", "ontologies/psi-ms.obo"),
         imports=False,
@@ -127,7 +129,7 @@ class MzMLFile(object):
         if self.fs.getinfo(self.path).is_dir:
             raise fs.errors.FileExpected(self.path)
 
-    ### COMPATIBILITY LAYER WITH IMZML #######################################
+    # COMPATIBILITY LAYER WITH IMZML #########################################
 
     # NB: OVERRIDE ME IN SUBCLASSES
     @classmethod
@@ -175,6 +177,13 @@ class MzMLFile(object):
                     [
                         "{root}/{instrument}List/{instrument}/s:softwareRef",
                         "{root}/{instrument}List/{instrument}/s:instrumentSoftwareRef",
+                    ],
+                ),
+                (
+                    "software_params",
+                    [
+                        "{root}/s:softwareList/s:software/s:softwareParam",
+                        "{root}/s:softwareList/s:software/s:cvParam",
                     ],
                 ),
             ]
@@ -726,7 +735,7 @@ class MzMLFile(object):
 
         return terms
 
-    ### UTILS ################################################################
+    # UTILS ##################################################################
 
     @classmethod
     def _urlize_meta(cls, meta):
@@ -770,10 +779,10 @@ class MzMLFile(object):
         except ValueError:
             return accession
 
-    ### ENVIRONMENT ##########################################################
+    # ENVIRONMENT ############################################################
 
     @cached_property
-    def tree(self):
+    def tree(self):  # noqa: D401
         """An XML element tree representation of the ``mzML`` file.
         """
         if self.fs.hassyspath(self.path):
@@ -782,7 +791,7 @@ class MzMLFile(object):
             return etree.parse(handle)
 
     @cached_property
-    def namespaces(self):
+    def namespaces(self):  # noqa: D401
         """The XML namespace of the ``mzML`` file.
         """
         root = self.tree.getroot()
@@ -794,7 +803,7 @@ class MzMLFile(object):
         return ns
 
     @cached_property
-    def environment(self):
+    def environment(self):  # noqa: D401
         """The ``mzML`` file environment.
 
         The environment is built using `~MzMLFile._environment_paths` and
@@ -808,6 +817,7 @@ class MzMLFile(object):
         for key, paths in six.iteritems(self._environment_paths()):
             for path in paths:
                 if self.tree.find(path.format(**env), ns) is not None:
+                    # NB: XPaths are valid POSIX paths !
                     env[key] = posixpath.basename(path)
                     break
             else:
@@ -842,51 +852,51 @@ class MzMLFile(object):
         return self.tree.iterfind(query.format(**self.environment), ns)
 
     @cached_property
-    def _referenceable_parameters(self):
+    def _referenceable_parameters(self):  # noqa: D401
         """A collection of XML referenceable parameters, indexed by their ID.
         """
         return {
             x.attrib["id"]: x for x in self._find_xpath(self._XPATHS["ic_elements"])
         }
 
-    ### METADATA #############################################################
+    # METADATA ###############################################################
 
     def _extract_software(self, software_ref, name, meta):
         """Extract software metadata using the provided software reference.
         """
+        ns = self.namespaces
+        software = version = None
 
-        if name.endswith("Name"):
-            name = name.replace(" Name", "")
+        # Make sure we don't end up with "Parameter Name Software" but with
+        # "Parameter Software" even if ``name`` is "Parameter Name"
+        name = re.sub(r" Name$", "", name)
 
+        # Loop through software referenceable elements and attempt to find
+        # the right one
         for element in self._find_xpath(self._XPATHS["software_elements"]):
             if element.attrib["id"] == software_ref:
-
-                version = None
-                software = None
-
-                try:  # <Softwarelist <Software <cvParam>>>
-                    if element.attrib["version"]:
-                        version = {"value": element.attrib["version"]}
-                    for ie in element.iterfind("s:cvParam", self.namespaces):
-                        software = {
-                            "accession": ie.attrib["accession"],
-                            "name": ie.attrib["name"],
-                            "ref": ie.attrib[self.environment["cvRef"]],
-                        }
-                except KeyError:  # <SoftwareList <software <softwareParam>>>
-                    params = element.find("s:softwareParam", self.namespaces)
-                    if params.attrib["version"]:
-                        version = {"value": params.attrib["version"]}
+                # extract the version from the software attributes
+                if "version" in element.attrib:
+                    version = {"value": element.attrib["version"]}
+                # get the controlled vocabulary term for the instrument
+                param = next(
+                    element.iterfind(self.environment["software_params"], ns), None
+                )
+                if param is not None:
                     software = {
-                        "accession": params.attrib["accession"],
-                        "name": params.attrib["name"],
-                        "ref": params.attrib[self.environment["cvRef"]],
+                        "accession": param.attrib["accession"],
+                        "name": param.attrib["name"],
+                        "ref": param.attrib[self.environment["cvRef"]],
                     }
+                # stop searching for other softwares
+                break
 
-                if software is not None:
-                    meta["{} software".format(name)] = software
-                if version is not None:
-                    meta["{} software version".format(name)] = version
+        # update the metadata dictionary with the extracted software and
+        # version, if any
+        if software is not None:
+            meta["{} software".format(name)] = software
+        if version is not None:
+            meta["{} software version".format(name)] = version
 
     def _extract_cv_params(self, element, parameters, meta):
         """Attempt to extract some CV parameters from the given element.

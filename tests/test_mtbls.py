@@ -31,13 +31,15 @@ class TestMTBLS(unittest.TestCase):
         cls.ebifs.close()
 
     def _test_study(self, study_id, instrument=None):
+
+        # open the study directory and find the smallest mzML file
         study_fs = self.ebifs.opendir(study_id)
         file_info = next(iter(sorted(
             study_fs.filterdir('/', files=['*.mzML'], exclude_dirs=['*'], namespaces=['details']),
             key=operator.attrgetter('size'),
         )))
 
-        # open file
+        # open and parse mzML file
         mzml_file = MzMLFile(study_fs, file_info.name)
         self.assertIsNotNone(mzml_file.tree)
         self.assertIsNotNone(mzml_file.metadata)

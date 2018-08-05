@@ -872,9 +872,7 @@ class MzMLFile(object):
                             "ref": ie.attrib[self.environment["cvRef"]],
                         }
                 except KeyError:  # <SoftwareList <software <softwareParam>>>
-                    params = element.find(
-                        "s:softwareParam", namespaces=self.namespace
-                    )
+                    params = element.find("s:softwareParam", self.namespace)
                     if params.attrib["version"]:
                         version = {"value": params.attrib["version"]}
                     software = {

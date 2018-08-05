@@ -6,6 +6,7 @@ import operator
 import unittest
 
 import fs
+import fs.errors
 
 from mzml2isa.mzml import MzMLFile
 
@@ -16,9 +17,12 @@ class TestMTBLS(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.ebifs = HTTPDownloader(fs.open_fs(
-            'ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/'
-        ))
+        try:
+            cls.ebifs = HTTPDownloader(fs.open_fs(
+                'ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/'
+            ))
+        except fs.errors.CreateFailed:
+            raise unittest.SkipTest('cannot connect to the EBI FTP')
 
     def setUp(self):
         self.tmpfs = fs.open_fs('temp://')

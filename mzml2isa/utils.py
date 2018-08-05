@@ -30,12 +30,7 @@ import warnings
 import pronto
 import itertools
 
-from . import (
-    __author__,
-    __name__,
-    __version__,
-    __license__,
-)
+from . import __author__, __name__, __version__, __license__
 
 ## RESOURCES
 TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
@@ -52,6 +47,7 @@ try:
         Uses the method provided by lxml.etree
         """
         return element.getparent()
+
 
 except ImportError:
 
@@ -74,21 +70,22 @@ except ImportError:
 ## VERSION AGNOSTIC UTILS
 class PermissiveFormatter(string.Formatter):
     """A formatter that replace wrong and missing key with a blank."""
-    def __init__(self, missing='', bad_fmt=''):
+
+    def __init__(self, missing="", bad_fmt=""):
         self.missing = missing
         self.bad_fmt = bad_fmt
 
     def get_field(self, field_name, args, kwargs):
         # Handle a key not found
         try:
-            val=super(PermissiveFormatter, self).get_field(field_name, args, kwargs)
+            val = super(PermissiveFormatter, self).get_field(field_name, args, kwargs)
         except (KeyError, AttributeError, IndexError, TypeError):
-            val=None,field_name
+            val = None, field_name
         return val
 
     def format_field(self, value, spec):
         # handle an invalid format
-        if value==None:
+        if value == None:
             return self.missing
         try:
             return super(PermissiveFormatter, self).format_field(value, spec)
@@ -128,31 +125,37 @@ class _ChainMap(collections.Mapping):
 def merge_spectra(metalist):
     """Merge centroid and spectrum metadata of a same sample
     """
-    profiles = [m for m in metalist \
-        if m['Spectrum representation']['entry_list'][0]['name']=='profile spectrum']
-    centroid = [m for m in metalist \
-        if m['Spectrum representation']['entry_list'][0]['name']=='centroid spectrum']
+    profiles = [
+        m
+        for m in metalist
+        if m["Spectrum representation"]["entry_list"][0]["name"] == "profile spectrum"
+    ]
+    centroid = [
+        m
+        for m in metalist
+        if m["Spectrum representation"]["entry_list"][0]["name"] == "centroid spectrum"
+    ]
 
-    profiles.sort(key=lambda x: x['Sample Name']['value'])
-    centroid.sort(key=lambda x: x['Sample Name']['value'])
+    profiles.sort(key=lambda x: x["Sample Name"]["value"])
+    centroid.sort(key=lambda x: x["Sample Name"]["value"])
 
-    if len(profiles)!=len(centroid):
+    if len(profiles) != len(centroid):
         return metalist
 
-    for p,c in zip(profiles, centroid):
-        p['Derived Spectral Data File']['entry_list'].extend(
-            c['Derived Spectral Data File']['entry_list']
+    for p, c in zip(profiles, centroid):
+        p["Derived Spectral Data File"]["entry_list"].extend(
+            c["Derived Spectral Data File"]["entry_list"]
         )
-        p['Raw Spectral Data File']['entry_list'].extend(
-            c['Raw Spectral Data File']['entry_list']
+        p["Raw Spectral Data File"]["entry_list"].extend(
+            c["Raw Spectral Data File"]["entry_list"]
         )
-        p['Spectrum representation']['entry_list'].extend(
-            c['Spectrum representation']['entry_list']
+        p["Spectrum representation"]["entry_list"].extend(
+            c["Spectrum representation"]["entry_list"]
         )
-        p['Sample Name']['value'] = longest_substring(
-            p['Sample Name']['value'],c['Sample Name']['value']
-        ).strip('-_;:() \n\t')
-        p['MS Assay Name']['value'] = p['Sample Name']['value']
+        p["Sample Name"]["value"] = longest_substring(
+            p["Sample Name"]["value"], c["Sample Name"]["value"]
+        ).strip("-_;:() \n\t")
+        p["MS Assay Name"]["value"] = p["Sample Name"]["value"]
 
     return profiles
 
@@ -163,10 +166,11 @@ def longest_substring(string1, string2):
     for i in range(len1):
         match = ""
         for j in range(len2):
-            if (i + j < len1 and string1[i + j] == string2[j]):
+            if i + j < len1 and string1[i + j] == string2[j]:
                 match += string2[j]
             else:
-                if (len(match) > len(answer)): answer = match
+                if len(match) > len(answer):
+                    answer = match
                 match = ""
     return answer
 
@@ -174,7 +178,9 @@ def longest_substring(string1, string2):
 def star_args(func):
     """Unpack arguments before calling the wrapped function.
     """
+
     @functools.wraps(func)
     def new_func(args):
         return func(*args)
+
     return new_func

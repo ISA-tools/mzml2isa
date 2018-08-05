@@ -1,5 +1,0 @@
-six ~=1.11
-pronto ~=0.6
-openpyxl
-fs ~=2.0.11
-cached-property ~=1.4

@@ -208,10 +208,7 @@ class MzMLFile(object):
                 ),
                 (
                     "cvLabel",
-                    [
-                        "{root}/s:cvList/s:cv[@id]",
-                        "{root}/s:cvList/s:cv[@cvLabel]",
-                    ],
+                    ["{root}/s:cvList/s:cv[@id]", "{root}/s:cvList/s:cv[@cvLabel]"],
                 ),
                 (
                     "softwareRef",
@@ -746,9 +743,7 @@ class MzMLFile(object):
                 if "accession" not in entry and "unit" not in entry:
                     break
                 if "accession" in entry:
-                    entry["accession"] = cls._urlize_accession(
-                        entry["accession"]
-                    )
+                    entry["accession"] = cls._urlize_accession(entry["accession"])
                 if "accession" in entry.get("unit", {}):
                     entry["unit"]["accession"] = cls._urlize_accession(
                         entry["unit"]["accession"]
@@ -851,8 +846,7 @@ class MzMLFile(object):
         """A collection of XML referenceable parameters, indexed by their ID.
         """
         return {
-            x.attrib["id"]: x
-            for x in self._find_xpath(self._XPATHS["ic_elements"])
+            x.attrib["id"]: x for x in self._find_xpath(self._XPATHS["ic_elements"])
         }
 
     ### METADATA #############################################################
@@ -933,9 +927,9 @@ class MzMLFile(object):
 
                 if param_info.plus1:
                     # setup the dictionary for multiple entries
-                    entries = meta.setdefault(
-                        param_info.name, dict(entry_list=[])
-                    )["entry_list"]
+                    entries = meta.setdefault(param_info.name, dict(entry_list=[]))[
+                        "entry_list"
+                    ]
                     if not param_info.merge or param not in entries:
                         entries.append(param)
                 else:
@@ -943,9 +937,7 @@ class MzMLFile(object):
 
                 if param_info.software:
                     try:  # softwareRef in <Processing Method>
-                        soft_ref = get_parent(element, self.tree).attrib[
-                            "softwareRef"
-                        ]
+                        soft_ref = get_parent(element, self.tree).attrib["softwareRef"]
                     except KeyError:  # softwareRef in <DataProcessing>
                         soft_ref = get_parent(
                             get_parent(element, self.tree), self.tree
@@ -965,9 +957,7 @@ class MzMLFile(object):
         """
         spectral_file = fs.path.basename(self.path)
         ms_assay_name, _ = fs.path.splitext(spectral_file)
-        meta["Derived Spectral Data File"] = {
-            "entry_list": [{"value": spectral_file}]
-        }
+        meta["Derived Spectral Data File"] = {"entry_list": [{"value": spectral_file}]}
         meta["MS Assay Name"] = meta["Sample Name"] = {"value": ms_assay_name}
 
     def _extract_raw_file(self, meta):
@@ -975,16 +965,10 @@ class MzMLFile(object):
         """
         try:
             raw_file = next(self._find_xpath(self._XPATHS["raw_file"]))
-            filename = ntpath.basename(
-                raw_file.attrib[self.environment["filename"]]
-            )
-            meta["Raw Spectral Data File"] = {
-                "entry_list": [{"value": filename}]
-            }
+            filename = ntpath.basename(raw_file.attrib[self.environment["filename"]])
+            meta["Raw Spectral Data File"] = {"entry_list": [{"value": filename}]}
         except StopIteration:
-            warnings.warn(
-                "Could not find any metadata about Raw Spectral Data File."
-            )
+            warnings.warn("Could not find any metadata about Raw Spectral Data File.")
 
     def _extract_polarity(self, meta):
         """Extract scan polarity information into the metadata dictionary.
@@ -999,17 +983,9 @@ class MzMLFile(object):
         meta["Scan polarity"] = (
             {"name": "alternating scan", "ref": "", "accession": ""}
             if pos and neg
-            else {
-                "name": "positive scan",
-                "ref": "MS",
-                "accession": "MS:1000130",
-            }
+            else {"name": "positive scan", "ref": "MS", "accession": "MS:1000130"}
             if pos
-            else {
-                "name": "negative scan",
-                "ref": "MS",
-                "accession": "MS:1000129",
-            }
+            else {"name": "negative scan", "ref": "MS", "accession": "MS:1000129"}
             if neg
             else {"name": "n/a", "ref": "", "accession": ""}
         )
@@ -1045,8 +1021,7 @@ class MzMLFile(object):
                 (
                     i
                     for i in self._find_xpath(self._XPATHS["scan_cv"])
-                    if i.attrib["accession"] == "MS:1000016"
-                    and "unitName" in i.attrib
+                    if i.attrib["accession"] == "MS:1000016" and "unitName" in i.attrib
                 ),
                 None,
             )
@@ -1169,9 +1144,7 @@ class MzMLFile(object):
                 meta["Instrument"]["name"] = term.name
 
             # Get the instrument manufacturer
-            man = next(
-                (p for p in term.rparents() if p.id in manufacturers), term
-            )
+            man = next((p for p in term.rparents() if p.id in manufacturers), term)
             meta["Instrument manufacturer"] = {
                 "accession": man.id,
                 "name": man.name,

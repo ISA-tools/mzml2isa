@@ -1,4 +1,17 @@
 # coding: utf-8
+"""``imzML`` file metadata parser.
+
+About:
+    The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
+    as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
+    port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+    in June 2016 during an internship at the EBI Cambridge.
+
+License:
+    GNU General Public License version 3.0 (GPLv3)
+"""
+from __future__ import absolute_import
+from __future__ import unicode_literals
 
 import copy
 

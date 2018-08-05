@@ -1,24 +1,25 @@
 # coding: utf-8
-"""
-mzml2isa.mzml
-==============================================================================
+"""``mzML`` file metadata parser.
 
-Content
-------------------------------------------------------------------------------
-This module contains two classes, mzMLmeta and imzMLmeta, which are used
-to parse and serialize the metadata of a mzML or imzML file into a Python
-dictionary.
+Use the `~mzml2isa.mzml.MzMLFile` class to extract metadata from an ``mzML``
+file. The file can be located on any filesystem supported by `Pyfilesystem
+<https://pyfilesystem.org>`_, such as a local directory, a Tar archive, or
+an FTP server.
 
-About
-------------------------------------------------------------------------------
-The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
-as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
-in June 2016 during an internship at the EBI Cambridge.
+Example:
+    >>> from mzml2isa.mzml import MzMLFile
+    >>> f = MzMLFile('examples/hupo-psi-msdata', 'tiny.msdata.mzML0.99.9.mzML')
+    >>> f.metadata['Instrument']['name']
+    'LCQ Deca'
 
-License
-------------------------------------------------------------------------------
-GNU General Public License version 3.0 (GPLv3)
+About:
+    The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
+    as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
+    port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+    in June 2016 during an internship at the EBI Cambridge.
+
+License:
+    GNU General Public License version 3.0 (GPLv3)
 """
 from __future__ import absolute_import
 from __future__ import unicode_literals
@@ -32,6 +33,7 @@ import warnings
 
 import fs
 import fs.path
+import fs.errors
 import pronto
 import pkg_resources
 import six
@@ -107,16 +109,23 @@ class MzMLFile(object):
         """Open an ``mzML`` file from the given filesystem and path.
 
         Arguments:
-            filesystem (FS URL or `fs.base.FS`): the filesystem the file is
-                located on.
+            filesystem (`str` or `~fs.base.FS`): the filesystem the file is
+                located on, either as a filesystem instance or an FS URL.
             path (str): the path to the file on the provided filesystem.
             vocabulary (`~pronto.Ontology`, optional): a controlled vocabulary
                 to use (or `None` to use the default one).
+
+        Raises:
+            `~fs.errors.ResourceNotFound`: when the path does not exist
+            `~fs.errors.FileExpected`: when the path refers to a directory.
 
         """
         self.fs = fs.open_fs(filesystem)
         self.path = path
         self.vocabulary = vocabulary or self._VOCABULARY
+
+        if self.fs.getinfo(self.path).is_dir:
+            raise fs.errors.FileExpected(self.path)
 
     ### COMPATIBILITY LAYER WITH IMZML #######################################
 
@@ -778,7 +787,7 @@ class MzMLFile(object):
             return etree.parse(handle)
 
     @cached_property
-    def namespace(self):
+    def namespaces(self):
         """The XML namespace of the ``mzML`` file.
         """
         root = self.tree.getroot()
@@ -797,7 +806,7 @@ class MzMLFile(object):
         `~MzMLFile._environment_attributes`, in order to know the actual
         location in the XML tree of elements with several naming alternatives.
         """
-        ns = self.namespace
+        ns = self.namespaces
         env = collections.OrderedDict()
 
         # setup XPaths variables
@@ -834,9 +843,8 @@ class MzMLFile(object):
             query (str): an XPath query to find elements with.
 
         """
-        return self.tree.iterfind(
-            query.format(**self.environment), self.namespace
-        )
+        ns = self.namespaces
+        return self.tree.iterfind(query.format(**self.environment), ns)
 
     @cached_property
     def _referenceable_parameters(self):
@@ -865,14 +873,14 @@ class MzMLFile(object):
                 try:  # <Softwarelist <Software <cvParam>>>
                     if element.attrib["version"]:
                         version = {"value": element.attrib["version"]}
-                    for ie in element.iterfind("s:cvParam", self.namespace):
+                    for ie in element.iterfind("s:cvParam", self.namespaces):
                         software = {
                             "accession": ie.attrib["accession"],
                             "name": ie.attrib["name"],
                             "ref": ie.attrib[self.environment["cvRef"]],
                         }
                 except KeyError:  # <SoftwareList <software <softwareParam>>>
-                    params = element.find("s:softwareParam", self.namespace)
+                    params = element.find("s:softwareParam", self.namespaces)
                     if params.attrib["version"]:
                         version = {"value": params.attrib["version"]}
                     software = {
@@ -1149,7 +1157,7 @@ class MzMLFile(object):
         ]
 
         # Extract the CV parameters
-        for param in instrument.iterfind("s:cvParam", self.namespace):
+        for param in instrument.iterfind("s:cvParam", self.namespaces):
             self._extract_cv_params(param, parameters, meta)
 
         if "Instrument" in meta:
@@ -1202,6 +1210,7 @@ class MzMLFile(object):
         be deduplicated.
         """
         terms = self._scan_parameters()
+        ns = self.namespaces
 
         for spectrum in self._find_xpath(self._XPATHS["sp"]):
             for location, parameters in six.iteritems(terms):
@@ -1212,18 +1221,16 @@ class MzMLFile(object):
                 if location.startswith("ref"):
                     params = (
                         self._referenceable_parameters[ref.attrib["ref"]]
-                        for ref in spectrum.iterfind(xpath, self.namespace)
+                        for ref in spectrum.iterfind(xpath, self.namespaces)
                     )
                     elements = (
                         element
                         for param in params
-                        for element in param.iterfind(
-                            "s:cvParam", self.namespace
-                        )
+                        for element in param.iterfind("s:cvParam", ns)
                     )
                 # we can extract the CV parameters directly
                 else:
-                    elements = spectrum.iterfind(xpath, self.namespace)
+                    elements = spectrum.iterfind(xpath, ns)
 
                 for element in elements:
                     self._extract_cv_params(element, parameters, meta)

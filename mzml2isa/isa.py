@@ -1,24 +1,23 @@
-"""
-Content
------------------------------------------------------------------------------
+# coding: utf-8
+"""Minimal ISA-Tab investigation serializer.
+
 This module contains a single class, ISA_Tab, which is used to dump a list
-of mzML.meta or imzML.meta dictionaries to ISA files.
+of `~MzMLFile.metadata` or `~ImzMLFile.metadata` dictionaries to ISA files.
 
-About
------------------------------------------------------------------------------
-The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
-as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
-in June 2016 during an internship at the EBI Cambridge.
+About:
+    The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
+    as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
+    port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+    in June 2016 during an internship at the EBI Cambridge.
 
-License
------------------------------------------------------------------------------
-GNU General Public License version 3.0 (GPLv3)
+License:
+    GNU General Public License version 3.0 (GPLv3)
 """
 from __future__ import absolute_import
 
 import os
 import csv
+import re
 import sys
 import functools
 

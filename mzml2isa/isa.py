@@ -288,4 +288,5 @@ class ISA_Tab(object):
         Return:
             str: the extracted substring
         """
-        return string.replace('Parameter Value[', '').replace(']', '')
+        match = re.match(r'Parameter Value\[(.*)\]', string)
+        return match.group(1) if match is not None else string

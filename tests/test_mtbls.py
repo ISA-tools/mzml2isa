@@ -55,114 +55,116 @@ class MtblsTestCase(unittest.TestCase):
             meta_results_new[study] = {mzml_name.decode(): mz.meta}
             del mzml_ext
 
-        # check each meta data for all the files
+        # check each meta data for all the files, check in the original file details if the parameter is available
+        # first though
         for study, file_details in six.iteritems(meta_results_original):
             for mzml_file, details in six.iteritems(file_details):
-                if 'Data Transformation Name' in meta_results_new[study][mzml_file]:
-                    self.assertEqual(meta_results_new[study][mzml_file]['Data Transformation Name'],
-                                 details['Data Transformation Name']
-                                     )
-                if 'Data Transformation Name' in meta_results_new[study][mzml_file]:
+                if 'Data Transformation Name' in details:
+                    self.assertEqual(
+                         meta_results_new[study][mzml_file]['Data Transformation Name'],
+                         details['Data Transformation Name']
+                    )
+                if 'Data Transformation Name' in details:
                     self.assertEqual(
                         meta_results_new[study][mzml_file]['Data Transformation software'],
                         details['Data Transformation software']
                     )
-                if 'Data Transformation software version' in meta_results_new[study][mzml_file]:
+                if 'Data Transformation software version' in details:
                     self.assertEqual(
                         meta_results_new[study][mzml_file]['Data Transformation software version'],
                         details['Data Transformation software version']
                     )
-                if 'Derived Spectral Data File' in meta_results_new[study][mzml_file]:
+                if 'Derived Spectral Data File' in details:
 
                     self.assertEqual(
                         meta_results_new[study][mzml_file]['Derived Spectral Data File']['entry_list'][0]['value'].decode(),
                         details['Derived Spectral Data File']['entry_list'][0]['value']
                     )
-                if 'Detector' in meta_results_new[study][mzml_file]:
+                if 'Detector' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Detector'],
                         details['Detector']
                     )
 
-                if 'Inlet type' in meta_results_new[study][mzml_file]:
+                if 'Inlet type' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Inlet type'],
                         details['Inlet type']
                     )
 
-                if 'Instrument' in meta_results_new[study][mzml_file]:
+                if 'Instrument' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Instrument'],
                         details['Instrument']
                     )
 
-                if 'Instrument manufacturer' in meta_results_new[study][mzml_file]:
+                if 'Instrument manufacturer' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Instrument manufacturer'],
                         details['Instrument manufacturer']
                     )
 
-                if 'Instrument serial number' in meta_results_new[study][mzml_file]:
+                if 'Instrument serial number' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Instrument serial number'],
                         details['Instrument serial number']
                     )
 
-                if 'Instrument software' in meta_results_new[study][mzml_file]:
+                if 'Instrument software' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Instrument software'],
                         details['Instrument software']
                     )
 
-                if 'Ion source' in meta_results_new[study][mzml_file]:
+                if 'Ion source' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Ion source'],
                         details['Ion source']
                     )
 
-                if 'MS Assay Name' in meta_results_new[study][mzml_file]:
+                if 'MS Assay Name' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['MS Assay Name'],
                         details['MS Assay Name']
                     )
 
-                if 'Mass analyzer' in meta_results_new[study][mzml_file]:
+                if 'Mass analyzer' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Mass analyzer'],
                         details['Mass analyzer']
                     )
 
-                if 'Native spectrum identifier format' in meta_results_new[study][mzml_file]:
+                if 'Native spectrum identifier format' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Native spectrum identifier format'],
                         details['Native spectrum identifier format']
                     )
 
-                if 'Number of scans' in meta_results_new[study][mzml_file]:
+                if 'Number of scans' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Number of scans'],
                         details['Number of scans']
                     )
 
-                if 'Raw Spectral Data File' in meta_results_new[study][mzml_file]:
+                if 'Raw Spectral Data File' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Raw Spectral Data File'],
                         details['Raw Spectral Data File']
                     )
 
-                if 'Sample Name' in meta_results_new[study][mzml_file]:
+                if 'Sample Name' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Sample Name'],
                         details['Sample Name']
                     )
 
-                if 'Scan m/z range' in meta_results_new[study][mzml_file]:
+                if 'Scan m/z range' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Scan m/z range'],
                         details['Scan m/z range']
                     )
 
-                if 'Scan polarity' in meta_results_new[study][mzml_file]:
+                if 'Scan polarity' in details:
                     self.assertEqual(
                         meta_results_original[study][mzml_file]['Scan polarity'],
                         details['Scan polarity']

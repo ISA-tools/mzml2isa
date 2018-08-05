@@ -49,7 +49,7 @@ class TestExamples(unittest.TestCase):
             self.assertTrue(result['validation_finished'])
             self.assertFalse(result['errors'])
 
-    ### EXAMPLES #############################################################
+    # EXAMPLES ###############################################################
 
     def test_hupo_psi_1(self):
         self._test_example('hupo-psi-1')

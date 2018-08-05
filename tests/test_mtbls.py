@@ -53,7 +53,7 @@ class TestMTBLS(unittest.TestCase):
             self.assertEqual(mzml_file.metadata['Instrument']['name'], instrument)
 
 
-    ### METABOLIGHTS STUDIES #################################################
+    # METABOLIGHTS STUDIES ###################################################
 
     def test_MTBLS126(self):
         self._test_study('MTBLS126', instrument='LTQ Orbitrap XL')

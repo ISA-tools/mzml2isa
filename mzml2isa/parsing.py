@@ -1,21 +1,22 @@
 # coding: utf-8
-"""
-Content
------------------------------------------------------------------------------
+"""Higher-level interface to parser/converter functionalities.
+
 This module exposes basic API of mzml2isa, either being called from command
 line interface with arguments parsing via **main** function, or from another
 Python program via the **fparse** function which works the same.
 
-About
------------------------------------------------------------------------------
-The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
-as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
-in June 2016 during an internship at the EBI Cambridge.
+Example:
+    >>> from mzml2isa.parsing import convert
+    >>> convert('examples/hupo-psi-1', 'output_directory', 'PSI1')
 
-License
------------------------------------------------------------------------------
-GNU General Public License version 3.0 (GPLv3)
+About:
+    The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
+    as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
+    port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+    in June 2016 during an internship at the EBI Cambridge.
+
+License:
+    GNU General Public License version 3.0 (GPLv3)
 """
 from __future__ import absolute_import
 

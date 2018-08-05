@@ -7,8 +7,10 @@ import unittest
 from os.path import pardir
 
 import fs
+from isatools import isatab
 
 from mzml2isa.mzml import MzMLFile
+from mzml2isa.isa import ISA_Tab
 
 
 class TestExamples(unittest.TestCase):
@@ -17,22 +19,33 @@ class TestExamples(unittest.TestCase):
     def setUpClass(cls):
         cls.fs_project = fs.open_fs(os.path.join(__file__, pardir, pardir))
         cls.fs_examples = cls.fs_project.opendir('examples')
-        cls.fs_config = cls.fs_project.opendir('static/isa-config')
+        cls.dir_config = cls.fs_project.getsyspath('static/isa-config')
 
     def setUp(self):
-        self.tmpfs = fs.open_fs('temp://')
+        self.fs_tmp = fs.open_fs('temp://')
 
     def tearDown(self):
-        self.tmpfs.close()
+        self.fs_tmp.close()
 
     @classmethod
     def tearDownClass(cls):
         cls.fs_project.close()
 
     def _test_example(self, example_name):
+        # Parse all example files
         fs_example = self.fs_examples.opendir(example_name)
         mzml_files = fs_example.filterdir('/', files=['*.mzML'], exclude_dirs=['*'])
         metadata = [MzMLFile(fs_example, m.name).metadata for m in mzml_files]
+        # Write the study files
+        writer = ISA_Tab(self.fs_tmp.getsyspath('/'), name=example_name)
+        writer.write(metadata, 'mzML')
+        # Check the file have been created as expected
+        self.assertTrue(self.fs_tmp.isfile('i_Investigation.txt'))
+        # Validate the created study
+        with open(self.fs_tmp.getsyspath('i_Investigation.txt')) as f:
+            result = isatab.validate(f, config_dir=self.dir_config)
+        self.assertTrue(result['validation_finished'])
+        self.assertFalse(result['errors'])
 
     ### EXAMPLES #############################################################
 

@@ -58,13 +58,13 @@ python:
 #   fast_finish: true
 
 before_install:
-- pip install -U pip setuptools wheel
+- pip install -U -r ci/requirements.txt
 
 install:
 - pip install .
 
 before_script:
-- pip install -U -r ci/requirements.txt
+- pip install -U -r tests/requirements.txt
 
 script:
 - green

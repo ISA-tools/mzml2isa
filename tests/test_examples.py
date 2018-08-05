@@ -7,10 +7,11 @@ import unittest
 from os.path import pardir
 
 import fs
-from isatools import isatab
 
 from mzml2isa.mzml import MzMLFile
 from mzml2isa.isa import ISA_Tab
+
+from ._utils import isatab
 
 
 class TestExamples(unittest.TestCase):
@@ -41,11 +42,12 @@ class TestExamples(unittest.TestCase):
         writer.write(metadata, 'mzML')
         # Check the file have been created as expected
         self.assertTrue(self.fs_tmp.isfile('i_Investigation.txt'))
-        # Validate the created study
-        with open(self.fs_tmp.getsyspath('i_Investigation.txt')) as f:
-            result = isatab.validate(f, config_dir=self.dir_config)
-        self.assertTrue(result['validation_finished'])
-        self.assertFalse(result['errors'])
+        # Validate the created study if `isatools` if available
+        if isatab is not None:
+            with open(self.fs_tmp.getsyspath('i_Investigation.txt')) as f:
+                result = isatab.validate(f, config_dir=self.dir_config)
+            self.assertTrue(result['validation_finished'])
+            self.assertFalse(result['errors'])
 
     ### EXAMPLES #############################################################
 

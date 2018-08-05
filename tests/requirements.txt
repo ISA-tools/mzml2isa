@@ -1,1 +1,1 @@
-isatools ~=0.10
+isatools ~=0.10 ; python_version > 2

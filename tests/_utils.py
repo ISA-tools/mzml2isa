@@ -6,6 +6,11 @@ from six.moves.urllib.request import urlopen
 from six.moves.urllib.parse import quote
 from fs.wrapfs import WrapFS
 
+try:
+    from isatools import isatab
+except ImportError:
+    isatab = None
+
 
 class HTTPDownloader(WrapFS):
     """An `FTPFS` wrapper that downloads files using HTTP.

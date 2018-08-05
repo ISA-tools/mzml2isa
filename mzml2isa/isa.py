@@ -67,18 +67,18 @@ class ISA_Tab(object):
         """
         usermeta = kwargs.get('usermeta', None)
         template_directory = kwargs.get('template_directory', None)
-        OUT_dir = kwargs.get('OUT_dir', None)
+        # OUT_dir = kwargs.get('OUT_dir', None)
 
 
-        if OUT_dir:
-            out_pth = OUT_dir
-        else:
-            out_pth = os.path.join(out_dir, name)
+        # if OUT_dir:
+        #     out_pth = OUT_dir
+        # else:
+        #     out_pth = os.path.join(out_dir, name)
 
         # Create one or several study files / one or several study section in investigation
         self.usermeta = usermeta or {}
         self.isa_env = {
-            'out_dir': out_pth,
+            'out_dir': out_dir,
             'Study Identifier':  name,
             'Study file name': 's_{}.txt'.format(name),
             'Assay polar file name': 'a_{}_{{}}_metabolite_profiling_mass_spectrometry.txt'.format(name),

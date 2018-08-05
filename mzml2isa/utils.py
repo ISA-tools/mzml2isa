@@ -98,18 +98,6 @@ class PermissiveFormatter(string.Formatter):
             else:
                 raise
 
-# class _TarFile(tarfile.TarFile):
-#     """A TarFile proxy with a setable name
-#     """
-#
-#     def __init__(self, name, buffered_reader):
-#         self.name = name
-#         self.BufferedReader = buffered_reader
-#
-#     def __getattr__(self, attr):
-#         if attr=="name":
-#             return self.name
-#         return getattr(self.BufferedReader, attr)
 
 class _ChainMap(collections.Mapping):
     """A quick backport of collections.ChainMap
@@ -135,6 +123,7 @@ class _ChainMap(collections.Mapping):
 
     def __len__(self):
         return sum(len(x) for x in self.mappings)
+
 
 def merge_spectra(metalist):
     """Merge centroid and spectrum metadata of a same sample
@@ -167,26 +156,6 @@ def merge_spectra(metalist):
 
     return profiles
 
-# def dict_update(d, u):
-#     """Update a nested dictionnary of various depth
-#
-#     Shamelessly taken from here: http://stackoverflow.com/a/3233356/623424
-#     And updated to work with dictionaries nested in lists.
-#     """
-#     for k, v in six.iteritems(u):
-#         if isinstance(v, collections.Mapping):
-#             if not k in d:
-#                 warnings.warn("Unrecognized key: {}".format(k), UserWarning)
-#             r = dict_update(d.get(k, {}), v)
-#             d[k] = r
-#         elif isinstance(v, list):
-#             r = []
-#             for x in v:                      # v Mandatory because of Python linking lists
-#                 r.append(dict_update(copy.deepcopy(d[k][0]), copy.deepcopy(x)))
-#             d[k] = r
-#         else:
-#             d[k] = u[k]
-#     return d
 
 def longest_substring(string1, string2):
     answer = ""
@@ -201,13 +170,11 @@ def longest_substring(string1, string2):
                 match = ""
     return answer
 
+
 def star_args(func):
-    """Unpack arguments if they come packed
+    """Unpack arguments before calling the wrapped function.
     """
     @functools.wraps(func)
-    def new_func(*args):
-        if len(args)==1:
-            return func(*args[0])
-        else:
-            return func(*args)
+    def new_func(args):
+        return func(*args)
     return new_func

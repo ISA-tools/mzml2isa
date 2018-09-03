@@ -44,15 +44,15 @@ class ImzMLFile(MzMLFile):
         terms = super(ImzMLFile, cls)._assay_parameters()
 
         terms["file_content"] = [
-            # _CVParameter(
-            #     accession="MS:1000525",
-            #     cv=True,
-            #     name="Spectrum representation",
-            #     plus1=True,
-            #     value=False,
-            #     software=False,
-            #     merge=False,
-            # ),
+            _CVParameter(
+                accession="MS:1000525",
+                cv=True,
+                name="Spectrum representation",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            ),
             _CVParameter(
                 accession="IMS:1000008",
                 cv=True,

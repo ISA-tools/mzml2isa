@@ -13,7 +13,7 @@ import fs.errors
 import fs.path
 import parameterized
 import six
-from fs.tarfs import TarFS
+from fs.archive.tarfs import TarFS
 from fs.tempfs import TempFS
 from fs.copy import copy_fs
 
@@ -113,7 +113,7 @@ class TestLocalMTBLS(unittest.TestCase):
 
     @parameterized.parameterized.expand(
         _MZML_FS.listdir('/'),
-        name_func=lambda f, n, p: "{}_{}".format(f.__name__, p.args[0])
+        name_func=lambda f, n, p: str("{}_{}".format(f.__name__, p.args[0]))
     )
     def test(self, id_):
 

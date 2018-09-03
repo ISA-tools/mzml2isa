@@ -1,1 +1,2 @@
 isatools ~=0.10 ; python_version > '2'
+parameterized ~=0.6.1

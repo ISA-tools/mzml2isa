@@ -1235,7 +1235,6 @@ class MzMLFile(object):
     def _merge_spectrum_representation(self, meta):
         """Attempt to deduplicate entries of "Spectrum representation".
         """
-
         profiles = [
             entry
             for entry in meta["Spectrum representation"]["entry_list"]
@@ -1274,8 +1273,8 @@ class MzMLFile(object):
         if "Data file content" not in meta:
             self._extract_data_file_content(meta)
 
+        if "Spectrum representation" in meta:
+            self._merge_spectrum_representation(meta)
 
-        self._merge_spectrum_representation(meta)
         self._urlize_meta(meta)
-
         return meta

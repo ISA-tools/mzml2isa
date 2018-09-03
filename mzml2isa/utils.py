@@ -93,23 +93,29 @@ class _ChainMap(collections.Mapping):
 def merge_spectra(metalist):
     """Merge centroid and spectrum metadata of a same sample
     """
-    profiles = [
-        m
-        for m in metalist
-        if m["Spectrum representation"]["entry_list"][0]["name"] == "profile spectrum"
-    ]
-    centroid = [
-        m
-        for m in metalist
-        if m["Spectrum representation"]["entry_list"][0]["name"] == "centroid spectrum"
-    ]
 
+    # collect the list of centroid and profile samples
+    profiles, centroid = [], []
+    for m in metalist:
+        spec = m['Spectrum representation']
+        name = spec['entry_list'][0]['name'] if 'entry_list' in spec else spec['name']
+        if name == 'profile spectrum':
+            profiles.append(m)
+        elif name == 'centroid spectrum':
+            centroid.append(m)
+        else:
+            raise ValueError('unknown spectrum representation: "{}"'.format(name))
+
+    # sort them by sample name
     profiles.sort(key=lambda x: x["Sample Name"]["value"])
     centroid.sort(key=lambda x: x["Sample Name"]["value"])
 
+    # check there are as many centroid as spectrum, or else we cannot
+    # merge the samples
     if len(profiles) != len(centroid):
         return metalist
 
+    # merge the centroid metadata into the profile metadata
     for p, c in zip(profiles, centroid):
         p["Derived Spectral Data File"]["entry_list"].extend(
             c["Derived Spectral Data File"]["entry_list"]

@@ -247,7 +247,7 @@ class MzMLFile(object):
                 accession="MS:1000525",
                 cv=True,
                 name="Spectrum representation",
-                plus1=False,
+                plus1=True,
                 value=False,
                 software=False,
                 merge=False,
@@ -483,7 +483,7 @@ class MzMLFile(object):
                 accession="MS:1000525",
                 cv=True,
                 name="Spectrum representation",
-                plus1=False,
+                plus1=True,
                 value=False,
                 software=False,
                 merge=False,
@@ -1007,9 +1007,11 @@ class MzMLFile(object):
         for element in self._find_xpath(self._XPATHS["sp_cv"]):
             if element.attrib["accession"] in representations:
                 meta["Spectrum representation"] = {
-                    "accession": element.attrib["accession"],
-                    "name": element.attrib["name"],
-                    "ref": element.attrib[self.environment["cvRef"]],
+                        "entry_list": [{
+                        "accession": element.attrib["accession"],
+                        "name": element.attrib["name"],
+                        "ref": element.attrib[self.environment["cvRef"]],
+                    }]
                 }
                 return
 
@@ -1230,6 +1232,29 @@ class MzMLFile(object):
         else:
             return next(self._find_xpath(self._XPATHS["ic_nest"]))
 
+    def _merge_spectrum_representation(self, meta):
+        """Attempt to deduplicate entries of "Spectrum representation".
+        """
+
+        profiles = [
+            entry
+            for entry in meta["Spectrum representation"]["entry_list"]
+            if entry["name"] == "profile spectrum"
+        ]
+        centroid = [
+            entry
+            for entry in meta["Spectrum representation"]["entry_list"]
+            if entry["name"] == "centroid spectrum"
+        ]
+
+        np, nc = len(profiles), len(centroid)
+        if (np == 0 and nc != 0) or (nc == 0 and np != 0):
+            meta['Spectrum representation']['entry_list'] = meta['Spectrum representation']['entry_list'][:1]
+
+        return meta
+
+
+
     @cached_property
     def metadata(self):
         meta = {}
@@ -1249,6 +1274,8 @@ class MzMLFile(object):
         if "Data file content" not in meta:
             self._extract_data_file_content(meta)
 
+
+        self._merge_spectrum_representation(meta)
         self._urlize_meta(meta)
 
         return meta

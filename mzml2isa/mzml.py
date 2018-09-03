@@ -38,7 +38,7 @@ import pkg_resources
 import six
 from cached_property import cached_property
 
-from .utils import etree, get_parent
+from ._impl import etree, get_parent
 
 
 class _CVParameter(

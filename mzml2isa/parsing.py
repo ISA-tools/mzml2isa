@@ -26,6 +26,7 @@ import sys
 import six
 import glob
 import argparse
+import contextlib
 import textwrap
 import warnings
 import json
@@ -38,30 +39,18 @@ import functools
 import fs
 import fs.path
 
-try:
-    import progressbar
-except ImportError:
-    progressbar = None
 
-from . import (
-    __author__,
-    __version__,
-    __name__,
-    __license__,
-)
-from .isa   import ISA_Tab
-from .mzml  import MzMLFile
+from . import __author__, __version__, __name__, __license__
+from .isa import ISA_Tab
+from .mzml import MzMLFile
 from .imzml import ImzMLFile
 from .usermeta import UserMetaLoader
-from .utils import (
-    longest_substring,
-    merge_spectra,
-    star_args,
-)
+from .utils import longest_substring, merge_spectra, star_args
+from ._impl import tqdm
 
 
 @star_args
-def _parse_file(filesystem, path, ontology, parser, pbar=None):
+def _parse_file(filesystem, path, parser):
     """Parse a single file using a cache ontology and a metadata extractor
 
     Arguments:
@@ -71,20 +60,29 @@ def _parse_file(filesystem, path, ontology, parser, pbar=None):
             (either IMS or MS)
         parser (mzml.mzMLmeta): the parser to use on the file
             (either mzml2isa.mzml.mzMLmeta or mzml2isa.mzml.imzMLmeta)
-        pbar (progressbar.ProgressBar, optional): a progressbar
-            to display progresses onto [default: None]
 
     Returns:
         dict: a dictionary containing the extracted metadata
     """
-    meta = parser(filesystem, path, ontology).metadata
-    if pbar is not None:
-        pbar.update(pbar.value + 1)
-    else:
-        print("Finished parsing: {}".format(path))
+    meta = parser(filesystem, path).metadata
+    # if pbar is not None:
+    #     pbar.update(pbar.value + 1)
+    # else:
+    #     print("Finished parsing: {}".format(path))
     return meta
 
-def convert(in_path, out_path, study_identifier, **kwargs):
+
+def convert(
+    in_path,
+    out_path,
+    study_identifier,
+    usermeta=None,
+    split=True,
+    merge=False,
+    jobs=1,
+    template_directory=None,
+    verbose=True,
+):
     """ Parses a study from given *in_path* and then creates an ISA file.
 
     A new folder is created in the out directory bearing the name of
@@ -92,83 +90,82 @@ def convert(in_path, out_path, study_identifier, **kwargs):
 
     Arguments:
         in_path (str): path to the directory or archive containing mzml files
-        out_path (str): path to the output directory (new directories will be
-            created here)
+        out_path (str): path to the output directory
         study_identifier (str): study identifier (e.g. MTBLSxxx)
 
     Keyword Arguments:
         usermeta (str, optional): the path to a json file, a xlsx file or
             directly a json formatted string containing user-defined
             metadata [default: None]
-        split (bool, optional): split assay files based on the polarity
-            of the scans [default: True]
-        merge (bool, optional): for imzML studies, try to merge centroid
-            and profile scans in a single sample row [default: False]
-        jobs (int, optional): the number of jobs to use for parsing
-            mzML or imzML files [default: 1]
+        split (bool): split assay files based on the polarity of the scans
+            [default: True]
+        merge (bool): for imzML studies, try to merge centroid and profile
+            scans in a single sample row [default: False]
+        jobs (int): the number of jobs to use for parsing mzML or imzML files
+            [default: 1]
         template_directory (str, optional): the path to a directory
             containing custom templates to use when importing ISA tab
             [default: None]
         verbose (bool): display more output [default: True]
-        OUT_dir (str, optional): Out directory 'as is'. For situations when a user want's full control of the out path.
     """
-    split = kwargs.get('split', True)
-    merge = kwargs.get('merge', False)
-    verbose = kwargs.get('verbose', True)
-    jobs = kwargs.get('jobs', 1)
-    template_directory = kwargs.get('template_directory', None)
-    OUT_dir = kwargs.get('OUT_dir', None)
 
-    PARSERS = {'mzML': MzMLFile, 'imzML': ImzMLFile}
-    #ONTOLOGIES = {'mzML': get_ontology('MS'), 'imzML': get_ontology('IMS')}
-    ONTOLOGIES = {'mzML': None, 'imzML': None}
+    PARSERS = {"mzML": MzMLFile, "imzML": ImzMLFile}
 
     # open user metadata file if any
-    meta_loader = UserMetaLoader(kwargs.get('usermeta', None))
+    meta_loader = UserMetaLoader(usermeta)
 
     # open the filesystem containing the files
     with fs.open_fs(in_path) as filesystem:
-        mzml_files = list(filesystem.filterdir('/', files=['*mzML'], exclude_dirs=['*']))
+
+        # get all mzML files
+        mzml_files = list(
+            filesystem.filterdir("/", files=["*mzML"], exclude_dirs=["*"])
+        )
 
         if mzml_files:
             # store the first mzml_files extension
             extension = mzml_files[0].name.rsplit(os.path.extsep)[-1]
-            ontology = ONTOLOGIES[extension]
             parser = PARSERS[extension]
 
-            if not verbose and progressbar is not None:
-                pbar = progressbar.ProgressBar(
-                    min_value = 0, max_value = len(mzml_files),
-                    widgets=['Parsing {:8}: '.format(study_identifier),
-                               progressbar.SimpleProgress(),
-                               progressbar.Bar(marker=["#","█"][six.PY3], left=" |", right="| "),
-                               progressbar.ETA()]
-                    )
-                pbar.start()
-            else:
-                pbar = None
+            # prepare the parser arguments
+            files_iter = [
+                (filesystem, mzml_file.name, parser)
+                for mzml_file in sorted(mzml_files, key=lambda f: f.name)
+            ]
 
+            # wrap in a progress bar if needed
+            if not verbose and tqdm is not None:
+                files_iter = tqdm.tqdm(files_iter)
+
+            # parse using threads if needed
             if jobs > 1:
-                pool = multiprocessing.pool.ThreadPool(jobs)
-                metalist = pool.map(_parse_file, [(filesystem, mzml_file.name, ontology, parser, pbar) for mzml_file in sorted(mzml_files, key=lambda f: f.name)])
+                with contextlib.closing(multiprocessing.pool.ThreadPool(jobs)) as pool:
+                    metalist = pool.map(_parse_file, files_iter)
             else:
-                metalist = [_parse_file([filesystem, mzml_file.name, ontology, parser, pbar]) for mzml_file in sorted(mzml_files, key=str)]
+                metalist = list(map(_parse_file, files_iter))
 
-            # update isa-tab file
-            if merge and extension=='imzML':
+            # merge spectra if needed
+            if merge and extension == "imzML":
                 if verbose:
-                    print('Attempting to merge profile and centroid scans')
+                    print("Attempting to merge profile and centroid scans")
                 metalist = merge_spectra(metalist)
 
+            # write isa-tab file
             if metalist:
                 if verbose:
                     print("Parsing mzML meta information into ISA-Tab structure")
-                isa_tab = ISA_Tab(out_path, study_identifier, usermeta=meta_loader.usermeta,
-                                  template_directory=template_directory, OUT_dir=OUT_dir)
+                    print(out_path, template_directory)
+                isa_tab = ISA_Tab(
+                    out_path,
+                    study_identifier,
+                    usermeta=meta_loader.usermeta,
+                    template_directory=template_directory,
+                )
                 isa_tab.write(metalist, extension, split=split)
 
         else:
             warnings.warn("No files were found in {}.".format(in_path), UserWarning)
+
 
 def main(argv=None):
     """Run **mzml2isa** from the command line
@@ -177,66 +174,130 @@ def main(argv=None):
         argv (list, optional): the list of arguments to run mzml2isa
             with (if None, then sys.argv is used) [default: None]
     """
-    p = argparse.ArgumentParser(prog=__name__,
+    p = argparse.ArgumentParser(
+        prog=__name__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description='''Extract meta information from (i)mzML files and create ISA-tab structure''',
-        usage='mzml2isa -i IN_PATH -o OUT_PATH -s STUDY_ID [options]',
+        description="""Extract meta information from (i)mzML files and create ISA-tab structure""",
+        usage="mzml2isa -i IN_PATH -o OUT_PATH -s STUDY_ID [options]",
     )
 
-    p.add_argument('-i', dest='in_path', help='input folder or archive containing mzML files', required=True)
+    p.add_argument(
+        "-i",
+        dest="in_path",
+        help="input folder or archive containing mzML files",
+        required=True,
+    )
 
     group = p.add_mutually_exclusive_group(required=True)
-    group.add_argument('-o', dest='out_path', help='out folder (a new directory will be created here)')
-    group.add_argument('-O', dest='OUT_path', help='Out folder "as is". For situations when a user want\'s '
-                                                   'full control of the out path', required=False)
-    p.add_argument('-s', dest='study_id', help='study identifier (e.g. MTBLSxxx)', required=True)
-    p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', default=None, required=False)#, type=json.loads)
-    p.add_argument('-j', dest='jobs', help='launch different processes for parsing', action='store', required=False, default=1, type=int)
-    p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
-    p.add_argument('-c', dest='merge', help='do NOT group centroid & profile samples', action='store_false', default=True)
-    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='once', required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
-    p.add_argument('-t', dest='template_dir', help='directory containing default template files', action='store', default=None)
-    p.add_argument('--version', action='version', version='mzml2isa {}'.format(__version__))
-    p.add_argument('-v', dest='verbose', help="show more output (default if progressbar2 is not installed)", action='store_true', default=False)
+    group.add_argument(
+        "-o", dest="out_path", help="out folder (new files will be created here)"
+    )
+    p.add_argument(
+        "-s", dest="study_id", help="study identifier (e.g. MTBLSxxx)", required=True
+    )
+    p.add_argument(
+        "-m",
+        dest="usermeta",
+        help="additional user provided metadata (JSON format)",
+        default=None,
+        required=False,
+    )
+    p.add_argument(
+        "-j",
+        dest="jobs",
+        help="launch different processes for parsing",
+        action="store",
+        required=False,
+        default=1,
+        type=int,
+    )
+    p.add_argument(
+        "-n",
+        dest="split",
+        help="do NOT split assay files based on polarity",
+        action="store_false",
+        default=True,
+    )
+    p.add_argument(
+        "-c",
+        dest="merge",
+        help="do NOT group centroid & profile samples",
+        action="store_false",
+        default=True,
+    )
+    p.add_argument(
+        "-W",
+        dest="wrng_ctrl",
+        help="warning control (with python default behaviour)",
+        action="store",
+        default="once",
+        required=False,
+        choices=["ignore", "always", "error", "default", "module", "once"],
+    )
+    p.add_argument(
+        "-t",
+        dest="template_dir",
+        help="directory containing default template files",
+        action="store",
+        default=None,
+    )
+    p.add_argument(
+        "--version", action="version", version="mzml2isa {}".format(__version__)
+    )
+    p.add_argument(
+        "-v",
+        dest="verbose",
+        help="show more output (default if tqdm is not installed)",
+        action="store_true",
+        default=False,
+    )
 
     args = p.parse_args(argv or sys.argv[1:])
 
-
-    if not progressbar:
-        setattr(args, 'verbose', True)
+    if not tqdm:
+        setattr(args, "verbose", True)
 
     if args.verbose:
         print("{} input path: {}".format(os.linesep, args.in_path))
-        if args.OUT_path:
-            print("output path: {}".format(args.OUT_path))
-        else:
-            print("output path: {}".format(os.path.join(args.out_path, args.study_id)))
+        print("output path: {}".format(args.out_path))
         print("Sample identifier:{}{}".format(args.study_id, os.linesep))
 
     with warnings.catch_warnings():
         warnings.filterwarnings(args.wrng_ctrl)
-        convert(args.in_path, args.out_path, args.study_id,
-           usermeta=args.usermeta, split=args.split,
-           merge=args.merge, verbose=args.verbose,
-           jobs=args.jobs, template_directory=args.template_dir, OUT_dir=args.OUT_path
+        convert(
+            args.in_path,
+            args.out_path,
+            args.study_id,
+            usermeta=args.usermeta,
+            split=args.split,
+            merge=args.merge,
+            verbose=args.verbose,
+            jobs=args.jobs,
+            template_directory=args.template_dir,
         )
-
 
 
 #### DEPRECATED
 
+
 @functools.wraps(main)
 def run(*args, **kwargs):
-    warnings.warn("mzml2isa.parsing.run is deprecated, use "
-                  "mzml2isa.parsing.main instead", DeprecationWarning)
-    main(*args, **kwargs)
+    warnings.warn(
+        "mzml2isa.parsing.run is deprecated, use " "mzml2isa.parsing.main instead",
+        DeprecationWarning,
+    )
+    return main(*args, **kwargs)
+
 
 @functools.wraps(convert)
 def full_parse(*args, **kwargs):
-    warnings.warn("mzml2isa.parsing.full_parse is deprecated, use "
-                  "mzml2isa.parsing.convert instead", DeprecationWarning)
-    convert(*args, **kwargs)
+    warnings.warn(
+        "mzml2isa.parsing.full_parse is deprecated, use "
+        "mzml2isa.parsing.convert instead",
+        DeprecationWarning,
+    )
+    return convert(*args, **kwargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

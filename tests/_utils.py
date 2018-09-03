@@ -16,7 +16,7 @@ class HTTPDownloader(WrapFS):
     """An `FTPFS` wrapper that downloads files using HTTP.
     """
 
-    def openbin(self, path, mode='r', buffering=-1, **options):
+    def openbin(self, path, mode="r", buffering=-1, **options):
         ftpfs, path = self.delegate_fs().delegate_path(path)
         http_url = "http://{}/{}".format(ftpfs.host, quote(path))
         return contextlib.closing(urlopen(http_url))

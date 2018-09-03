@@ -1007,11 +1007,13 @@ class MzMLFile(object):
         for element in self._find_xpath(self._XPATHS["sp_cv"]):
             if element.attrib["accession"] in representations:
                 meta["Spectrum representation"] = {
-                        "entry_list": [{
-                        "accession": element.attrib["accession"],
-                        "name": element.attrib["name"],
-                        "ref": element.attrib[self.environment["cvRef"]],
-                    }]
+                    "entry_list": [
+                        {
+                            "accession": element.attrib["accession"],
+                            "name": element.attrib["name"],
+                            "ref": element.attrib[self.environment["cvRef"]],
+                        }
+                    ]
                 }
                 return
 
@@ -1235,24 +1237,22 @@ class MzMLFile(object):
     def _merge_spectrum_representation(self, meta):
         """Attempt to deduplicate entries of "Spectrum representation".
         """
+        spec = meta["Spectrum representation"]
+
         profiles = [
-            entry
-            for entry in meta["Spectrum representation"]["entry_list"]
-            if entry["name"] == "profile spectrum"
+            entry for entry in spec["entry_list"] if entry["name"] == "profile spectrum"
         ]
         centroid = [
             entry
-            for entry in meta["Spectrum representation"]["entry_list"]
+            for entry in spec["entry_list"]
             if entry["name"] == "centroid spectrum"
         ]
 
         np, nc = len(profiles), len(centroid)
         if (np == 0 and nc != 0) or (nc == 0 and np != 0):
-            meta['Spectrum representation']['entry_list'] = meta['Spectrum representation']['entry_list'][:1]
+            spec["entry_list"] = spec["entry_list"][:1]
 
         return meta
-
-
 
     @cached_property
     def metadata(self):

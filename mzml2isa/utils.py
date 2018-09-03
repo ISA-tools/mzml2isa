@@ -18,17 +18,9 @@ GNU General Public License version 3.0 (GPLv3)
 """
 
 import collections
-import os
-import sys
-import six
-import copy
-import zipfile
-import tarfile
 import functools
-import string
-import warnings
-import pronto
 import itertools
+import string
 
 from . import __author__, __name__, __version__, __license__
 

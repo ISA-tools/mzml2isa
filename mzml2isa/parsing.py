@@ -20,32 +20,23 @@ License:
 """
 from __future__ import absolute_import
 
-import io
-import os
-import sys
-import six
-import glob
 import argparse
 import contextlib
-import textwrap
-import warnings
-import json
-import tarfile
-import zipfile
-import multiprocessing
-import multiprocessing.pool
-import pronto
 import functools
+import multiprocessing.pool
+import os
+import sys
+import warnings
+
 import fs
 import fs.path
-
 
 from . import __author__, __version__, __name__, __license__
 from .isa import ISA_Tab
 from .mzml import MzMLFile
 from .imzml import ImzMLFile
 from .usermeta import UserMetaLoader
-from .utils import longest_substring, merge_spectra, star_args
+from .utils import merge_spectra, star_args
 from ._impl import tqdm
 
 
@@ -64,12 +55,7 @@ def _parse_file(filesystem, path, parser):
     Returns:
         dict: a dictionary containing the extracted metadata
     """
-    meta = parser(filesystem, path).metadata
-    # if pbar is not None:
-    #     pbar.update(pbar.value + 1)
-    # else:
-    #     print("Finished parsing: {}".format(path))
-    return meta
+    return parser(filesystem, path).metadata
 
 
 def convert(

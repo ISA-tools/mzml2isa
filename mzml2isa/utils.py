@@ -32,39 +32,7 @@ import itertools
 
 from . import __author__, __name__, __version__, __license__
 
-## RESOURCES
-TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
-# MS_CV_URL = 'https://raw.githubusercontent.com/HUPO-PSI/psi-ms-CV/master/psi-ms.obo'
-# IMS_CV_URL = 'https://raw.githubusercontent.com/ISA-tools/mzml2isa/master/mzml2isa/imagingMS.obo'
 
-## AVAILABLE XML PARSER
-try:
-    from lxml import etree
-
-    def get_parent(element, tree):
-        """Finds every parent of a tree node.
-
-        Uses the method provided by lxml.etree
-        """
-        return element.getparent()
-
-
-except ImportError:
-
-    try:
-        from xml.etree import cElementTree as etree
-    except ImportError:
-        from xml.etree import ElementTree as etree
-
-    def get_parent(element, tree):
-        """Finds every parent of a tree node.
-
-        As xml.ElementTree has no **.getparent** method, the following was
-        proposed here : http://stackoverflow.com/questions/2170610#20132342
-        """
-        # {c:p for p in tree.iter() for c in p}[element]
-        # next(p for p in tree.iter() for c in p if c==element)
-        return next(p for p in tree.iter() if element in p)
 
 
 ## VERSION AGNOSTIC UTILS

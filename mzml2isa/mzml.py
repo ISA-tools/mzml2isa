@@ -1,1030 +1,1280 @@
-"""
-Content
------------------------------------------------------------------------------
-This module contains two classes, mzMLmeta and imzMLmeta, which are used
-to parse and serialize the metadata of a mzML or imzML file into a Python
-dictionary.
+# coding: utf-8
+"""``mzML`` file metadata parser.
 
-Following features are implemented but were commented out:
-- retrieval of sofware version number
-- retrieval of raw-data SHA-1 checksum
-Both can be found by looking for the #!# comment tag in the mzml2isa.mzml
-module source code.
+Use the `~mzml2isa.mzml.MzMLFile` class to extract metadata from an ``mzML``
+file. The file can be located on any filesystem supported by `Pyfilesystem
+<https://pyfilesystem.org>`_, such as a local directory, a Tar archive, or
+an FTP server.
 
-About
------------------------------------------------------------------------------
-The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
-as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
-in June 2016 during an internship at the EBI Cambridge.
+Example:
+    >>> from mzml2isa.mzml import MzMLFile
+    >>> f = MzMLFile('examples/hupo-psi-msdata', 'tiny.msdata.mzML0.99.9.mzML')
+    >>> f.metadata['Instrument']['name']
+    'LCQ Deca'
 
-License
------------------------------------------------------------------------------
-GNU General Public License version 3.0 (GPLv3)
+About:
+    The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
+    as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
+    port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+    in June 2016 during an internship at the EBI Cambridge.
+
+License:
+    GNU General Public License version 3.0 (GPLv3)
 """
 from __future__ import absolute_import
+from __future__ import unicode_literals
 
 import collections
-import json
-import os
-import glob
-import six
-import sys
+import ntpath
+import posixpath
+import re
 import warnings
-import itertools
+
+import fs
+import fs.path
+import fs.errors
 import pronto
+import pkg_resources
+import six
+from cached_property import cached_property
 
-from . import (
-    __author__,
-    __name__,
-    __version__,
-    __license__,
-)
-from .utils import (
-    etree, # best in: lxml, xml.etree.cElementTree, xml.etree.ElementTree
-    pyxpath,
-    longest_substring,
-    get_parent,
-    get_ontology,
-    create_terms
-)
+from ._impl import etree, get_parent
 
 
-IDENTITY_THRESHOLD = 0.4
-
-
-
-XPATHS_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cvParam',
-               'source_file':       '{root}/s:fileDescription/s:sourceFileList/s:sourceFile/s:cvParam',
-               'ionization':        '{root}/{instrument}List/{instrument}/s:componentList/s:source/s:cvParam',
-               'analyzer':          '{root}/{instrument}List/{instrument}/s:componentList/s:analyzer/s:cvParam',
-               'detector':          '{root}/{instrument}List/{instrument}/s:componentList/s:detector/s:cvParam',
-               'data_processing':   '{root}/s:dataProcessingList/s:dataProcessing/s:processingMethod/s:cvParam',
-               'contact':           '{root}/s:fileDescription/s:contact/s:cvParam',
-              }
-
-
-XPATHS =      {'ic_ref':            '{root}/{instrument}List/{instrument}/s:referenceableParamGroupRef',
-               'ic_elements':       '{root}/s:referenceableParamGroupList/s:referenceableParamGroup',
-               'ic_nest':           '{root}/{instrument}List/{instrument}/s:cvParam',
-               'ic_soft_ref':       '{root}/{instrument}List/{instrument}/{software}',
-               'software_elements': '{root}/s:softwareList/s:software',
-               'sp':                '{root}/s:run/{spectrum}List/{spectrum}',
-               'sp_cv':             '{root}/s:run/{spectrum}List/{spectrum}/s:cvParam',
-               'scan_window_cv':    '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/{scanWindow}List/{scanWindow}/s:cvParam',
-               'scan_cv':           '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
-               'scan_num':          '{root}/s:run/{spectrum}List',
-               'cv':                '{root}/s:cvList/s:cv',
-               'raw_file':          '{root}/s:fileDescription/s:sourceFileList/s:sourceFile',
-
-              }
-
-
-
-class mzMLmeta(object):
-    """ Class to store and obtain the meta information from the mzML file
-
-    The class uses the xpaths of mzML locations and then extracts meta
-    information at these locations. The meta info taken is determined by the
-    ontology terms and a set of rules associated with that term e.g. if it
-    can be repeated, if has associated software if it has a value as well
-    as name.
+class _CVParameter(
+    collections.namedtuple(
+        "_CVParameter",
+        ["accession", "cv", "name", "plus1", "value", "software", "merge"],
+    )
+):
+    """A named tuple with controlled vocabulary parameter information.
 
     Attributes:
-        tree (lxml.etree.ElementTree): the tree object created from
-            the mzML file
-        ns (dict): a dictionary containing the xml namespace mapping
-        obo (pronto.Ontology): the ontology object
-        meta (dict): structured dictionary containing extracted metadata
-        env (dict): the `environment variables`, tag names that are not
-            standards among different mzML files.
+        accession (str): The controlled vocabulary accession of the parameter.
+        name (str): The name of the parameter.
+        plus1 (bool): `True` if there can be more than of this parameter.
+        cv (bool): `True` if a *controlled vocabulary term* should be checked
+            for the parameter.
+        value (bool): `True` if a *value* should be checked for the parameter.
+        software (bool): `True` if *software information* should be checked for
+            the parameter.
+        merge (bool): `True` if several occurrences of the same value should
+            be kept or dropped.
 
     """
 
-    obo = None
-    _descendents = dict()
 
-    def __init__(self, in_file, ontology=None, complete_parse=False):
-        """Setup the xpaths and terms. Then run the various extraction methods
+class MzMLFile(object):
+    """An ``mzML`` file.
+    """
 
-        Parameters:
-            in_file (:obj:`str`): path to mzML file
-            ontology (:obj:`pronto.Ontology`): a cached MS ontology
-            complete_parse (bool): parse scan-specific metadata
+    # dict: all XPaths used during ``mzML`` files parsing.
+    _XPATHS = {
+        "file_content": "{root}/s:fileDescription/s:fileContent/s:cvParam",
+        "source_file": "{root}/s:fileDescription/s:sourceFileList/s:sourceFile/s:cvParam",
+        "ionization": "{root}/{instrument}List/{instrument}/s:componentList/s:source/s:cvParam",
+        "analyzer": "{root}/{instrument}List/{instrument}/s:componentList/s:analyzer/s:cvParam",
+        "detector": "{root}/{instrument}List/{instrument}/s:componentList/s:detector/s:cvParam",
+        "data_processing": "{root}/s:dataProcessingList/s:dataProcessing/s:processingMethod/s:cvParam",
+        "contact": "{root}/s:fileDescription/s:contact/s:cvParam",
+        "ic_ref": "{root}/{instrument}List/{instrument}/s:referenceableParamGroupRef",
+        "ic_elements": "{root}/s:referenceableParamGroupList/s:referenceableParamGroup",
+        "ic_nest": "{root}/{instrument}List/{instrument}",
+        "ic_soft_ref": "{root}/{instrument}List/{instrument}/{software}",
+        "software_elements": "{root}/s:softwareList/s:software",
+        "sp": "{root}/s:run/{spectrum}List/{spectrum}",
+        "sp_cv": "{root}/s:run/{spectrum}List/{spectrum}/s:cvParam",
+        "scan_window_cv": "{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/{scanWindow}List/{scanWindow}/s:cvParam",
+        "scan_cv": "{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam",
+        "scan_num": "{root}/s:run/{spectrum}List",
+        "cv": "{root}/s:cvList/s:cv",
+        "raw_file": "{root}/s:fileDescription/s:sourceFileList/s:sourceFile",
+        "scan_sp": "s:cvParam",
+        "scan_combination": "{scanList}/s:cvParam",
+        "scan_configuration": "{scanList}/s:scan/s:cvParam",
+        "scan_binary": "s:binaryDataArrayList/s:binaryDataArray/s:cvParam",
+        "scan_activation": "s:precursorList/s:precursor/s:activation/s:cvParam",
+        "scan_isolation_window": "s:precursorList/s:precursor/s:isolationWindow/s:cvParam",
+        "scan_selected_ion": "s:precursorList/s:precursor/s:selectedIonList/s:selectedIon/s:cvParam",
+        "ref_sp": "s:referenceableParamGroupRef",
+        "ref_combination": "{scanList}/s:scan/s:referenceableParamGroupRef",
+        "ref_binary": "{scanList}/s:scan/s:referenceableParamGroupRef",
+    }
+
+    # `~pronto.Ontology`: the default MS controlled vocabulary to use.
+    _VOCABULARY = pronto.Ontology(
+        pkg_resources.resource_stream("mzml2isa", "ontologies/psi-ms.obo"),
+        imports=False,
+    )
+
+    def __init__(self, filesystem, path, vocabulary=None):
+        """Open an ``mzML`` file from the given filesystem and path.
+
+        Arguments:
+            filesystem (`str` or `~fs.base.FS`): the filesystem the file is
+                located on, either as a filesystem instance or an FS URL.
+            path (str): the path to the file on the provided filesystem.
+            vocabulary (`~pronto.Ontology`, optional): a controlled vocabulary
+                to use (or `None` to use the default one).
+
+        Raises:
+            `~fs.errors.ResourceNotFound`: when the path does not exist
+            `~fs.errors.FileExpected`: when the path refers to a directory.
+
         """
+        self.fs = fs.open_fs(filesystem)
+        self.path = path
+        self.vocabulary = vocabulary or self._VOCABULARY
 
-        if ontology is None and self.obo is None:
-            self.obo = get_ontology('MS')
-        elif self.obo is None:
-            self.obo = ontology
+        if self.fs.getinfo(self.path).is_dir:
+            raise fs.errors.FileExpected(self.path)
 
-        # setup lxml parsing
-        self.in_file = in_file
+    # COMPATIBILITY LAYER WITH IMZML #########################################
 
+    # NB: OVERRIDE ME IN SUBCLASSES
+    @classmethod
+    def _environment_paths(cls):
+        """Return a mapping of XPaths to build the environment with.
+
+        The key corresponds to a location name (*spectrum*, *root*, etc.),
+        while the value for each key are several different paths to test the
+        existence of. When an element is found, the last component of the
+        path is used as the shortcut.
+        """
+        return collections.OrderedDict(
+            [
+                ("root", ["./s:mzML", "."]),
+                (
+                    "spectrum",
+                    [
+                        "{root}/s:run/s:spectrumList/s:spectrum",
+                        "{root}/s:run/s:chromatogramList/s:chromatogram",
+                    ],
+                ),
+                (
+                    "scanList",
+                    [
+                        "{root}/s:run/{spectrum}List/{spectrum}/s:scanList",
+                        "{root}/s:run/{spectrum}List/{spectrum}/s:spectrumDescription",
+                    ],
+                ),
+                (
+                    "scanWindow",
+                    [
+                        "{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:scanWindowList/s:scanWindow",
+                        "{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:selectionWindowList/s:selectionWindow",
+                    ],
+                ),
+                (
+                    "instrument",
+                    [
+                        "{root}/s:instrumentConfigurationList/s:instrumentConfiguration",
+                        "{root}/s:instrumentList/s:instrument",
+                    ],
+                ),
+                (
+                    "software",
+                    [
+                        "{root}/{instrument}List/{instrument}/s:softwareRef",
+                        "{root}/{instrument}List/{instrument}/s:instrumentSoftwareRef",
+                    ],
+                ),
+                (
+                    "software_params",
+                    [
+                        "{root}/s:softwareList/s:software/s:softwareParam",
+                        "{root}/s:softwareList/s:software/s:cvParam",
+                    ],
+                ),
+            ]
+        )
+
+    # NB: OVERRIDE ME IN SUBCLASSES
+    @classmethod
+    def _environment_attributes(cls):
+        """Return a mapping of attribute XPaths to build the environment with.
+
+        Works like `~MzMLFile._environment_paths`, except that the attribute
+        name is used as the shortcut instead of the last path component.
+        """
+        return collections.OrderedDict(
+            [
+                (
+                    "filename",
+                    [
+                        "{root}/s:fileDescription/s:sourceFileList/s:sourceFile[@name]",
+                        "{root}/s:fileDescription/s:sourceFileList/s:sourceFile[@filename]",
+                        "{root}/s:fileDescription/s:sourceFileList/s:sourceFile[@sourceFileName]",
+                    ],
+                ),
+                (
+                    "cvRef",
+                    [
+                        "{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@cvLabel]",
+                        "{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@cvRef]",
+                        "{root}/s:run/{spectrum}List/{spectrum}/s:cvParam[@cvRef]",
+                    ],
+                ),
+                (
+                    "cvLabel",
+                    ["{root}/s:cvList/s:cv[@id]", "{root}/s:cvList/s:cv[@cvLabel]"],
+                ),
+                (
+                    "softwareRef",
+                    ["{root}/{instrument}List/{instrument}/{software}[@ref]"],
+                ),
+            ]
+        )
+
+    # NB:
+    @classmethod
+    def _assay_parameters(cls):
+        """Return a collection of CV parameters to extract from the file.
+        """
+        terms = collections.OrderedDict()
+
+        terms["file_content"] = [
+            _CVParameter(
+                accession="MS:1000524",
+                cv=True,
+                name="Data file content",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000525",
+                cv=True,
+                name="Spectrum representation",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+        ]
+
+        terms["source_file"] = [
+            _CVParameter(
+                accession="MS:1000767",
+                cv=True,
+                name="Native spectrum identifier format",
+                plus1=False,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000561",
+                cv=True,
+                name="Data file checksum type",
+                plus1=False,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000560",
+                cv=True,
+                name="Raw data file format",
+                plus1=False,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+        ]
+
+        terms["contact"] = [
+            _CVParameter(
+                accession="MS:1000586",
+                cv=True,
+                name="Contact name",
+                plus1=False,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000587",
+                cv=True,
+                name="Contact adress",
+                plus1=False,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000588",
+                cv=True,
+                name="Contact url",
+                plus1=False,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000589",
+                cv=True,
+                name="Contact email",
+                plus1=False,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000590",
+                cv=True,
+                name="Contact affiliation",
+                plus1=False,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+        ]
+
+        terms["ionization"] = [
+            _CVParameter(
+                accession="MS:1000482",
+                cv=False,
+                name="Source attribute",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000008",
+                cv=True,
+                name="Ion source",
+                plus1=False,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000007",
+                cv=True,
+                name="Inlet type",
+                plus1=False,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+        ]
+
+        terms["analyzer"] = [
+            _CVParameter(
+                accession="MS:1000480",
+                cv=False,
+                name="Analyzer attribute",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000443",
+                cv=True,
+                name="Mass analyzer",
+                plus1=False,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+        ]
+
+        terms["detector"] = [
+            _CVParameter(
+                accession="MS:1000481",
+                cv=False,
+                name="Detector attribute",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000026",
+                cv=True,
+                name="Detector",
+                plus1=False,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000027",
+                cv=True,
+                name="Detector mode",
+                plus1=False,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+        ]
+
+        terms["data_processing"] = [
+            _CVParameter(
+                accession="MS:1000630",
+                cv=False,
+                name="Data Processing Parameter",
+                plus1=True,
+                value=True,
+                software=True,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000452",
+                cv=True,
+                name="Data Transformation Name",
+                plus1=True,
+                value=False,
+                software=True,
+                merge=False,
+            ),
+        ]
+
+        return terms
+
+    @classmethod
+    def _scan_parameters(cls):
+        """Return a collection of CV parameters to extract from each scan.
+        """
+        terms = collections.OrderedDict()
+
+        terms["scan_sp"] = terms["ref_sp"] = {
+            _CVParameter(
+                accession="MS:1000524",
+                cv=True,
+                name="Data file content",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=True,
+            ),
+            _CVParameter(
+                accession="MS:1000796",
+                cv=False,
+                name="Spectrum title",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000465",
+                cv=True,
+                name="Polarity",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000511",
+                cv=False,
+                name="MS Level",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000525",
+                cv=True,
+                name="Spectrum representation",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000504",
+                cv=False,
+                name="Base Peak m/z",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000505",
+                cv=False,
+                name="Base Peak intensity",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000285",
+                cv=False,
+                name="Total ion current",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000927",
+                cv=False,
+                name="Ion injection time",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000512",
+                cv=False,
+                name="Filter string",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000528",
+                cv=False,
+                name="Lowest observed m/z",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000527",
+                cv=False,
+                name="Highest observed m/z",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+        }
+
+        terms["scan_combination"] = terms["ref_combination"] = {
+            _CVParameter(
+                accession="MS:1000570",
+                cv=True,
+                name="Spectrum combination",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            )
+        }
+
+        terms["scan_configuration"] = {
+            _CVParameter(
+                accession="MS:1000016",
+                cv=False,
+                name="Scan start time",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000512",
+                cv=False,
+                name="Filter string",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000616",
+                cv=False,
+                name="Preset scan configuration",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000927",
+                cv=False,
+                name="Ion injection time",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000018",
+                cv=True,
+                name="Scan direction",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000019",
+                cv=True,
+                name="Scan law",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+        }
+
+        terms["scan_isolation_window"] = {
+            _CVParameter(
+                accession="MS:1000827",
+                cv=False,
+                name="Isolation window target m/z",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000828",
+                cv=False,
+                name="Isolation window lower offset",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000829",
+                cv=False,
+                name="Isolation window higher offset",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+        }
+
+        terms["scan_selected_ion"] = {
+            _CVParameter(
+                accession="MS:1000744",
+                cv=False,
+                name="Selected ion m/z",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000041",
+                cv=False,
+                name="Charge state",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000042",
+                cv=False,
+                name="Peak intensity",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+        }
+
+        terms["scan_activation"] = {
+            _CVParameter(
+                accession="MS:1000044",
+                cv=True,
+                name="Dissociation method",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000045",
+                cv=False,
+                name="Collision Energy",
+                plus1=True,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+        }
+
+        terms["scan_binary"] = terms["ref_binary"] = {
+            _CVParameter(
+                accession="MS:1000518",
+                cv=True,
+                name="Binary data type",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000572",
+                cv=True,
+                name="Binary data compression type",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000513",
+                cv=True,
+                name="Binary data array",
+                plus1=True,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+        }
+
+        return terms
+
+    # UTILS ##################################################################
+
+    @classmethod
+    def _urlize_meta(cls, meta):
+        """Rewrite CV accessions in the given dictionary using URLs.
+        """
+        for key, nested in six.iteritems(meta):
+            if "accession" in nested:
+                nested["accession"] = cls._urlize_accession(nested["accession"])
+            if "accession" in nested.get("unit", {}):
+                nested["unit"]["accession"] = cls._urlize_accession(
+                    nested["unit"]["accession"]
+                )
+            for entry in nested.get("entry_list", []):
+                if "accession" not in entry and "unit" not in entry:
+                    break
+                if "accession" in entry:
+                    entry["accession"] = cls._urlize_accession(entry["accession"])
+                if "accession" in entry.get("unit", {}):
+                    entry["unit"]["accession"] = cls._urlize_accession(
+                        entry["unit"]["accession"]
+                    )
+
+    @classmethod
+    def _urlize_accession(cls, accession):
+        """Return an URL version of `accession`.
+
+        Arguments:
+            accession (str): an ontology accession (e.g. *MS:1000031*), from
+                one of the following ontologies: **MS**, **UO**, or **IMS**.
+
+        """
         try:
-            self.in_dir = os.path.dirname(in_file)
-        except (AttributeError, TypeError):
-            self.in_dir = None
-
-        # Create dictionary of terms to search mzML file
-        terms = create_terms()
-
-        self.tree = etree.parse(in_file, etree.XMLParser())
-
-        self.build_env()
-
-        self._make_params()
-
-        #initalize the meta variables
-        self.meta = collections.OrderedDict()
-
-        # xpaths for the mzML locations that we want the meta information from any cvParam elements
-        xpaths_meta = XPATHS_META
-
-
-        # update self.meta with the relevant meta information
-        self.extract_meta(terms, xpaths_meta)
-
-        # make a memoized dict of the referenceable params
-        #self.make_params()
-
-        # The instrument information has to be extracted separately
-        self.instrument()
-
-        # Get polarity (could be pos neg switching so we need to check all scans)
-        self.polarity()
-
-        # Get spectrum rep (as it might not be in file content)
-        self.spectrum_repr(XPATHS['sp_cv'])
-
-        # The following information is calculated from the spectrum information or derived from other details
-        # in the mzML file
-        self.timerange()
-        self.mzrange()
-        self.scan_num()
-        self.derived()
-
-        if complete_parse:
-            self.spectrum_meta()
-        elif not 'Data file content' in self.meta:
-            self.data_file_content()
-
-        # Render control vocabularies accession numbers as urls
-        self.urlize()
-
-    def extract_meta(self, terms, xpaths):
-        """ Extract meta information for CV terms based on their location in the xml file
-
-        Updates the self.meta dictionary with the relevant meta information
-
-        Arguments:
-            terms (dict): The CV and search parameters required at the xml locations
-            xpath (dict): the xpath locations to search
-
-        .. seealso::
-            :obj:`cvParam_loop`
-        """
-
-        # loop though the xpaths
-        for location_name, xpath in six.iteritems(xpaths):
-
-            # get the elements from the xpath
-            elements = pyxpath(self, xpath)
-
-            # loop through the elements and see if the terms are found
-            self.cvParam_loop(elements, location_name, terms)
-
-    def cvParam_loop(self, elements, location_name, terms):
-        """Loop through the elements and eventually update the self.meta dict.
-
-        Arguments:
-            elements (iterator): the element containing the cvParam tags
-            location_name (:obj:`str`): Name of the xml location
-            terms (:obj:`dict`): terms that are to be extracted
-        """
-        # memoize the descendents of the current term
-        self._descendents.update({k:self.obo[k].rchildren().id for k in terms[location_name] if not k in self._descendents})
-
-        # go through every cvParam element
-        for e in elements:
-            # go through the terms available for this location
-            for accession, info in six.iteritems(terms[location_name]):
-
-                # check if the element is one of the terms we are looking for
-                if e.attrib['accession'] in self._descendents[accession] or e.attrib['accession']==accession:
-
-                    meta_name = info['name']
-
-                    # Check if there can be more than one of the same term
-                    if info['plus1']:
-                        # Setup the dictionary for multiple entries
-                        if not meta_name in self.meta:
-                            self.meta[meta_name] = {'entry_list': []}
-
-                        self.meta[meta_name]['entry_list'].append( {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']} )
-
-                        try:
-                            self.meta[meta_name]['entry_list'][-1]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
-                                                                              'accession': e.attrib['unitAccession']}
-                        except KeyError:
-                            pass
-
-                        # Check if a value is associated with this CV
-                        if info['value']:
-                            self.meta[meta_name]['entry_list'][-1]['value'] = self._convert(e.attrib['value'])
-
-                        if self.meta[meta_name]['entry_list'][-1]['name'].upper() == meta_name.upper():
-                            del self.meta[meta_name]['entry_list'][-1]['name']
-                            del self.meta[meta_name]['entry_list'][-1]['accession']
-                            del self.meta[meta_name]['entry_list'][-1]['ref']
-
-                        #c += 1
-                    else:
-
-                        # Standard CV with only with entry
-                        self.meta[meta_name] = {'accession':e.attrib['accession'], 'name':e.attrib['name'], 'ref':e.attrib['cvRef']}
-
-                        try:
-                            self.meta[meta_name]['unit'] = {'name': e.attrib['unitName'], 'ref': e.attrib['unitCvRef'],
-                                                            'accession': e.attrib['unitAccession']}
-                        except KeyError:
-                            pass
-
-                        # Check if value associated
-                        if info['value']:
-                            self.meta[meta_name]['value'] = self._convert(e.attrib['value'])
-                            # remove name and accession if only the value is interesting
-
-                            if self.meta[meta_name]['name'].upper() == meta_name.upper():
-                                del self.meta[meta_name]['name']
-                                del self.meta[meta_name]['accession']
-
-
-                    # Check if there is expected associated software
-                    if info['soft']:
-
-                        try:             # softwareRef in <Processing Method>
-                            soft_ref = get_parent(e, self.tree).attrib['softwareRef']
-                        except KeyError: # softwareRef in <DataProcessing>
-                            soft_ref = get_parent(get_parent(e, self.tree), self.tree).attrib['softwareRef']
-
-                        self.software(soft_ref, meta_name)
-
-    @staticmethod
-    def _convert(value):
-        """Try to convert a string to the appropriate type.
-
-        Arguments:
-            value (str): the string to convert
-
-        Returns:
-            int: if the value can be converted to int
-            float: if the value can be converted to float
-            str: if the value could not be converted
-        """
-        try:
-            return int(value)
+            namespace, id_ = accession.split(":", 1)
+            if namespace in {"MS", "UO"}:
+                url = "http://purl.obolibrary.org/obo/{}_{}"
+            elif namespace == "IMS":
+                url = "http://www.maldi-msi.org/download/imzml/imagingMS.obo#{}:{}"
+            else:
+                url = "{}:{}"
+            return url.format(namespace, id_)
         except ValueError:
-            try:
-                return float(value)
-            except ValueError:
-                return value
+            return accession
 
-    def _instrument_byref(self):
-        """Extract the instrument from its referenceableParamList entry.
+    # ENVIRONMENT ############################################################
 
-        The instrument meta information is more complicated to extract so it has its own function
-        Updates the self.meta with the relevant meta information. Requires looking at the hierarchy
-        of ontological terms to get all the instrument information
+    @cached_property
+    def tree(self):  # noqa: D401
+        """An XML element tree representation of the ``mzML`` file.
         """
+        if self.fs.hassyspath(self.path):
+            return etree.parse(self.fs.getsyspath(self.path))
+        with self.fs.openbin(self.path) as handle:
+            return etree.parse(handle)
 
-        # gets the first Instrument config (something to watch out for)
-        ic_ref = next(pyxpath(self, XPATHS['ic_ref'])).attrib["ref"]
-
-        elements = pyxpath(self, XPATHS['ic_elements'])
-
-        # Loop through xml elements
-        for e in elements:
-            # get all CV information from the instrument config
-            if e.attrib['id']==ic_ref:
-                instrument_e = e.iterfind('s:cvParam', self.ns)
-
-                for ie in instrument_e:
-
-                    # Get the instrument manufacturer
-                    if ie.attrib['accession'] in self.obo['MS:1000031'].rchildren().id:
-                        self.meta['Instrument'] = {'accession': ie.attrib['accession'], 'name':ie.attrib['name'],
-                                                   'ref':ie.attrib['cvRef']}
-
-                        if ie.attrib['name'] != self.obo[ie.attrib['accession']].name:
-                            warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(ie.attrib['name']),
-                                                   "does not correspond to the instrument accession ({})".format(self.obo[ie.attrib['accession']].name)]))
-                            self.meta['Instrument']['name'] = self.obo[ie.attrib['accession']].name
-
-                        # get manufacturer (actually just derived from instrument model). Want to get the top level
-                        # so have to go up (should only be a maximum of 3 steps above in the heirachy but do up 8 to be
-                        # sure.
-                        # directly related children of the instrument model
-
-                        parents = self.obo[ie.attrib['accession']].rparents()
-                        parents.append(self.obo[ie.attrib['accession']])
-                        manufacturer = next(parent for parent in parents if parent in self.obo['MS:1000031'].children)
-
-                        self.meta['Instrument manufacturer'] = {'accession': manufacturer.id, 'name': manufacturer.name,
-                                                                'ref':manufacturer.id.split(':')[0]}
-
-                    # get serial number
-                    elif ie.attrib['accession'] == 'MS:1000529':
-                        self.meta['Instrument serial number'] = {'value': ie.attrib['value']}
-
-        soft_ref = next(pyxpath(self, XPATHS['ic_soft_ref'])).attrib[self.env['softwareRef']]
-
-        # Get associated software
-        self.software(soft_ref, 'Instrument')
-
-    def _instrument_nested(self):
-        """Extract the instrument from the instrument cvParam list.
-
-        The easy case, where version number is not in ./referenceableParamList but directly
-        in instrument/cvParam
+    @cached_property
+    def namespaces(self):  # noqa: D401
+        """The XML namespace of the ``mzML`` file.
         """
+        root = self.tree.getroot()
+        try:
+            ns = root.nsmap
+            ns["s"] = ns.pop(None)
+        except AttributeError:
+            ns = {"s": re.search(r"^{(.*)}", root.tag).group(1)}
+        return ns
 
-        elements = pyxpath(self, XPATHS['ic_nest'])
+    @cached_property
+    def environment(self):  # noqa: D401
+        """The ``mzML`` file environment.
 
-        for i, e in enumerate(elements):
+        The environment is built using `~MzMLFile._environment_paths` and
+        `~MzMLFile._environment_attributes`, in order to know the actual
+        location in the XML tree of elements with several naming alternatives.
+        """
+        ns = self.namespaces
+        env = collections.OrderedDict()
 
-            if e.attrib['accession'] == 'MS:1000031':
+        # setup XPaths variables
+        for key, paths in six.iteritems(self._environment_paths()):
+            for path in paths:
+                if self.tree.find(path.format(**env), ns) is not None:
+                    # NB: XPaths are valid POSIX paths !
+                    env[key] = posixpath.basename(path)
+                    break
+            else:
+                env[key] = None
+
+        # setup XPaths attributes variables
+        for key, paths in six.iteritems(self._environment_attributes()):
+            for path in paths:
+                if self.tree.find(path.format(**env), ns) is not None:
+                    env[key] = re.search(r"\[@(.*)\]", path).group(1)
+                    break
+            else:
+                env[key] = None
+
+        return env
+
+        # check which method to use when extracting instrument
+        # path = '{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@accession="MS:1000529"]'
+        # if self.tree.find(path.format(**env))
+
+    def _find_xpath(self, query):
+        """Return an iterator over the XML element satisfying the query.
+
+        If the query contains environment shortcuts, it will be expanded using
+        the `~MzMLFile.environment` of the current instance.
+
+        Arguments:
+            query (str): an XPath query to find elements with.
+
+        """
+        ns = self.namespaces
+        return self.tree.iterfind(query.format(**self.environment), ns)
+
+    @cached_property
+    def _referenceable_parameters(self):  # noqa: D401
+        """A collection of XML referenceable parameters, indexed by their ID.
+        """
+        return {
+            x.attrib["id"]: x for x in self._find_xpath(self._XPATHS["ic_elements"])
+        }
+
+    # METADATA ###############################################################
+
+    def _extract_software(self, software_ref, name, meta):
+        """Extract software metadata using the provided software reference.
+        """
+        ns = self.namespaces
+        software = version = None
+
+        # Make sure we don't end up with "Parameter Name Software" but with
+        # "Parameter Software" even if ``name`` is "Parameter Name"
+        name = re.sub(r" Name$", "", name)
+
+        # Loop through software referenceable elements and attempt to find
+        # the right one
+        for element in self._find_xpath(self._XPATHS["software_elements"]):
+            if element.attrib["id"] == software_ref:
+                # extract the version from the software attributes
+                if "version" in element.attrib:
+                    version = {"value": element.attrib["version"]}
+                # get the controlled vocabulary term for the instrument
+                param = next(
+                    element.iterfind(self.environment["software_params"], ns), None
+                )
+                if param is not None:
+                    software = {
+                        "accession": param.attrib["accession"],
+                        "name": param.attrib["name"],
+                        "ref": param.attrib[self.environment["cvRef"]],
+                    }
+                # stop searching for other softwares
                 break
 
-            elif e.attrib['accession'] in self.obo['MS:1000031'].rchildren():
-                self.meta['Instrument'] = {'accession': e.attrib['accession'], 'name':e.attrib['name'],
-                                           'ref':e.attrib['cvRef']}
+        # update the metadata dictionary with the extracted software and
+        # version, if any
+        if software is not None:
+            meta["{} software".format(name)] = software
+        if version is not None:
+            meta["{} software version".format(name)] = version
 
-                if e.attrib['name'] != self.obo[e.attrib['accession']].name:
-                    warnings.warn(" ".join(["The instrument name in the mzML file ({})".format(e.attrib['name']),
-                                           "does not correspond to the instrument accession ({})".format(self.obo[e.attrib['accession']].name)]))
-                    self.meta['Instrument']['name'] = self.obo[e.attrib['accession']].name
+    def _extract_cv_params(self, element, parameters, meta):
+        """Attempt to extract some CV parameters from the given element.
 
-                parents = self.obo[e.attrib['accession']].rparents()
-                parents.append(self.obo[e.attrib['accession']])
-                manufacturer = next(parent for parent in parents if parent in self.obo['MS:1000031'].children)
+        Arguments:
+            element (`~xml.etree.ElementTree.Element`): an XML element with
+                possible ``cvParam`` children.
+            parameters (list): a list of `_CVParameter` to use as a reference.
+            meta (dict): the metadata dictionary to enrich.
 
-                self.meta['Instrument manufacturer'] = {'accession': manufacturer.id, 'name': manufacturer.name,
-                                                        'ref':manufacturer.id.split(':')[0]}
-
-            elif e.attrib['accession'] == 'MS:1000529':
-                self.meta['Instrument serial number'] = {'value': e.attrib['value']}
-
-
-        try:
-            soft_ref = next(pyxpath(self, XPATHS['ic_soft_ref'])).attrib[self.env['softwareRef']]
-            # Get associated software
-            self.software(soft_ref, 'Instrument')
-        except (IndexError, KeyError, StopIteration): #Sometimes <Instrument> contains no Software tag
-            warnings.warn("Instrument {} does not have a software tag.".format( self.meta['Instrument']['name']
-                                                                                if 'Instrument' in self.meta
-                                                                                else "<"+self.meta['Instrument serial number']+">"
-                                                                                if 'Instrument serial number' in self.meta
-                                                                                else '?'))
-
-    def software(self, soft_ref, name):
-        """ Get associated software of cv term. Updates the self.meta dictionary
-
-        Parameters:
-            soft_ref (:obj:`str`): the reference to the software found in another xml "ref" attribute.
-            name (:obj:`str`): Name of the associated CV term that the software is associated to.
         """
+        descendents = {
+            k: self.vocabulary[k].rchildren().id + [k]
+            for k in (param_info.accession for param_info in parameters)
+        }
 
-        elements = pyxpath(self, XPATHS['software_elements'])
+        for param_info in parameters:
+            if element.attrib["accession"] in descendents[param_info.accession]:
+                param = {}
 
-        if name.endswith('Name'):               # We don't want Data Transformation Name Software !
-            name = name.replace(' Name', '')
+                if param_info.cv:
+                    param["accession"] = element.attrib["accession"]
+                    param["name"] = element.attrib["name"]
+                    param["ref"] = element.attrib[self.environment["cvRef"]]
 
-        for e in elements:
+                if param_info.value:
+                    param["value"] = element.attrib["value"]  # TODO transtype
 
-            if e.attrib['id'] == soft_ref:
+                # try getting a unit
+                try:
+                    param["unit"] = {
+                        "name": element.attrib["unitName"],
+                        "ref": element.attrib["unitCvRef"],
+                        "accession": element.attrib["unitAccession"],
+                    }
+                except KeyError:
+                    pass
 
-                try: # <Softwarelist <Software <cvParam>>>
+                if param_info.plus1:
+                    # setup the dictionary for multiple entries
+                    entries = meta.setdefault(param_info.name, dict(entry_list=[]))[
+                        "entry_list"
+                    ]
+                    if not param_info.merge or param not in entries:
+                        entries.append(param)
+                else:
+                    meta[param_info.name] = param
 
-                    if e.attrib['version']:
-                        self.meta[name+' software version'] = {'value': e.attrib['version']}
-                    software_cvParam = e.iterfind('s:cvParam', self.ns)
-                    for ie in software_cvParam:
-                        self.meta[name+' software'] = {'accession':ie.attrib['accession'], 'name':ie.attrib['name'],
-                                                       'ref': ie.attrib['cvRef']}
+                if param_info.software:
+                    try:  # softwareRef in <Processing Method>
+                        soft_ref = get_parent(element, self.tree).attrib["softwareRef"]
+                    except KeyError:  # softwareRef in <DataProcessing>
+                        soft_ref = get_parent(
+                            get_parent(element, self.tree), self.tree
+                        ).attrib["softwareRef"]
+                    self._extract_software(soft_ref, param_info.name, meta)
 
-                except KeyError:  # <SoftwareList <software <softwareParam>>>
-
-                    params = e.find('s:softwareParam', namespaces=self.ns)
-                    if params.attrib['version']:
-                        self.meta[name+' software version'] = {'value': params.attrib['version']}
-                    self.meta[name+' software'] = {'accession':params.attrib['accession'], 'name':params.attrib['name'],
-                                                   'ref': params.attrib['cvRef']}
-
-    def derived(self):
-        """ Get the derived meta information
-
-        The derived meta information includes all tags that are solely based
-        on the file name, such as `MS Assay Name`, `Derived Spectral Data File`
-        or `Sample Name`.
+    def _extract_assay_parameters(self, meta):
+        """Extract assay parameters into the metadata dictionary.
         """
+        terms = self._assay_parameters()
+        for location, term in six.iteritems(terms):
+            for element in self._find_xpath(self._XPATHS[location]):
+                self._extract_cv_params(element, terms[location], meta)
 
-        cv = next(pyxpath(self, XPATHS['cv'])).attrib[self.env["cvLabel"]]
+    def _extract_derived_file(self, meta):
+        """Extract derived file information into the metadata dictionary.
+        """
+        spectral_file = fs.path.basename(self.path)
+        ms_assay_name, _ = fs.path.splitext(spectral_file)
+        meta["Derived Spectral Data File"] = {"entry_list": [{"value": spectral_file}]}
+        meta["MS Assay Name"] = meta["Sample Name"] = {"value": ms_assay_name}
 
-        if not 'MS' in cv:
-            warnings.warn("Standard controlled vocab not available. Cannot parse.")
-            return
-
+    def _extract_raw_file(self, meta):
+        """Extract raw spectral data file into the metadata dictionary.
+        """
         try:
-            raw_file = next(pyxpath(self, XPATHS['raw_file'])).attrib[self.env["filename"]]
-            self.meta['Raw Spectral Data File'] = {'entry_list': [{'value': os.path.basename(raw_file)}] }
+            raw_file = next(self._find_xpath(self._XPATHS["raw_file"]))
+            filename = ntpath.basename(raw_file.attrib[self.environment["filename"]])
+            meta["Raw Spectral Data File"] = {"entry_list": [{"value": filename}]}
         except StopIteration:
             warnings.warn("Could not find any metadata about Raw Spectral Data File.")
 
-        try:
-            derived_spectral_data_file = os.path.basename(self.in_file.name)
-            ms_assay_name = os.path.splitext(derived_spectral_data_file)[0]
-        except AttributeError:
-            derived_spectral_data_file = os.path.basename(self.in_file)
-            ms_assay_name = os.path.splitext(derived_spectral_data_file)[0]
-
-        self.meta['MS Assay Name'] = {'value': ms_assay_name}
-        self.meta['Derived Spectral Data File'] = {'entry_list': [{'value': derived_spectral_data_file}] } # mzML file name
-        self.meta['Sample Name'] = {'value': ms_assay_name} # mzML file name w/o extension
-
-    def polarity(self):
-        """Iterates over all scans to get the `average` polarity."""
-
-        sp_cv = pyxpath(self, XPATHS['sp_cv'])
-
-        pos = False
-        neg = False
+    def _extract_polarity(self, meta):
+        """Extract scan polarity information into the metadata dictionary.
+        """
+        sp_cv = self._find_xpath(self._XPATHS["sp_cv"])
+        pos = neg = False
 
         for i in sp_cv:
-            if i.attrib['accession'] == 'MS:1000130':
-                pos = True
-            if i.attrib['accession'] == 'MS:1000129':
-                neg = True
+            pos |= i.attrib["accession"] == "MS:1000130"
+            neg |= i.attrib["accession"] == "MS:1000129"
 
-        if pos & neg:
-            polarity = {'name': "alternating scan", 'ref':'', 'accession':''}
-        elif pos:
-            polarity = {'name':"positive scan", 'ref':'MS', 'accession':'MS:1000130'}
-        elif neg:
-            polarity = {'name':"negative scan", 'ref':'MS', 'accession':'MS:1000129'}
-        else:
-            polarity = {'name': "n/a", 'ref':'', 'accession':''}
+        meta["Scan polarity"] = (
+            {"name": "alternating scan", "ref": "", "accession": ""}
+            if pos and neg
+            else {"name": "positive scan", "ref": "MS", "accession": "MS:1000130"}
+            if pos
+            else {"name": "negative scan", "ref": "MS", "accession": "MS:1000129"}
+            if neg
+            else {"name": "n/a", "ref": "", "accession": ""}
+        )
 
-        self.meta['Scan polarity'] = polarity
-
-
-    def spectrum_repr(self, sp_cv):
-        """Checks first spectrum for spectrum representation (profile/centroid)"""
-
-        # Not required if this is already in the 'file content' section
-        if 'Spectrum representation' in self.meta:
-            return
-
-        sp_cv = pyxpath(self, sp_cv)
-
-        for e in sp_cv:
-            if e.attrib['accession'] in self.obo['MS:1000525'].rchildren():
-                self.meta['Spectrum representation'] = \
-                                       {'accession': e.attrib['accession'], 'name': e.attrib['name'],
-                                        'ref': e.attrib['cvRef']}
+    def _extract_spectrum_representation(self, meta):
+        """Extract spectrum representation into the metadata dictionary.
+        """
+        representations = self.vocabulary["MS:1000525"].rchildren()
+        for element in self._find_xpath(self._XPATHS["sp_cv"]):
+            if element.attrib["accession"] in representations:
+                meta["Spectrum representation"] = {
+                    "entry_list": [
+                        {
+                            "accession": element.attrib["accession"],
+                            "name": element.attrib["name"],
+                            "ref": element.attrib[self.environment["cvRef"]],
+                        }
+                    ]
+                }
                 return
 
-
-
-
-    def _make_params(self):
-        """Create a memoized set of xml Elements in `ReferenceableParamGroupList`
+    def _extract_timerange(self, meta):
+        """Extract scan timerange into the metadata dictionary.
         """
-        self._params = {x.attrib['id']:x for x in pyxpath(self,
-        '{root}/s:referenceableParamGroupList/s:referenceableParamGroup')}
-
-    def data_file_content(self):
-        """Extract the `Data file content` from all scans.
-
-        This method is called only in the case the FileContent xml Element
-        contained no actual cvParam elements. This was witnessed in at least
-        one file from a Waters instrument.
-        """
-
-        file_contents = self.obo['MS:1000524'].rchildren().id
-
-        def unseen(accession, memo=set()):
-            if accession in memo:
-                return False
-            else:
-                memo.add(accession)
-                return True
-
-        self.meta['Data file content'] = {'entry_list':
-
-            [ {'name': cv.attrib['name'], 'ref': cv.attrib['cvRef'], 'accession': cv.attrib['accession'] }
-                for cv in pyxpath(self, XPATHS['sp_cv'])
-                    if cv.attrib['accession'] in file_contents and unseen(cv.attrib['accession'])
-            ]
-
-        }
-
-    def spectrum_meta(self):
-        """Extract information of each spectrum in entry lists.
-
-        This method is only called is the **complete_parse** parameters was set
-        as True when the mzMLmeta object was created. This requires more time
-        as iterating through hundreds of elements is bound to be more performance
-        hungry than just a few elements. It is believed to be useful when mzml2isa
-        is used as a parsing library.
-        """
-
-        terms = collections.OrderedDict()
-
-        terms['sp'] = {
-            'MS:1000524': {'attribute': False, 'name': 'Data file content', 'plus1': True, 'value': False, 'soft':False},
-            'MS:1000796': {'attribute': False, 'name': 'Spectrum title', 'plus1': True, 'value': True, 'soft':False},
-            'MS:1000465': {'attribute': False, 'name': 'Polarity', 'plus1': True, 'value': False, 'soft': False},
-            'MS:1000511': {'attribute': False, 'name': 'MS Level', 'plus1': True, 'value':True, 'soft': False},
-            'MS:1000525': {'attribute': False, 'name': 'Spectrum representation', 'plus1': True, 'value':False, 'soft': False},
-            'MS:1000504': {'attribute': False, 'name': 'Base Peak m/z', 'plus1': True, 'value': True, 'soft': False},
-            'MS:1000505': {'attribute': False, 'name': 'Base Peak intensity', 'plus1': True, 'value': True, 'soft': False},
-            'MS:1000285': {'attribute': False, 'name': 'Total ion current', 'plus1': True, 'value': True, 'soft': False},
-
-            'MS:1000927': {'attribute': False, 'name': 'Ion injection time', 'plus1': True, 'value': True, 'soft': False},
-            'MS:1000512': {'attribute': False, 'name': 'Filter string', 'plus1': True, 'value': True, 'soft': False},
-
-            'MS:1000528': {'attribute': False, 'name': 'Lowest observed m/z', 'plus1': True, 'value': True, 'soft': False},
-            'MS:1000527': {'attribute': False, 'name': 'Highest observed m/z', 'plus1': True, 'value': True, 'soft': False},
-        }
-
-        terms['combination'] = {
-            'MS:1000570': {'attribute': False, 'name': 'Spectrum combination', 'plus1': True, 'value': False, 'soft': False}
-        }
-
-        terms['configuration'] = {
-            'MS:1000016': {'attribute': False, 'name': 'Scan start time', 'plus1': True, 'value': True, 'soft': False},
-            'MS:1000512': {'attribute': False, 'name': 'Filter string', 'plus1': True, 'value': True, 'soft': False},
-            'MS:1000616': {'attribute': False, 'name': 'Preset scan configuration', 'plus1': True, 'value': True, 'soft': False},
-            'MS:1000927': {'attribute': False, 'name': 'Ion injection time', 'plus1': True, 'value':True, 'soft': False},
-            'MS:1000018': {'attribute': False, 'name': 'Scan direction', 'plus1': True, 'value': True, 'soft':False},
-            'MS:1000019': {'attribute': False, 'name': 'Scan law', 'plus1': True, 'value': True, 'soft':False},
-        }
-
-        terms['isolation_window'] = {
-            'MS:1000827': {'attribute': False, 'name': 'Isolation window target m/z', 'plus1':True, 'value': True, 'soft': False},
-            'MS:1000828': {'attribute': False, 'name': 'Isolation window lower offset', 'plus1':True, 'value': True, 'soft': False},
-            'MS:1000829': {'attribute': False, 'name': 'Isolation window higher offset', 'plus1':True, 'value': True, 'soft': False},
-        }
-
-        terms['selected_ion'] = {
-            'MS:1000744': {'attribute': False, 'name': 'Selected ion m/z', 'plus1': True, 'value': True, 'soft': False},
-            'MS:1000744': {'attribute': False, 'name': 'Charge state', 'plus1': True, 'value': True, 'soft': False},
-            'MS:1000744': {'attribute': False, 'name': 'Peak intensity', 'plus1': True, 'value': True, 'soft': False},
-        }
-
-        terms['activation'] = {
-            'MS:1000044': {'attribute': False, 'name': 'Dissociation method', 'plus1': True, 'value': False, 'soft': False},
-            'MS:1000045': {'attribute': False, 'name': 'Collision Energy', 'plus1': True, 'value': True, 'soft':False},
-        }
-
-        terms['binary'] = {
-            'MS:1000518': {'attribute': False, 'name': 'Binary data type', 'plus1': True, 'value': False, 'soft': False},
-            'MS:1000572': {'attribute': False, 'name': 'Binary data compression type', 'plus1': True, 'value': False, 'soft': False},
-            'MS:1000513': {'attribute': False, 'name': 'Binary data array', 'plus1': True, 'value': False, 'soft': False},
-        }
-
-        for spectrum in pyxpath(self, XPATHS['sp']):
-
-            for path,name in [('./s:referenceableParamGroupRef', 'sp'),
-                              ('{scanList}/s:scan/s:referenceableParamGroupRef', 'combination'),
-                              ('{root}/s:referenceableParamGroupList/s:referenceableParamGroup', 'binary')]:
-
-                refs = spectrum.iterfind(path.format(**self.env), self.ns)
-                for ref in refs:
-                    params = self._params[ref.attrib['ref']]
-                    self.cvParam_loop(params.iterfind('s:cvParam', self.ns), name, terms)
-
-            self.cvParam_loop(spectrum.iterfind('s:cvParam', self.ns), 'sp', terms)
-            self.cvParam_loop(spectrum.iterfind('{scanList}/s:cvParam'.format(**self.env), self.ns), 'combination', terms)
-            self.cvParam_loop(spectrum.iterfind('{scanList}/s:scan/s:cvParam'.format(**self.env), self.ns), 'configuration', terms)
-            self.cvParam_loop(spectrum.iterfind('s:binaryDataArrayList/s:binaryDataArray/s:cvParam'.format(**self.env), self.ns), 'binary', terms)
-
-            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:activation/s:cvParam', self.ns), 'activation', terms)
-            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:isolationWindow/s:cvParam', self.ns), 'isolation_window', terms)
-            self.cvParam_loop(spectrum.iterfind('s:precursorList/s:precursor/s:selectedIonList/s:selectedIon/s:cvParam', self.ns), 'selected_ion', terms)
-
-        # for entry in ('Collision Energy', 'Data file content', 'Dissociation method', 'Spectrum combination',
-        #               'Binary data array', 'Binary data compression type', 'Binary data type'):
-        #     self.merge_entries(entry)
-
-    def merge_entries(self, name):
-        """An unoptimized way of merging meta entries only made of duplicates.
-
-        This is only useful when the :obj:`spectrum_meta` method is called, as
-        a way of reducing the size of some meta entries that add no interesting
-        information (for instance, when all binary data is compressed the same
-        way, it is useless to know that for each scan).
-
-        Arguments:
-            name (str): the entry to de-duplicate
-
-        Returns:
-            list: the list of the list with deduplicated arguments
-
-        .. note::
-
-            Using an OrderedSet to deduplicate while preserving order may be a
-            good idea (see http://code.activestate.com/recipes/576694/) for actual
-            implementation
-        """
-
-        if name in self.meta.keys():
-            if 'entry_list' in self.meta[name].keys():
-                seen = set()
-                return [x for x in self.meta[name]['entry_list'] if str(x) not in seen and not seen.add(str(x))]
-
-    def timerange(self):
-        """Try to extract the Time range of all the scans.
-
-        Time range consists in the smallest and largest time the successive scans
-        were started. The unit (most of the time `minute`) will be extracted as well
-        if possible.
-        """
-
         try:
-            scan_cv =  pyxpath(self, XPATHS['scan_cv'])
+            scan_cv = self._find_xpath(self._XPATHS["scan_cv"])
+            times = [
+                float(i.attrib["value"])
+                for i in scan_cv
+                if i.attrib["accession"] == "MS:1000016"
+            ]
+            meta["Time range"] = {
+                "value": "{:.3f}-{:.3f}".format(min(times), max(times))
+            }
 
-            time = [ float(i.attrib['value']) for i in scan_cv if i.attrib['accession'] == 'MS:1000016']
-            unit = next( ( {'name': i.attrib['unitName'],'accession': i.attrib['unitAccession'],'ref': i.attrib['unitCvRef'] }
-                            for i in pyxpath(self, XPATHS['scan_cv']) if i.attrib['accession'] == 'MS:1000016' and 'unitName' in i.attrib ), None)
+            unit = next(
+                (
+                    i
+                    for i in self._find_xpath(self._XPATHS["scan_cv"])
+                    if i.attrib["accession"] == "MS:1000016" and "unitName" in i.attrib
+                ),
+                None,
+            )
 
-            minrt = str(round(min(time),4))
-            maxrt = str(round(max(time),4))
-            timerange = minrt + "-" + maxrt
+            if unit is not None:
+                meta["Time range"]["unit"] = {
+                    "name": unit.attrib["unitName"],
+                    "accession": unit.attrib["unitAccession"],
+                    "ref": unit.attrib.get(
+                        "unitCvRef", unit.attrib[self.environment["cvRef"]]
+                    ),
+                }
 
         except ValueError:
-            # THIS IS NOT SOMETHING TO BE WARNED ABOUT
-            # warnings.warn("Could not find any time range.")
-            timerange = ''
+            pass
 
-        if timerange:
-            self.meta['Time range'] = {'value': timerange}
-            if unit is not None:
-                self.meta['Time range']['unit'] = unit
-
-    def mzrange(self):
-        """Try to extract the m/z range of all scans."""
-
-
-        try: #case with detection range
-            scan_window_cv = pyxpath(self, XPATHS['scan_window_cv'])
-            minmz_l = []
-            maxmz_l = []
-
+    def _extract_mzrange(self, meta):
+        """Extract scan m/z range into the metadata dictionary.
+        """
+        try:
+            minmz = []
+            maxmz = []
             unit = None
 
-            for i in scan_window_cv:
-                if i.attrib['accession'] == 'MS:1000501':
-                    minmz_l.append(float(i.attrib['value']))
+            for element in self._find_xpath(self._XPATHS["scan_window_cv"]):
+                if element.attrib["accession"] == "MS:1000501":
+                    minmz.append(float(element.attrib["value"]))
+                    if unit is None and "unitName" in element.attrib:
+                        unit = {
+                            "name": element.attrib["unitName"],
+                            "ref": element.attrib["unitCvRef"],
+                            "accession": element.attrib["unitAccession"],
+                        }
+                elif element.attrib["accession"] == "MS:1000500":
+                    maxmz.append(float(element.attrib["value"]))
 
-                    unit = unit or {'name': i.attrib['unitName'],
-                                    'ref': i.attrib['unitCvRef'],
-                                    'accession': i.attrib['unitAccession']}
+            meta["Scan m/z range"] = {
+                "value": "{}-{}".format(int(min(minmz)), int(max(maxmz)))
+            }
 
-                if i.attrib['accession'] == 'MS:1000500':
-                    maxmz_l.append(float(i.attrib['value']))
-
-            minmz = str(int(min(minmz_l)))
-            maxmz = str(int(max(maxmz_l)))
-            mzrange = '-'.join([minmz, maxmz])
-
-        except ValueError: #Case with windowed target
-            if not isinstance(self, imzMLmeta): #Warn only if parsing a mzML file
-                warnings.warn("Could not find any m/z range.")
-            mzrange = ''
-
-        if mzrange:
-            self.meta['Scan m/z range'] = {'value': mzrange}
             if unit is not None:
-                self.meta['Scan m/z range']['unit'] = unit
+                meta["Scan m/z range"]["unit"] = unit
 
-    def scan_num(self):
-        """Extract the total number of scans."""
-        scan_num = next(pyxpath(self, XPATHS['scan_num'])).attrib["count"]
-        self.meta['Number of scans'] = {'value': int(scan_num)}
+        except ValueError:
+            if type(self) is MzMLFile:
+                warnings.warn("Could not find any m/z range")
 
-    def urlize(self):
-        """Urllize all accessions within the meta dictionary"""
-
-        for meta_name in self.meta:
-            #if 'accession' in self.meta[meta_name]:
-            try:
-                self.meta[meta_name]['accession'] = self._urlize_name(self.meta[meta_name]['accession'])
-            except KeyError:
-                pass
-
-            try:
-                self.meta[meta_name]['unit']['accession'] = self._urlize_name(self.meta[meta_name]['unit']['accession'])
-            except KeyError:
-                pass
-
-            try:
-                for index, entry in enumerate(self.meta[meta_name]['entry_list']):
-                    try:
-                        self.meta[meta_name]['entry_list'][index]['accession'] = self._urlize_name(entry['accession'])
-                    except KeyError:
-                        pass
-                    try:
-                        self.meta[meta_name]['entry_list'][index]['unit']['accession'] = self._urlize_name(entry['unit']['accession'])
-                    except KeyError:
-                        pass
-            except KeyError:
-                pass
-
-    @staticmethod
-    def _urlize_name(accession):
-        """Turn YY:XXXXXXX accession number into an url
-
-        Parameters:
-            accession (str): a CV term accession
-
-        Returns:
-            str: an url version of the accession
-
+    def _extract_data_file_content(self, meta):
+        """Extract data file content into the metadata dictionary.
         """
-        if accession.startswith('MS'):
-            return "http://purl.obolibrary.org/obo/{}".format(accession.replace(':', '_'))
-        elif accession.startswith('IMS'):
-            return "http://www.maldi-msi.org/download/imzml/imagingMS.obo#{}".format(accession)
-        elif accession.startswith('UO'):
-            return "http://purl.obolibrary.org/obo/{}".format(accession.replace(':', '_'))
-        return accession
 
-    def build_env(self):
-        """Build the env and the ns dictionaries."""
+        file_contents = self.vocabulary["MS:1000524"].rchildren().id
 
-        self.env = collections.OrderedDict()
+        def unique_everseen(it, key):
+            memo = set()
+            for element in it:
+                signature = key(element)
+                if signature not in seen:
+                    seen.add(signature)
+                    yield element
 
-        try: #lxml
-            self.ns = self.tree.getroot().nsmap
-            self.ns['s'] = self.ns[None] # namespace
-            del self.ns[None]
-        except AttributeError: #xml.(c)ElementTree
-            self.ns = {'s': self.tree.getroot().tag[1:].split("}")[0]}
-
-        # Check if indexedmzML/mzML or mzML
-        if isinstance(self, mzMLmeta):
-            if self.tree.find('./s:mzML', self.ns) is None :
-                self.env['root'] = '.'
-            else:
-                self.env['root'] = './s:mzML'
-        else:
-            if self.tree.find('./s:imzML', self.ns) is None :
-                self.env['root'] = '.'
-            else:
-                self.env['root'] = './s:imzML'
-
-        # check if spectrum or chromatogram
-        if self.tree.find('{root}/s:run/s:spectrumList/s:spectrum/'.format(**self.env), self.ns) is not None:
-            self.env['spectrum'] = 's:spectrum'
-        elif self.tree.find('{root}/s:run/s:chromatogramList/s:chromatogram/'.format(**self.env), self.ns) is not None:
-            self.env['spectrum'] = 's:chromatogram'
-
-        # check if scanList or SpectrumDescription
-        if self.tree.find('{root}/s:run/{spectrum}List/{spectrum}/s:scanList'.format(**self.env), self.ns) is not None:
-            self.env['scanList'] = 's:scanList'
-        else:
-            self.env['scanList'] = 's:spectrumDescription'
-
-        # check if scanWindow or selectionWindow
-        if self.tree.find('{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:scanWindowList/s:scanWindow'.format(**self.env), self.ns) is not None:
-            self.env['scanWindow'] = 's:scanWindow'
-        else:
-            self.env['scanWindow'] = 's:selectionWindow'
-
-        # check if sourceFile/@name or sourceFile/@sourceFileName
-        if self.tree.find('{root}/s:fileDescription/s:sourceFileList/s:sourceFile[@name]'.format(**self.env), self.ns) is not None:
-            self.env['filename'] = 'name'
-        else:
-            self.env['filename'] = 'sourceFileName'
-
-        # check if cv/@id or cv
-        if self.tree.find('{root}/s:cvList/s:cv[@id]'.format(**self.env), self.ns) is not None:
-            self.env['cvLabel'] = 'id'
-        else:
-            self.env['cvLabel'] = 'cvLabel'
-
-        # check if instrumentList or instrumentConfigurationList
-        if self.tree.find('{root}/s:instrumentConfigurationList'.format(**self.env), self.ns) is not None:
-            self.env['instrument'] = 's:instrumentConfiguration'
-        else:
-            self.env['instrument'] = 's:instrument'
-
-        # check if softwareRef or instrumentSoftwareRef
-        if self.tree.find('{root}/{instrument}List/{instrument}/s:softwareRef[@ref]'.format(**self.env), self.ns) is not None:
-            self.env['software'] = 's:softwareRef'
-            self.env['softwareRef'] = 'ref'
-        elif self.tree.find('{root}/{instrument}List/{instrument}/s:instrumentSoftwareRef[@ref]'.format(**self.env), self.ns) is not None:
-            self.env['software'] = 's:instrumentSoftwareRef'
-            self.env['softwareRef'] = 'ref'
-
-        # check if instrument serial is in instrument or refereceableParam
-        if self.tree.find('{root}/s:referenceableParamGroupList/s:referenceableParamGroup/s:cvParam[@accession="MS:1000529"]'.format(**self.env), self.ns) is not None:
-            self.instrument = self._instrument_byref
-        #if self.tree.find('{root}/{instrument}List/{instrument}/s:cvParam[@accession="MS:1000529"]'.format(**self.env), self.ns) is not None:
-        else:
-            self.instrument = self._instrument_nested
-
-    @property
-    def meta_json(self):
-        """Returns the metadata dictionary in json format
-        """
-        return json.dumps(self.meta, indent=4, sort_keys=True)
-
-    @property
-    def meta_isa(self):
-        """Returns the metadata dictionary with actual ISA headers
-        """
-        keep = ["Data Transformation", "Data Transformation software version", "Data Transformation software",
-                "term_source", "Raw Spectral Data File", "MS Assay Name", "Derived Spectral Data File", "Sample Name"]
-
-        meta_isa = collections.OrderedDict()
-
-        for meta_name in self.meta:
-            if meta_name in keep:
-                meta_isa[meta_name] = self.meta[meta_name]
-            else:
-                meta_isa["Parameter Value[{}]".format(meta_name)] = self.meta[meta_name]
-
-        return meta_isa
-
-    @property
-    def meta_isa_json(self):
-        return json.dumps(self.meta_isa, indent=4, sort_keys=True)
-
-
-
-XPATHS_I_META = {'file_content':      '{root}/s:fileDescription/s:fileContent/s:cvParam',
-                 'scan_settings':     '{root}/s:scanSettingsList/s:scanSettings/s:cvParam',
-                 'source':            '{root}/{instrument}List/{instrument}/s:componentList/s:source/s:cvParam',
+        meta["Data file content"] = {
+            "entry_list": [
+                {
+                    "name": cv.attrib["name"],
+                    "ref": cv.attrib[self.environment["cvRef"]],
+                    "accession": cv.attrib["accession"],
                 }
-
-XPATHS_I =      {'scan_dimensions':   '{root}/s:run/{spectrum}List/{spectrum}/{scanList}/s:scan/s:cvParam',
-                 'scan_ref':          '{root}/s:run/{spectrum}List/{spectrum}/s:referenceableParamGroupRef',
-                 'ref_param_list':    '{root}/s:referenceableParamGroupList/s:referenceableParamGroup',
-                }
-
-
-class imzMLmeta(mzMLmeta):
-
-    def __init__(self, in_file, ontology=None):
-        """Setup the xpaths and terms. Then run the various extraction methods
-
-        Parameters:
-            in_file (str): path to imzML file
-            ontology (pronto.Ontology): a cached IMS ontology
-        """
-
-        if ontology is None and self.obo is None:
-            self.obo = get_ontology('IMS')
-        elif self.obo is None:
-            self.obo = ontology
-
-        super(imzMLmeta, self).__init__(in_file)
-
-        xpaths_meta = XPATHS_I_META
-
-        terms = create_terms()
-
-        terms['file_content'] = {
-                'MS:1000525' : {'attribute': False, 'name': 'Spectrum representation', 'plus1': False, 'value': False, 'soft': False},
-                'IMS:1000008': {'attribute': False, 'name': 'Universally unique identifier', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000009': {'attribute': False, 'name': 'Binary file checksum type', 'plus1': False, 'value': True, 'soft': False},
-                'IMS:1000003': {'attribute': False, 'name': 'Ibd binary type', 'plus1': False, 'value': False, 'soft':False},
+                for cv in unique_everseen(
+                    self._find_xpath(self._XPATHS["sp_cv"]),
+                    key=lambda cv: cv.attrib["accession"],
+                )
+                if cv.attrib["accession"] in file_contents
+            ]
         }
 
-        terms['scan_settings'] = {
-                'IMS:1000040': {'attribute': False, 'name': 'Linescan sequence', 'plus1': False, 'value': False, 'soft': False},
-                'IMS:1000041': {'attribute': False, 'name': 'Scan pattern', 'plus1': False, 'value': False, 'soft': False},
-                'IMS:1000042': {'attribute': False, 'name': 'Max count of pixel x', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000043': {'attribute': False, 'name': 'Max count of pixel y', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000044': {'attribute': False, 'name': 'Max dimension x', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000045': {'attribute': False, 'name': 'Max dimension y', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000046': {'attribute': False, 'name': 'Pixel size x', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000047': {'attribute': False, 'name': 'Pixel size y', 'plus1': False, 'value': True, 'soft':False},
-                'IMS:1000048': {'attribute': False, 'name': 'Scan type', 'plus1': False, 'value': False, 'soft': False},
-                'IMS:1000049': {'attribute': False, 'name': 'Line scan direction', 'plus1': False, 'value': False, 'soft': False},
-        }
-
-        terms['source'] = {
-                'IMS:1001213': {'attribute': False, 'name': 'Solvent flowrate', 'plus1': False, 'value': True, 'soft':False },
-                'IMS:1001211': {'attribute': False, 'name': 'Solvent', 'plus1': False, 'value': True, 'soft':False },
-                'IMS:1000202': {'attribute': False, 'name': 'Target material', 'plus1': False, 'value': True, 'soft': False},
-                'IMS:1001212': {'attribute': False, 'name': 'Spray voltage', 'plus1': False, 'value': True, 'soft': False},
-        }
-
-
-        self.extract_meta(terms, xpaths_meta)
-
-        self.scan_meta()
-
-        self.link_files()
-
-        self.urlize()
-
-    def link_files(self):
-        """Put 'Raw Spectral Data File' and 'Spectrum Representation' in entry_lists
+    def _extract_instrument(self, meta):
+        """Extract instrument parameters into the metadata dictionary.
         """
 
-        try:
-            raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file.name))[0]
-        except AttributeError:
-            raw_spectral_data_file = os.path.splitext(os.path.basename(self.in_file))[0]
+        # Find the instrument config: either directly the instrument element
+        # with its attached parameters or a referenceableParamGroup referenced
+        # in the instrument
+        instrument = self._find_instrument_config()
+        manufacturers = self.vocabulary["MS:1000031"].children.id
 
-        self.meta['Raw Spectral Data File'] =  {'entry_list': [{'value': raw_spectral_data_file \
-                                                                          + os.path.extsep + 'ibd'}] }
+        # The parameters we want to extract (Instrument Manufacturer will be
+        # handled differently later)
+        parameters = [
+            _CVParameter(
+                accession="MS:1000031",
+                cv=True,
+                name="Instrument",
+                plus1=False,
+                value=False,
+                software=False,
+                merge=False,
+            ),
+            _CVParameter(
+                accession="MS:1000529",
+                cv=True,
+                name="Instrument serial number",
+                plus1=False,
+                value=True,
+                software=False,
+                merge=False,
+            ),
+        ]
 
-        self.meta['Spectrum representation'] = {'entry_list': [ self.meta['Spectrum representation'] ] }
+        # Extract the CV parameters
+        for param in instrument.iterfind("s:cvParam", self.namespaces):
+            self._extract_cv_params(param, parameters, meta)
 
-        #if group_spectra:
-        #    self.meta['MS Assay Name']['value'] = self.meta['MS Assay Name']['value']
+        if "Instrument" in meta:
+            # Check the instrument name and accession are the same
+            term = self.vocabulary[meta["Instrument"]["accession"]]
+            if meta["Instrument"]["name"] != term.name:
+                msg = "The instrument name in the mzML file ({}) does not correspond to the instrument accession ({})"
+                warnings.warn(msg.format(meta["Instrument"]["name"], term.name))
+                meta["Instrument"]["name"] = term.name
 
-        self.meta['High-res image'] = {'value': self.find_img('ndpi') }
-        self.meta['Low-res image'] =  {'value': self.find_img('jpg', 'tif') }
+            # Get the instrument manufacturer
+            man = next((p for p in term.rparents() if p.id in manufacturers), term)
+            meta["Instrument manufacturer"] = {
+                "accession": man.id,
+                "name": man.name,
+                "ref": man.id.split(":")[0],
+            }
 
-    def find_img(self, *args):
-        """Find associated image files in the same directory as imzML files
+        try:  # Get associated software
+            param = next(self._find_xpath(self._XPATHS["ic_soft_ref"]))
+            soft_ref = param.attrib[self.environment["softwareRef"]]
+            self._extract_software(soft_ref, "Instrument", meta)
+        except (
+            IndexError,
+            KeyError,
+            StopIteration,
+        ):  # Sometimes <Instrument> contains no Software tag
+            if "Instrument" in meta:
+                instrument = meta["Instrument"]["name"]
+            elif "Instrument serial number" in meta:
+                instrument = "<{}>".format(meta["Instrument serial number"])
+            else:
+                instrument = "?"
+            warnings.warn(
+                "Instrument {} does not have a software tag.".format(instrument)
+            )
 
-        Arguments:
-            *args: Image file extensions to look for
-
-        Returns:
-            str: the image file corresponding to the asked extensions
+    def _extract_scan_number(self, meta):
+        """Extract the number of scans into the metadata dictionary.
         """
+        scan_num = next(self._find_xpath(self._XPATHS["scan_num"]))
+        meta["Number of scans"] = {"value": int(scan_num.attrib["count"])}
 
-        identity = dict()
-        sample_name = self.meta['Sample Name']['value']
+    def _extract_scan_parameters(self, meta):
+        """Extract parameters from each scan into the metadata dictionary.
 
-        # First attempt to find image files named exactly like the imzML file
-        for file in (x for x in os.listdir(self.in_dir) if x.lower().endswith(args)):
-            if os.path.splitext(file)[0] == sample_name:
-                return file
+        Depending on the `_CVParameter.merge` attribute, some entry list will
+        be deduplicated.
+        """
+        terms = self._scan_parameters()
+        ns = self.namespaces
 
-        # If None is found, attempt comparing identity
-        for img_format in args:
+        for spectrum in self._find_xpath(self._XPATHS["sp"]):
+            for location, parameters in six.iteritems(terms):
+                xpath = self._XPATHS[location].format(**self.environment)
+                # we are extracting from a referenced parameter group
+                # so we must retrieve them before being able to extract
+                # the CV parameters
+                if location.startswith("ref"):
+                    params = (
+                        self._referenceable_parameters[ref.attrib["ref"]]
+                        for ref in spectrum.iterfind(xpath, self.namespaces)
+                    )
+                    elements = (
+                        element
+                        for param in params
+                        for element in param.iterfind("s:cvParam", ns)
+                    )
+                # we can extract the CV parameters directly
+                else:
+                    elements = spectrum.iterfind(xpath, ns)
 
-            name = self.meta['Sample Name']['value']
+                for element in elements:
+                    self._extract_cv_params(element, parameters, meta)
 
-            try:
-                # Get a reduced file list with just the img_format that is in the loop
-                rfilelist = [f for f in self.in_file.filelist if f.lower().endswith(img_format)]
-                # loop through the reduced file list, compute and add to the identity dicitonary
-                for file in rfilelist:
-                    filename = os.path.splitext(os.path.basename(file))[0]
-                    identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
-
-            except AttributeError:
-
-                for file in glob.glob(os.path.join(self.in_dir, '*.{}'.format(img_format))):
-                    filename = os.path.splitext(os.path.basename(file))[0]
-                    identity[os.path.basename(file)] = len(longest_substring(filename, name)) / len(name)
-
-        if identity and max(identity.values()) > IDENTITY_THRESHOLD:
-            return max(identity, key=identity.get)
+    def _find_instrument_config(self):
+        """Find the instrument configuration XML element.
+        """
+        # Get the instrument configuration reference if it exists or None
+        ic_ref = next(self._find_xpath(self._XPATHS["ic_ref"]), None)
+        # if the configuration exist, find it in the referenceable parameters
+        if ic_ref is not None:
+            return self._referenceable_parameters[ic_ref.attrib["ref"]]
+        # otherwise return the instrument in the instrument list
         else:
-            return ''
+            return next(self._find_xpath(self._XPATHS["ic_nest"]))
 
-    def scan_meta(self):
-        """Extract scan dependant metadata
+    def _merge_spectrum_representation(self, meta):
+        """Attempt to deduplicate entries of "Spectrum representation".
         """
+        spec = meta["Spectrum representation"]
 
-        scan_refs = { x.attrib['ref'] for x in pyxpath(self, XPATHS_I['scan_ref']) }
+        profiles = [
+            entry for entry in spec["entry_list"] if entry["name"] == "profile spectrum"
+        ]
+        centroid = [
+            entry
+            for entry in spec["entry_list"]
+            if entry["name"] == "centroid spectrum"
+        ]
 
-        terms = collections.OrderedDict()
+        np, nc = len(profiles), len(centroid)
+        if (np == 0 and nc != 0) or (nc == 0 and np != 0):
+            spec["entry_list"] = spec["entry_list"][:1]
 
-        terms['scan_meta'] = {
-            'MS:1000511': {'attribute': False, 'name':'MS Level', 'plus1': False, 'value':True, 'soft': False},
-            'MS:1000465': {'attribute': False, 'name':'Scan polarity', 'plus1': False, 'value':False, 'soft': False},
-            'MS:1000525': {'attribute': False, 'name':'Spectrum representation', 'plus1': False, 'value': False, 'soft': False},
-        }
+        return meta
 
-        if len(scan_refs) != 1:
-            warnings.warn("File contains scans using different parameter values, parsed metadata may be wrong.")
+    @cached_property
+    def metadata(self):
+        meta = {}
 
-        for ref in scan_refs:
+        self._extract_assay_parameters(meta)
+        self._extract_instrument(meta)
+        self._extract_derived_file(meta)
+        self._extract_raw_file(meta)
+        self._extract_polarity(meta)
+        self._extract_timerange(meta)
+        self._extract_mzrange(meta)
+        self._extract_scan_number(meta)
+        self._extract_scan_parameters(meta)
 
-            param_group = next( x for x in pyxpath(self, XPATHS_I['ref_param_list']) if x.attrib['id'] == ref)
+        if "Spectrum representation" not in meta:
+            self._extract_spectrum_representation(meta)
+        if "Data file content" not in meta:
+            self._extract_data_file_content(meta)
 
-            self.cvParam_loop(param_group.iterfind('s:cvParam', self.ns),
-                              'scan_meta', terms)
+        if "Spectrum representation" in meta:
+            self._merge_spectrum_representation(meta)
 
-
-
-
-if __name__ == '__main__':
-
-    if sys.argv[-1].endswith('.imzML'):
-        print(imzMLmeta(sys.argv[-1]).meta_json)
-    else:
-        print(mzMLmeta(sys.argv[-1]).meta_json)
+        self._urlize_meta(meta)
+        return meta

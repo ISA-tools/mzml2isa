@@ -1,0 +1,7 @@
+coverage
+codecov
+green
+pip
+setuptools
+wheel       
+pyinstaller  ; sys_platform == 'win32'

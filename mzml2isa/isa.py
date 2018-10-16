@@ -1,24 +1,24 @@
-"""
-Content
------------------------------------------------------------------------------
+# coding: utf-8
+"""Minimal ISA-Tab investigation serializer.
+
 This module contains a single class, ISA_Tab, which is used to dump a list
-of mzML.meta or imzML.meta dictionaries to ISA files.
+of `~MzMLFile.metadata` or `~ImzMLFile.metadata` dictionaries to ISA files.
 
-About
------------------------------------------------------------------------------
-The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
-as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
-port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
-in June 2016 during an internship at the EBI Cambridge.
+About:
+    The mzml2isa parser was created by Tom Lawson (University of Birmingham, UK)
+    as part of a NERC funded placement at EBI Cambridge in June 2015. Python 3
+    port and enhancements were carried out by Martin Larralde (ENS Cachan, FR)
+    in June 2016 during an internship at the EBI Cambridge.
 
-License
------------------------------------------------------------------------------
-GNU General Public License version 3.0 (GPLv3)
+License:
+    GNU General Public License version 3.0 (GPLv3)
 """
 from __future__ import absolute_import
 
 import os
 import csv
+import pkg_resources
+import re
 import sys
 import functools
 
@@ -30,7 +30,6 @@ from . import (
 )
 from .utils import (
     PermissiveFormatter,
-    TEMPLATES_DIR,
     _ChainMap
 )
 
@@ -47,12 +46,12 @@ class ISA_Tab(object):
             'Study file name', 'Written assays', etc.)
     """
 
-    def __init__(self, out_dir, name, **kwargs):
+    def __init__(self, out_dir, name, usermeta=None, **kwargs):
         """Setup the environments and the directories
 
         Arguments:
-            out_dir (str): the path to the output directory
-            name (str): the name of the *omics study to generate
+            out_dir (str): the path to the output directory.
+            name (str): the name of the *omics study to generate.
 
         Keyword Arguments:
             usermeta (dict, optional): a dictionary containing metadata defined
@@ -63,29 +62,21 @@ class ISA_Tab(object):
                 only your "a_imzML.txt" is non-standard, then you only have to have a new
                 "a_imzML.txt" in your custom template directory. If None, the uses the
                 ones shipping with mzml2isa, compatible with MetaboLights [default: None]
-            OUT_dir (str, optional): Out directory 'as is'. For situations when a user want's full
-                            control of the out path
         """
         usermeta = kwargs.get('usermeta', None)
-        template_directory = kwargs.get('template_directory', None)
-        OUT_dir = kwargs.get('OUT_dir', None)
-
-
-        if OUT_dir:
-            out_pth = OUT_dir
-        else:
-            out_pth = os.path.join(out_dir, name)
+        template_default = pkg_resources.resource_filename("mzml2isa", "templates")
+        template_directory = kwargs.get('template_directory') or template_default
 
         # Create one or several study files / one or several study section in investigation
         self.usermeta = usermeta or {}
         self.isa_env = {
-            'out_dir': out_pth,
+            'out_dir': out_dir,
             'Study Identifier':  name,
             'Study file name': 's_{}.txt'.format(name),
             'Assay polar file name': 'a_{}_{{}}_metabolite_profiling_mass_spectrometry.txt'.format(name),
             'Assay file name': 'a_{}_metabolite_profiling_mass_spectrometry.txt'.format(name),
-            'default_path': TEMPLATES_DIR,
-            'template_path': template_directory or TEMPLATES_DIR,
+            'default_path': template_default,
+            'template_path': template_directory,
             'Technology type': [],
             'Measurement type': [],
             'Written assays': [],
@@ -289,4 +280,5 @@ class ISA_Tab(object):
         Return:
             str: the extracted substring
         """
-        return string.replace('Parameter Value[', '').replace(']', '')
+        match = re.match(r'Parameter Value\[(.*)\]', string)
+        return match.group(1) if match is not None else string

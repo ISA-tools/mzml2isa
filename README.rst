@@ -3,7 +3,7 @@ mzml2isa
 
 Parser to extract meta information from mzML mass spectrometry files and parse relevant information to a ISA-Tab structure
 
-|Version| |Py versions| |Git| |Bioconda| |Build Status (Travis)| |Build Status (AppVeyor)| |License| |RTD doc| |DOI| 
+|Version| |Py versions| |Git| |Bioconda| |Build Status (Travis)| |Build Status (AppVeyor)| |License| |RTD doc| |DOI|
 
 Overview
 --------
@@ -79,9 +79,9 @@ Workflow
 .. |Build Status (Travis)| image:: https://img.shields.io/travis/ISA-tools/mzml2isa.svg?style=flat&maxAge=3600&label=Travis-CI
    :target: https://travis-ci.org/ISA-tools/mzml2isa
 
-.. |Build Status (AppVeyor)| image:: https://img.shields.io/appveyor/ci/Tomnl/mzml2isa.svg?style=flat&maxAge=3600&label=AppVeyor   
+.. |Build Status (AppVeyor)| image:: https://img.shields.io/appveyor/ci/Tomnl/mzml2isa.svg?style=flat&maxAge=3600&label=AppVeyor
    :target: https://ci.appveyor.com/project/Tomnl/mzml2isa
-   
+
 .. |Py versions| image:: https://img.shields.io/pypi/pyversions/mzml2isa.svg?style=flat&maxAge=3600
    :target: https://pypi.python.org/pypi/mzml2isa/
 
@@ -97,9 +97,8 @@ Workflow
 .. |License| image:: https://img.shields.io/pypi/l/mzml2isa.svg?style=flat&maxAge=3600
    :target: https://www.gnu.org/licenses/gpl-3.0.html
 
-.. |RTD doc| image:: https://img.shields.io/badge/documentation-RTD-71B360.svg?style=flat&maxAge=3600
-   :target: http://2isa.readthedocs.io/en/latest/mzml2isa/index.html
+.. |RTD doc| image:: https://img.shields.io/readthedocs/2isa.svg?style=flat&maxAge=3600
+   :target: https://2isa.readthedocs.io/en/latest/mzml2isa/
 
 .. |DOI| image:: https://zenodo.org/badge/37276823.svg
    :target: https://zenodo.org/badge/latestdoi/37276823
-

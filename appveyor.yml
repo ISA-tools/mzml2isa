@@ -1,42 +1,53 @@
 environment:
   matrix:
-    - PYTHON: "C:\\Python27"
-      MAKE_WINEX: 0
-    - PYTHON: "C:\\Python35"
+    #- PYTHON: "C:\\Python27"
+    #  MAKE_WINEX: 0
+    #- PYTHON: "C:\\Python35"
+    #  MAKE_WINEX: 1
+    - PYTHON: "C:\\Python37-x64"
       MAKE_WINEX: 1
-    
+
 install:
-  - if %MAKE_WINEX%==1	%PYTHON%\Scripts\pip.exe install pyinstaller
-  - '%PYTHON%\Scripts\pip.exe install .'
+  - '%PYTHON%\python.exe -m pip install -U -r ci\requirements.txt'
+  #- if %MAKE_WINEX%==1 %PYTHON%\Scripts\pip.exe install pyinstaller
 
 build_script:
-  - if %MAKE_WINEX%==1	cd  scripts\for_pyinstaller
+  - '%PYTHON%\python.exe -m pip install .'
+  - if %MAKE_WINEX%==1	cd  ci\appveyor
   - if %MAKE_WINEX%==1	%PYTHON%\Scripts\pyinstaller.exe mzml2isa_cli.spec mzml2isa_cli.py
-  - cd ..\..\
+  - if %MAKE_WINEX%==1  cd ..\..
+
+# test_script:
+#   - mkdir data
+#   - cd data
+#   - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person01_RBC_youth_NEG.mzML -O Person01_RBC_youth_NEG.mzML
+#   - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person02_RBC_youth_NEG.mzML -O Person02_RBC_youth_NEG.mzML
+#   - ps: Get-Content Person02_RBC_youth_NEG.mzML -TotalCount 50
+#   - cd ..
+#   # Get ISA validator tools for validating
+#   - ps: wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip -o ISA-validator-1.6.5.zip
+#   - unzip ISA-validator-1.6.5.zip
+#   - ps: wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip -o ISAcreatorMetaboLights.zip
+#   - unzip ISAcreatorMetaboLights.zip
+#   # Test using just python
+#   - "%PYTHON%\\python.exe -m mzml2isa -i data -o out_folder\\metabolights -s MTBLS267"
+#   - java -cp ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267 Configurations\MetaboLightsConfig20140506\
+#   # test using the windows executable (no python requred)
+#   - if %MAKE_WINEX%==1	cd scripts\for_pyinstaller\dist\
+#   - if %MAKE_WINEX%==1	mzml2isa_cli.exe -i ..\..\..\data\ -o out_folder\metabolights -s MTBLS267_exe
+#   - if %MAKE_WINEX%==1	java -cp ..\..\..\ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267_exe ..\..\..\Configurations\MetaboLightsConfig20140506\
+
+before_test:
+  # backports.lzma is pre-built in an alternative PyPI repository
+  - 'if %PYTHON%=="C:\\Python27"  %PYTHON%\python.exe -m pip install https://pypi.anaconda.org/carlkl/simple/backports-lzma/0.0.3/backports.lzma-0.0.3-cp27-none-win32.whl'
+  - '%PYTHON%\python.exe -m pip install -r tests\requirements.txt'
 
 test_script:
-  - mkdir data
-  - cd data
-  - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person01_RBC_youth_NEG.mzML -O Person01_RBC_youth_NEG.mzML
-  - ps: wget http://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/MTBLS267/Person02_RBC_youth_NEG.mzML -O Person02_RBC_youth_NEG.mzML 
-  - ps: Get-Content Person02_RBC_youth_NEG.mzML -TotalCount 50 
-  - cd ..
-  # Get ISA validator tools for validating 
-  - ps: wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip -o ISA-validator-1.6.5.zip
-  - unzip ISA-validator-1.6.5.zip
-  - ps: wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip -o ISAcreatorMetaboLights.zip
-  - unzip ISAcreatorMetaboLights.zip
-  # Test using just python
-  - "%PYTHON%\\python.exe -m mzml2isa -i data -o out_folder\\metabolights -s MTBLS267"
-  - java -cp ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267 Configurations\MetaboLightsConfig20140506\
-  # test using the windows executable (no python requred)
-  - if %MAKE_WINEX%==1	cd scripts\for_pyinstaller\dist\
-  - if %MAKE_WINEX%==1	mzml2isa_cli.exe -i ..\..\..\data\ -o out_folder\metabolights -s MTBLS267_exe
-  - if %MAKE_WINEX%==1	java -cp ..\..\..\ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267_exe ..\..\..\Configurations\MetaboLightsConfig20140506\
+  - '%PYTHON%\python.exe -m green'
 
 artifacts:
-   - path: scripts\for_pyinstaller\dist\mzml2isa_cli.exe
-     name: mzml2isa_cli
+  - path: ci\appveyor\dist\mzml2isa_cli.exe
+    name: mzml2isa_cli
 
 deploy:
   provider: GitHub

@@ -1,3 +1,0 @@
-six
-pronto ~=0.6
-openpyxl

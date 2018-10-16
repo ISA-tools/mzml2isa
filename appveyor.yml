@@ -5,19 +5,18 @@ environment:
     #- PYTHON: "C:\\Python35"
     #  MAKE_WINEX: 1
     - PYTHON: "C:\\Python37-x64"
-      MAKE_WINEX: 0
+      MAKE_WINEX: 1
 
 install:
   - '%PYTHON%\python.exe -m pip install -U -r ci\requirements.txt'
-  - if %MAKE_WINEX%==1 %PYTHON%\Scripts\pip.exe install pyinstaller
+  #- if %MAKE_WINEX%==1 %PYTHON%\Scripts\pip.exe install pyinstaller
 
 build_script:
   - '%PYTHON%\python.exe -m pip install .'
+  - if %MAKE_WINEX%==1	cd  ci\appveyor
+  - if %MAKE_WINEX%==1	%PYTHON%\Scripts\pyinstaller.exe mzml2isa_cli.spec mzml2isa_cli.py
+  - if %MAKE_WINEX%==1  cd ..\..
 
-# build_script:
-#   - if %MAKE_WINEX%==1	cd  scripts\for_pyinstaller
-#   - if %MAKE_WINEX%==1	%PYTHON%\Scripts\pyinstaller.exe mzml2isa_cli.spec mzml2isa_cli.py
-#   - cd ..\..\
 # test_script:
 #   - mkdir data
 #   - cd data
@@ -39,16 +38,16 @@ build_script:
 #   - if %MAKE_WINEX%==1	java -cp ..\..\..\ISA-validator-1.6.5\isatools_deps.jar org.isatools.isatab.manager.SimpleManager validate out_folder\metabolights\MTBLS267_exe ..\..\..\Configurations\MetaboLightsConfig20140506\
 
 before_test:
-  - 'if %PYTHON%=="C:\\Python27"  %PYTHON%\python.exe -m pip install https://pypi.anaconda.org/carlkl/simple/backports-lzma/0.0.3/backports.lzma-0.0.3-cp27-none-win32.whl'
   # backports.lzma is pre-built in an alternative PyPI repository
+  - 'if %PYTHON%=="C:\\Python27"  %PYTHON%\python.exe -m pip install https://pypi.anaconda.org/carlkl/simple/backports-lzma/0.0.3/backports.lzma-0.0.3-cp27-none-win32.whl'
   - '%PYTHON%\python.exe -m pip install -r tests\requirements.txt'
 
 test_script:
   - '%PYTHON%\python.exe -m green'
 
-# artifacts:
-#    - path: scripts\for_pyinstaller\dist\mzml2isa_cli.exe
-#      name: mzml2isa_cli
+artifacts:
+  - path: scripts\for_pyinstaller\dist\mzml2isa_cli.exe
+    name: mzml2isa_cli
 
 deploy:
   provider: GitHub

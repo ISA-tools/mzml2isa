@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v1.0.0] - 2018-10-16
 ### Added
 - Added GPLv3 license file to source and `wheel` distribution.
 - Added unit testing framework using Metabolights data from the EBI FTP server.
@@ -19,4 +21,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pinned dependencies in `setup.cfg`.
 - Fixed crash on missing `Spectrum representation`.
 
-[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v0.5.1...v1.0.0

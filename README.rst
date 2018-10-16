@@ -1,28 +1,34 @@
-mzml2isa
-========
+``mzml2isa``
+============
 
-Parser to extract meta information from mzML mass spectrometry files and parse relevant information to a ISA-Tab structure
+Extract metadata from `mzML` and `imzML` files and write them to an ISA-Tab document.
 
-|Version| |Py versions| |Git| |Bioconda| |Build Status (Travis)| |Build Status (AppVeyor)| |License| |RTD doc| |DOI|
+|Version| |Py versions| |Git| |Bioconda| |Build Status (Travis)| |Build Status (AppVeyor)| |License| |RTD doc| |DOI| |Paper|
+
 
 Overview
 --------
 
 mzml2isa is a Python3 program that can automatically generate ISA-Tab document
-structure metadata files from raw XML metabolomics data files (mzML open access data format). The mzml2ISA tool provides the backbone of ISA-Tab metabolomics study which can
+structure metadata files from raw XML metabolomics data files (mzML open access data format).
+The mzml2isa tool provides the backbone of ISA-Tab metabolomics study which can
 then be edited with an ISA editing tool, ISAcreator (see `MetaboLights pre-packaged
 ISA Creator <http://www.ebi.ac.uk/metabolights/>`__)
 
-Currently the program does the following:
-  * Extract meta information from mzML files and stores it as either python dictionary or JSON format
-  * Creates an ISA-Tab file structure with relevant meta information filled in.
-  * Add additional metadata that cannot be parsed from mzML files to the ISA-Tab files through a JSON formatted dictionnary.
+**Features**:
+  * Extract meta information from `mzML` files and stores it as a Python dictionary or
+    serialize it into a JSON formatted document.
+  * Create an ISA-Tab file structure with relevant meta information filled in.
+  * Add additional metadata that cannot be parsed from mzML files to the
+    ISA-Tab files through a JSON formatted dictionnary or an XLS file.
+
 
 Install
 -------
 
 See the `Installation page <http://2isa.readthedocs.io/en/latest/mzml2isa/install.html>`__ of
 the `online documentation <http://2isa.readthedocs.io/en/latest/mzml2isa/index.html>`__.
+
 
 Usage
 -----
@@ -40,7 +46,6 @@ Python Module
 See the `Usage page <http://2isa.readthedocs.io/en/latest/mzml2isa/usage.html>`__ and
 the `Examples page <http://2isa.readthedocs.io/en/latest/mzml2isa/examples.html>`__ for more
 information.
-
 
 
 Metabolights
@@ -72,9 +77,8 @@ studies.
 Workflow
 --------
 
-.. figure:: isa_config/mzml2isa.png
+.. figure:: static/mzml2isa.png
    :alt: workflow
-
 
 .. |Build Status (Travis)| image:: https://img.shields.io/travis/ISA-tools/mzml2isa.svg?style=flat&maxAge=3600&label=Travis-CI
    :target: https://travis-ci.org/ISA-tools/mzml2isa
@@ -102,3 +106,6 @@ Workflow
 
 .. |DOI| image:: https://zenodo.org/badge/37276823.svg
    :target: https://zenodo.org/badge/latestdoi/37276823
+
+.. |Paper| image:: https://img.shields.io/badge/paper-Bioinformatics-teal.svg?style=flat&maxAge=3600
+   :target: https://academic.oup.com/bioinformatics/article/33/16/2598/3204983

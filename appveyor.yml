@@ -46,7 +46,7 @@ test_script:
   - '%PYTHON%\python.exe -m green'
 
 artifacts:
-  - path: scripts\for_pyinstaller\dist\mzml2isa_cli.exe
+  - path: ci\appveyor\dist\mzml2isa_cli.exe
     name: mzml2isa_cli
 
 deploy:

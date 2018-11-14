@@ -80,7 +80,6 @@ deploy:
 - provider: pypi
   distributions: sdist bdist_wheel
   user: althonos
-  server:  https://upload.pypi.org/legacy/
   skip_cleanup: true
   password:
     secure: JuI14XA+bwrg9Qe5HNDoPj6Dzi4BrNhc/Xq2cStTOeosyCIUKRgEaIkkZ0NrRZ5g9CTdArRwwjtfAzK8MlkTTt4iCVasmirnjafGCrw5vY/ELlqdBuu52RmIx2o5o0eua7dTjI6Q5rrCOBPj4/nB6JFpsTyytxhUXjdw/Wr9ZpSleS6iaWaF/smLTPOPpO6NQh/2kPWM7AErax2Bbg9MdXYTLoBCBk0Kjub93ymSXyZCjX3y1lfpldW7Nmn8ZXcU/ak408oD4EtHMC4BeNpoKju1Jl5qLhMHWIo/G2/X/B9Jdgju1C4DhcqHhumyTm9aI33ECmLMCq6vdsG3gmLl+z0Key6w1A6xekEQrWbmPvi7AmbGVeNz4V4HYVv2cyEmxwhSCIrPWiZKK4YqiJSlzsufSdcrtVYIZ5Xhvb1YXVnGAJ471+ua+ESuQHBUhQM3c3kpFyabsLAPN3eIRjAOWVFNWc/LP/5TA8VgbG3P6D/hGBOZBIyNka3Kj6Q6YOkPyrb80oiJJ229GwTvlG/FQ5by7t2une9At9TfTsKKsKkAlsFSYoCQ6gY65+hzeWrFkTssXSNZbq1MKillL+7/uaW6WwvvVYSl9XAXuaXCrCB7c5fwXem3tWnqV2R75bVaHelgIwjGd4m60DDa+xQG8oikREVuLBILNjp4fEYKrEc=

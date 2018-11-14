@@ -80,32 +80,23 @@ Workflow
 .. figure:: static/mzml2isa.png
    :alt: workflow
 
-.. |Build Status (Travis)| image:: https://img.shields.io/travis/ISA-tools/mzml2isa.svg?style=flat&maxAge=3600&label=Travis-CI
-   :target: https://travis-ci.org/ISA-tools/mzml2isa
+.. |Build Status (Travis)| image:: https://img.shields.io/travis/computational-metabolomics/msPurity.svg?style=flat&maxAge=3600&label=Travis-CI
+   :target: https://travis-ci.org/computational-metabolomics/msPurity
 
-.. |Build Status (AppVeyor)| image:: https://img.shields.io/appveyor/ci/Tomnl/mzml2isa.svg?style=flat&maxAge=3600&label=AppVeyor
-   :target: https://ci.appveyor.com/project/Tomnl/mzml2isa
-
-.. |Py versions| image:: https://img.shields.io/pypi/pyversions/mzml2isa.svg?style=flat&maxAge=3600
-   :target: https://pypi.python.org/pypi/mzml2isa/
-
-.. |Version| image:: https://img.shields.io/pypi/v/mzml2isa.svg?style=flat&maxAge=3600
-   :target: https://pypi.python.org/pypi/mzml2isa/
+.. |Build Status (AppVeyor)| image:: https://img.shields.io/appveyor/ci/Tomnl/msPurity.svg?style=flat&maxAge=3600&label=AppVeyor
+   :target: https://ci.appveyor.com/project/Tomnl/msPurity
 
 .. |Git| image:: https://img.shields.io/badge/repository-GitHub-blue.svg?style=flat&maxAge=3600
-   :target: https://github.com/ISA-tools/mzml2isa
+   :target: https://github.com/computational-metabolomics/msPurity
 
 .. |Bioconda| image:: https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat&maxAge=3600
-   :target: http://bioconda.github.io/recipes/mzml2isa/README.html
+   :target: http://bioconda.github.io/recipes/msPurity/README.html
 
 .. |License| image:: https://img.shields.io/pypi/l/mzml2isa.svg?style=flat&maxAge=3600
    :target: https://www.gnu.org/licenses/gpl-3.0.html
 
-.. |RTD doc| image:: https://img.shields.io/readthedocs/2isa.svg?style=flat&maxAge=3600
-   :target: https://2isa.readthedocs.io/en/latest/mzml2isa/
+.. |DOI| image:: https://img.shields.io/badge/DOI-10.18129/B9.bioc.msPurity-teal.svg?style=flat&maxAge=3600
+   :target: https://10.18129/B9.bioc.msPurity 
 
-.. |DOI| image:: https://zenodo.org/badge/37276823.svg
-   :target: https://zenodo.org/badge/latestdoi/37276823
-
-.. |Paper| image:: https://img.shields.io/badge/paper-Bioinformatics-teal.svg?style=flat&maxAge=3600
-   :target: https://academic.oup.com/bioinformatics/article/33/16/2598/3204983
+.. |Paper| image:: https://img.shields.io/badge/paper-Analytical_Chemistry-teal.svg?style=flat&maxAge=3600
+   :target: https://10.1021/acs.analchem.6b04358.

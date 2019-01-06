@@ -3,5 +3,6 @@ codecov
 green
 pip
 setuptools
-wheel       
+wheel
+twine
 pyinstaller  ; sys_platform == 'win32'

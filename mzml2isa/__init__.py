@@ -35,7 +35,7 @@ from __future__ import unicode_literals
 
 __author__ = 'Thomas Lawson, Martin Larralde'
 __credits__ = 'Thomas Lawson, Martin Larralde, Ralf Weber, Reza Salek, Ken Haug, Christoph Steinbeck'
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 __license__ = 'GPLv3'
 
 try:

@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.0.1] - 2019-01-06
+### Changed
+- Added `fs` v2.2.0 to supported `fs` versions.
+- Bumped `pronto` requirement to v0.11
+
 ## [v1.0.0] - 2018-10-16
 ### Added
 - Added GPLv3 license file to source and `wheel` distribution.
@@ -21,5 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pinned dependencies in `setup.cfg`.
 - Fixed crash on missing `Spectrum representation`.
 
-[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.1...HEAD
+[v1.0.1]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/ISA-Tools/mzml2isa/compare/v0.5.1...v1.0.0

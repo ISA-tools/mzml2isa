@@ -16,7 +16,7 @@ Help provided from:
     - Reza Salek          [reza.salek@ebi.ac.uk]
     - Ken Haug            [kenneth@ebi.ac.uk]
     - Christoph Steinbeck [steinbeck@ebi.ac.uk]
-
+    - Philippe Rocca-Serra [philippe.rocca-serra@oerc.ox.ac.uk]
 Supervisors:
     - Prof. Mark Viant (University of Birmingham, UK)
     - Prof. Uriel Hazan (Ecole Normale Superieure de Cachan, France)
@@ -35,7 +35,7 @@ from __future__ import unicode_literals
 
 __author__ = 'Thomas Lawson, Martin Larralde'
 __credits__ = 'Thomas Lawson, Martin Larralde, Ralf Weber, Reza Salek, Ken Haug, Christoph Steinbeck'
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 __license__ = 'GPLv3'
 
 try:

@@ -5,13 +5,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.2...HEAD
+
+## [v1.0.2] - 2019-10-01
+[v1.0.2]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.1...v1.0.2
+### Fixed
+- Issue in ISA Investigation template failing the ISA-API test suite.
+  ([#39](https://github.com/ISA-tools/mzml2isa/issues/39)).
+### Changed
+- Dropped support for Python 3.4.
+- Added support for Python 3.7.
 
 ## [v1.0.1] - 2019-01-06
+[v1.0.1]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.0...v1.0.1
 ### Changed
 - Added `fs` v2.2.0 to supported `fs` versions.
 - Bumped `pronto` requirement to v0.11
 
 ## [v1.0.0] - 2018-10-16
+[v1.0.0]: https://github.com/ISA-Tools/mzml2isa/compare/v0.5.1...v1.0.0
 ### Added
 - Added GPLv3 license file to source and `wheel` distribution.
 - Added unit testing framework using Metabolights data from the EBI FTP server.
@@ -26,6 +38,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pinned dependencies in `setup.cfg`.
 - Fixed crash on missing `Spectrum representation`.
 
-[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.1...HEAD
-[v1.0.1]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.0...v1.0.1
-[v1.0.0]: https://github.com/ISA-Tools/mzml2isa/compare/v0.5.1...v1.0.0

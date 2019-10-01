@@ -34,7 +34,8 @@ class TestRemoteMTBLS(unittest.TestCase):
                     "ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/"
                 )
             )
-        except fs.errors.CreateFailed:
+            cls.ebifs.listdir("/")
+        except (fs.errors.CreateFailed, fs.errors.RemoteConnectionError):
             raise unittest.SkipTest("cannot connect to the EBI FTP")
 
     def setUp(self):

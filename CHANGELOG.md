@@ -15,12 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Dropped support for Python 3.4.
 - Added support for Python 3.7.
+- Bumped `pronto` requirement to `0.12.0`.
+- Bumped `fs` requirement to `2.4.0`.
 
 ## [v1.0.1] - 2019-01-06
 [v1.0.1]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.0...v1.0.1
 ### Changed
-- Added `fs` v2.2.0 to supported `fs` versions.
-- Bumped `pronto` requirement to v0.11
+- Added `fs` version `2.2.0` to supported `fs` versions.
+- Bumped `pronto` requirement to `0.11.0`
 
 ## [v1.0.0] - 2018-10-16
 [v1.0.0]: https://github.com/ISA-Tools/mzml2isa/compare/v0.5.1...v1.0.0

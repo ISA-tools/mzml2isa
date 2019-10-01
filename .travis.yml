@@ -67,7 +67,7 @@ before_script:
 - pip install -U -r tests/requirements.txt
 
 script:
-- green
+- green -T
 
 after_script:
 - python -m codecov
@@ -87,5 +87,11 @@ deploy:
   on:
     tags: true
     repo: ISA-tools/mzml2isa
-    python: '3.6'
-
+    python: '3.7'
+- provider: script
+  script: ci/travis/chandler.sh
+  skip_cleanup: true
+  on:
+    tags: true
+    repo: ISA-tools/mzml2isa
+    python: '3.7'

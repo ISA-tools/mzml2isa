@@ -9,7 +9,7 @@ References:
     [2] http://isa-tools.org/format.html
 
 Authors:
-    - Thomas Lawson       [tnl495@bham.ac.uk]
+    - Thomas Lawson       [lawsontn@bham.ac.uk]
     - Martin Larralde     [martin.larralde@ens-cachan.fr]
 
 Help provided from:
@@ -35,7 +35,7 @@ from __future__ import unicode_literals
 
 __author__ = 'Thomas Lawson, Martin Larralde'
 __credits__ = 'Thomas Lawson, Martin Larralde, Ralf Weber, Reza Salek, Ken Haug, Christoph Steinbeck'
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 __license__ = 'GPLv3'
 
 try:

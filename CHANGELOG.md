@@ -5,7 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.3...HEAD
+
+
+
+## [v1.0.3] - 2020-04-01
+[v1.0.3]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.2...v1.0.3
+### Fixed
+- Issue with cli not being accessible as expected - see PR ([#40](https://github.com/ISA-tools/mzml2isa/pull/43)).
+### Changed
+- Added support for Python 3.8.
+- Changed Pyinstaller requirement for >= v3.6 (this is only for making the windows standalone executable and is not part of the standard installation)
+
 
 ## [v1.0.2] - 2019-10-01
 [v1.0.2]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.1...v1.0.2

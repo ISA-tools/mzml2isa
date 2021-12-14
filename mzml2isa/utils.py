@@ -22,9 +22,9 @@ import functools
 import itertools
 import string
 
+from six.moves import collections_abc
+
 from . import __author__, __name__, __version__, __license__
-
-
 
 
 ## VERSION AGNOSTIC UTILS
@@ -56,7 +56,7 @@ class PermissiveFormatter(string.Formatter):
                 raise
 
 
-class _ChainMap(collections.Mapping):
+class _ChainMap(collections_abc.Mapping):
     """A quick backport of collections.ChainMap
     """
 

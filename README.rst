@@ -3,7 +3,7 @@
 
 Extract metadata from `mzML` and `imzML` files and write them to an ISA-Tab document.
 
-|Version| |Py versions| |Git| |Bioconda| |Build Status (Travis)| |Build Status (AppVeyor)| |License| |RTD doc| |DOI| |Paper|
+|Version| |Py versions| |Git| |Bioconda| |Build Status (Actions)| |Build Status (AppVeyor)| |License| |RTD doc| |DOI| |Paper|
 
 
 Overview

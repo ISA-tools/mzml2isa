@@ -80,8 +80,8 @@ Workflow
 .. figure:: static/mzml2isa.png
    :alt: workflow
 
-.. |Build Status (Travis)| image:: https://img.shields.io/travis/ISA-tools/mzml2isa.svg?style=flat&maxAge=3600&label=Travis-CI
-   :target: https://travis-ci.org/ISA-tools/mzml2isa
+.. |Build Status (Actions)| image:: https://img.shields.io/github/workflow/status/ISA-Tools/mzml2isa/Test?label=GitHub%20Actions&maxAge=3600&style=flat
+   :target: https://github.com/ISA-tools/mzml2isa
 
 .. |Build Status (AppVeyor)| image:: https://img.shields.io/appveyor/ci/Tomnl/mzml2isa.svg?style=flat&maxAge=3600&label=AppVeyor
    :target: https://ci.appveyor.com/project/Tomnl/mzml2isa

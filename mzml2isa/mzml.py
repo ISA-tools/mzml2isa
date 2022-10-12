@@ -37,6 +37,7 @@ import pronto
 import pkg_resources
 import six
 from cached_property import cached_property
+from pronto.utils.meta import typechecked
 
 from ._impl import etree, get_parent
 
@@ -104,7 +105,7 @@ class MzMLFile(object):
     # `~pronto.Ontology`: the default MS controlled vocabulary to use.
     _VOCABULARY = pronto.Ontology(
         pkg_resources.resource_stream("mzml2isa", "ontologies/psi-ms.obo"),
-        imports=False,
+        # imports=False,
     )
 
     def __init__(self, filesystem, path, vocabulary=None):
@@ -909,7 +910,7 @@ class MzMLFile(object):
 
         """
         descendents = {
-            k: self.vocabulary[k].rchildren().id + [k]
+            k: self.vocabulary.get_term(k).subclasses().to_set().ids
             for k in (param_info.accession for param_info in parameters)
         }
 
@@ -1003,7 +1004,7 @@ class MzMLFile(object):
     def _extract_spectrum_representation(self, meta):
         """Extract spectrum representation into the metadata dictionary.
         """
-        representations = self.vocabulary["MS:1000525"].rchildren()
+        representations = self.vocabulary["MS:1000525"].subclasses(with_self=False).to_set()
         for element in self._find_xpath(self._XPATHS["sp_cv"]):
             if element.attrib["accession"] in representations:
                 meta["Spectrum representation"] = {
@@ -1087,7 +1088,7 @@ class MzMLFile(object):
         """Extract data file content into the metadata dictionary.
         """
 
-        file_contents = self.vocabulary["MS:1000524"].rchildren().id
+        file_contents = self.vocabulary["MS:1000524"].subclasses(with_self=False).to_set().ids
 
         def unique_everseen(it, key):
             memo = set()
@@ -1120,7 +1121,7 @@ class MzMLFile(object):
         # with its attached parameters or a referenceableParamGroup referenced
         # in the instrument
         instrument = self._find_instrument_config()
-        manufacturers = self.vocabulary["MS:1000031"].children.id
+        manufacturers = self.vocabulary["MS:1000031"].subclasses(with_self=False, distance=1).to_set()
 
         # The parameters we want to extract (Instrument Manufacturer will be
         # handled differently later)
@@ -1158,7 +1159,7 @@ class MzMLFile(object):
                 meta["Instrument"]["name"] = term.name
 
             # Get the instrument manufacturer
-            man = next((p for p in term.rparents() if p.id in manufacturers), term)
+            man = next((p for p in term.superclasses(with_self=False) if p in manufacturers), term)
             meta["Instrument manufacturer"] = {
                 "accession": man.id,
                 "name": man.name,
@@ -1173,7 +1174,7 @@ class MzMLFile(object):
             IndexError,
             KeyError,
             StopIteration,
-        ):  # Sometimes <Instrument> contains no Software tag
+        ) as err:  # Sometimes <Instrument> contains no Software tag
             if "Instrument" in meta:
                 instrument = meta["Instrument"]["name"]
             elif "Instrument serial number" in meta:
@@ -1258,15 +1259,16 @@ class MzMLFile(object):
     def metadata(self):
         meta = {}
 
-        self._extract_assay_parameters(meta)
-        self._extract_instrument(meta)
-        self._extract_derived_file(meta)
-        self._extract_raw_file(meta)
-        self._extract_polarity(meta)
-        self._extract_timerange(meta)
-        self._extract_mzrange(meta)
-        self._extract_scan_number(meta)
-        self._extract_scan_parameters(meta)
+        with typechecked.disabled():
+            self._extract_assay_parameters(meta)
+            self._extract_instrument(meta)
+            self._extract_derived_file(meta)
+            self._extract_raw_file(meta)
+            self._extract_polarity(meta)
+            self._extract_timerange(meta)
+            self._extract_mzrange(meta)
+            self._extract_scan_number(meta)
+            self._extract_scan_parameters(meta)
 
         if "Spectrum representation" not in meta:
             self._extract_spectrum_representation(meta)

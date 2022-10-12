@@ -36,7 +36,7 @@ class ImzMLFile(MzMLFile):
 
     _VOCABULARY = pronto.Ontology(
         pkg_resources.resource_stream("mzml2isa", "ontologies/imagingMS.obo"),
-        import_depth=1,
+        # import_depth=1,
     )
 
     @classmethod

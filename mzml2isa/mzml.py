@@ -909,13 +909,9 @@ class MzMLFile(object):
             meta (dict): the metadata dictionary to enrich.
 
         """
-        descendents = {
-            k: self.vocabulary.get_term(k).subclasses().to_set().ids
-            for k in (param_info.accession for param_info in parameters)
-        }
-
         for param_info in parameters:
-            if element.attrib["accession"] in descendents[param_info.accession]:
+            descendents = self.vocabulary.get_term(param_info.accession).subclasses().to_set()
+            if element.attrib["accession"] in descendents.ids:
                 param = {}
 
                 if param_info.cv:
@@ -1004,7 +1000,7 @@ class MzMLFile(object):
     def _extract_spectrum_representation(self, meta):
         """Extract spectrum representation into the metadata dictionary.
         """
-        representations = self.vocabulary["MS:1000525"].subclasses(with_self=False).to_set()
+        representations = self.vocabulary.get_term("MS:1000525").subclasses(with_self=False).to_set()
         for element in self._find_xpath(self._XPATHS["sp_cv"]):
             if element.attrib["accession"] in representations:
                 meta["Spectrum representation"] = {
@@ -1088,7 +1084,7 @@ class MzMLFile(object):
         """Extract data file content into the metadata dictionary.
         """
 
-        file_contents = self.vocabulary["MS:1000524"].subclasses(with_self=False).to_set().ids
+        file_contents = self.vocabulary.get_term("MS:1000524").subclasses(with_self=False).to_set().ids
 
         def unique_everseen(it, key):
             memo = set()
@@ -1121,7 +1117,7 @@ class MzMLFile(object):
         # with its attached parameters or a referenceableParamGroup referenced
         # in the instrument
         instrument = self._find_instrument_config()
-        manufacturers = self.vocabulary["MS:1000031"].subclasses(with_self=False, distance=1).to_set()
+        manufacturers = self.vocabulary.get_term("MS:1000031").subclasses(with_self=False, distance=1).to_set()
 
         # The parameters we want to extract (Instrument Manufacturer will be
         # handled differently later)
@@ -1152,7 +1148,7 @@ class MzMLFile(object):
 
         if "Instrument" in meta:
             # Check the instrument name and accession are the same
-            term = self.vocabulary[meta["Instrument"]["accession"]]
+            term = self.vocabulary.get_term(meta["Instrument"]["accession"])
             if meta["Instrument"]["name"] != term.name:
                 msg = "The instrument name in the mzML file ({}) does not correspond to the instrument accession ({})"
                 warnings.warn(msg.format(meta["Instrument"]["name"], term.name))

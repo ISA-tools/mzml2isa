@@ -36,7 +36,6 @@ import fs.path
 import fs.errors
 import pronto
 import pkg_resources
-import six
 from cached_property import cached_property
 from pronto.utils.meta import typechecked
 
@@ -744,7 +743,7 @@ class MzMLFile(object):
     def _urlize_meta(cls, meta):
         """Rewrite CV accessions in the given dictionary using URLs.
         """
-        for key, nested in six.iteritems(meta):
+        for key, nested in meta.items():
             if "accession" in nested:
                 nested["accession"] = cls._urlize_accession(nested["accession"])
             if "accession" in nested.get("unit", {}):
@@ -826,7 +825,7 @@ class MzMLFile(object):
         env = collections.OrderedDict()
 
         # setup XPaths variables
-        for key, paths in six.iteritems(self._environment_paths()):
+        for key, paths in self._environment_paths().items():
             for path in paths:
                 if self.tree.find(path.format(**env), ns) is not None:
                     # NB: XPaths are valid POSIX paths !
@@ -836,7 +835,7 @@ class MzMLFile(object):
                 env[key] = None
 
         # setup XPaths attributes variables
-        for key, paths in six.iteritems(self._environment_attributes()):
+        for key, paths in self._environment_attributes().items():
             for path in paths:
                 if self.tree.find(path.format(**env), ns) is not None:
                     env[key] = re.search(r"\[@(.*)\]", path).group(1)
@@ -966,7 +965,7 @@ class MzMLFile(object):
         """Extract assay parameters into the metadata dictionary.
         """
         terms = self._assay_parameters()
-        for location, term in six.iteritems(terms):
+        for location, term in terms.items():
             for element in self._find_xpath(self._XPATHS[location]):
                 self._extract_cv_params(element, terms[location], meta)
 
@@ -1208,7 +1207,7 @@ class MzMLFile(object):
         ns = self.namespaces
 
         for spectrum in self._find_xpath(self._XPATHS["sp"]):
-            for location, parameters in six.iteritems(terms):
+            for location, parameters in terms.items():
                 xpath = self._XPATHS[location].format(**self.environment)
                 # we are extracting from a referenced parameter group
                 # so we must retrieve them before being able to extract

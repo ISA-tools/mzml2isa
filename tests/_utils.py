@@ -1,9 +1,9 @@
 # coding: utf-8
 
 import contextlib
+from urllib.request import urlopen
+from urllib.parse import quote
 
-from six.moves.urllib.request import urlopen
-from six.moves.urllib.parse import quote
 from fs.wrapfs import WrapFS
 
 try:

@@ -22,8 +22,6 @@ import functools
 import itertools
 import string
 
-from six.moves import collections_abc
-
 from . import __author__, __name__, __version__, __license__
 
 
@@ -54,32 +52,6 @@ class PermissiveFormatter(string.Formatter):
                 return self.bad_fmt
             else:
                 raise
-
-
-class _ChainMap(collections_abc.Mapping):
-    """A quick backport of collections.ChainMap
-    """
-
-    def __init__(self, *maps):
-        self.maps = list(maps)
-
-    def __getitem__(self, key):
-        for mapping in self.maps:
-            try:
-                return mapping[key]
-            except KeyError:
-                pass
-        return self.__missing__(key)
-
-    @staticmethod
-    def __missing__(key):
-        raise KeyError(key)
-
-    def __iter__(self):
-        return itertools.chain(*self.mappings)
-
-    def __len__(self):
-        return sum(len(x) for x in self.mappings)
 
 
 def merge_spectra(metalist):

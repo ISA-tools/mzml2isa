@@ -52,6 +52,11 @@ try:
 except ImportError:
     import importlib_resources
 
+try:
+    from importlib.resources import files as resource_files
+except ImportError:
+    from importlib_resources import files as resource_files
+
 
 # --- Optional progress bar --------------------------------------------------
 

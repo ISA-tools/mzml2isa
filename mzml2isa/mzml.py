@@ -25,6 +25,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import collections
+import functools
 import ntpath
 import posixpath
 import re
@@ -781,6 +782,15 @@ class MzMLFile(object):
         except ValueError:
             return accession
 
+    @functools.lru_cache()
+    def _get_descendents(self, term_id, with_self=True, distance=None):
+        return (
+            self.vocabulary.get_term(term_id)
+                        .subclasses(with_self=with_self, distance=distance)
+                        .to_set()
+                        .ids
+        )
+
     # ENVIRONMENT ############################################################
 
     @cached_property
@@ -911,8 +921,8 @@ class MzMLFile(object):
 
         """
         for param_info in parameters:
-            descendents = self.vocabulary.get_term(param_info.accession).subclasses().to_set()
-            if element.attrib["accession"] in descendents.ids:
+            descendents = self._get_descendents(param_info.accession)
+            if element.attrib["accession"] in descendents:
                 param = {}
 
                 if param_info.cv:
@@ -1001,7 +1011,7 @@ class MzMLFile(object):
     def _extract_spectrum_representation(self, meta):
         """Extract spectrum representation into the metadata dictionary.
         """
-        representations = self.vocabulary.get_term("MS:1000525").subclasses(with_self=False).to_set()
+        representations = self._get_descendents("MS:1000525", with_self=False)
         for element in self._find_xpath(self._XPATHS["sp_cv"]):
             if element.attrib["accession"] in representations:
                 meta["Spectrum representation"] = {
@@ -1085,7 +1095,7 @@ class MzMLFile(object):
         """Extract data file content into the metadata dictionary.
         """
 
-        file_contents = self.vocabulary.get_term("MS:1000524").subclasses(with_self=False).to_set().ids
+        file_contents = self._get_descendents("MS:1000524", with_self=False)
 
         def unique_everseen(it, key):
             memo = set()
@@ -1118,7 +1128,7 @@ class MzMLFile(object):
         # with its attached parameters or a referenceableParamGroup referenced
         # in the instrument
         instrument = self._find_instrument_config()
-        manufacturers = self.vocabulary.get_term("MS:1000031").subclasses(with_self=False, distance=1).to_set()
+        manufacturers = self._get_descendents("MS:1000031", with_self=False, distance=1)
 
         # The parameters we want to extract (Instrument Manufacturer will be
         # handled differently later)
@@ -1156,7 +1166,7 @@ class MzMLFile(object):
                 meta["Instrument"]["name"] = term.name
 
             # Get the instrument manufacturer
-            man = next((p for p in term.superclasses(with_self=False) if p in manufacturers), term)
+            man = next((p for p in term.superclasses(with_self=False) if p.id in manufacturers), term)
             meta["Instrument manufacturer"] = {
                 "accession": man.id,
                 "name": man.name,
@@ -1267,13 +1277,13 @@ class MzMLFile(object):
             self._extract_scan_number(meta)
             self._extract_scan_parameters(meta)
 
-        if "Spectrum representation" not in meta:
-            self._extract_spectrum_representation(meta)
-        if "Data file content" not in meta:
-            self._extract_data_file_content(meta)
+            if "Spectrum representation" not in meta:
+                self._extract_spectrum_representation(meta)
+            if "Data file content" not in meta:
+                self._extract_data_file_content(meta)
 
-        if "Spectrum representation" in meta:
-            self._merge_spectrum_representation(meta)
+            if "Spectrum representation" in meta:
+                self._merge_spectrum_representation(meta)
 
         self._urlize_meta(meta)
         return meta

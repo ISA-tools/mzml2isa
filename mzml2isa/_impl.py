@@ -1,6 +1,19 @@
 """Conditional imports of optional dependencies.
 """
 
+# --- Available Cache --------------------------------------------------------
+
+try:
+    from functools import cache
+except ImportError:
+    from functools import lru_cache as cache
+
+try:
+    from functools import cached_property
+except ImportError:
+    from cached_property import cached_property
+
+
 # --- Available XML parser ---------------------------------------------------
 try:
     from lxml import etree

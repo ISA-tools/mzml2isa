@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import json
 import openpyxl
-import six
 import os
 import collections
 
@@ -290,8 +289,8 @@ class UserMetaLoader(object):
 
     MAP = {
         k: v
-        for submap in six.itervalues(CATEGORIZED_MAP)
-        for k, v in six.iteritems(submap)
+        for submap in CATEGORIZED_MAP.values()
+        for k, v in submap.items()
     }
 
     def __init__(self, usermeta_token):
@@ -377,12 +376,12 @@ class UserMetaLoader(object):
                     item_to_set[true_name[-1]] = value
 
         # Remove empty multiple_values dictionaries
-        for mv_key in (v[0][0] for v in six.itervalues(self.MAP) if v[1]):
+        for mv_key in (v[0][0] for v in self.MAP.values() if v[1]):
             try:
                 for value in self.usermeta[mv_key]:
                     empty = not any(
                         v
-                        for k, v in six.iteritems(value)
+                        for k, v in value.items()
                         if not isinstance(v, collections.Mapping)
                     )
                     if empty:
@@ -396,7 +395,7 @@ class UserMetaLoader(object):
         wb = openpyxl.Workbook()
         x, y = 65, 1
 
-        for category, submap in six.iteritems(cls.CATEGORIZED_MAP):
+        for category, submap in cls.CATEGORIZED_MAP.items():
             y += 1
             wb.worksheets[0]["{}{}".format(chr(x), y)] = "#### {} ####".format(
                 category.upper()

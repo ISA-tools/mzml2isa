@@ -12,7 +12,6 @@ import fs
 import fs.errors
 import fs.path
 import parameterized
-import six
 from fs.archive.tarfs import TarFS
 from fs.tempfs import TempFS
 from fs.copy import copy_fs

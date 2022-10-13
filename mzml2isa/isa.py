@@ -27,7 +27,9 @@ from . import (
     __version__,
     __license__
 )
+from . import templates
 from .utils import PermissiveFormatter
+from ._impl import importlib_resources
 
 
 class ISA_Tab(object):
@@ -60,7 +62,7 @@ class ISA_Tab(object):
                 ones shipping with mzml2isa, compatible with MetaboLights [default: None]
         """
         usermeta = kwargs.get('usermeta', None)
-        template_default = pkg_resources.resource_filename("mzml2isa", "templates")
+        template_default = importlib_resources.path(templates.__name__, ".").__enter__()
         template_directory = kwargs.get('template_directory') or template_default
 
         # Create one or several study files / one or several study section in investigation

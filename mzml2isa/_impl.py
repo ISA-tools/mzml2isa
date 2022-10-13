@@ -44,6 +44,14 @@ except ImportError:
         return next(p for p in tree.iter() if element in p)
 
 
+# --- Available package resources --------------------------------------------
+
+try:
+    import importlib.resource as importlib_resources
+except ImportError:
+    import importlib_resources
+
+
 # --- Optional progress bar --------------------------------------------------
 
 try:

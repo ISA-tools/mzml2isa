@@ -102,11 +102,12 @@ class MzMLFile(object):
         "ref_binary": "{scanList}/s:scan/s:referenceableParamGroupRef",
     }
 
-    # `~pronto.Ontology`: the default MS controlled vocabulary to use.
-    _VOCABULARY = pronto.Ontology(
-        pkg_resources.resource_stream("mzml2isa", "ontologies/psi-ms.obo"),
-        # imports=False,
-    )
+    with warnings.catch_warnings(record=True): 
+        warnings.simplefilter('ignore', pronto.warnings.SyntaxWarning)
+        # `~pronto.Ontology`: the default MS controlled vocabulary to use.
+        _VOCABULARY = pronto.Ontology(
+            pkg_resources.resource_filename("mzml2isa", "ontologies/psi-ms.obo"),
+        )
 
     def __init__(self, filesystem, path, vocabulary=None):
         """Open an ``mzML`` file from the given filesystem and path.

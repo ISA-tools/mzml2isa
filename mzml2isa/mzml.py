@@ -36,10 +36,9 @@ import fs.path
 import fs.errors
 import pronto
 import pkg_resources
-from cached_property import cached_property
 from pronto.utils.meta import typechecked
 
-from ._impl import etree, get_parent
+from ._impl import etree, get_parent, cache, cached_property
 
 
 class _CVParameter(
@@ -781,7 +780,7 @@ class MzMLFile(object):
         except ValueError:
             return accession
 
-    @functools.lru_cache()
+    @cache
     def _get_descendents(self, term_id, with_self=True, distance=None):
         return (
             self.vocabulary.get_term(term_id)

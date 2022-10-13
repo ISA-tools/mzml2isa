@@ -30,9 +30,6 @@ About:
 License:
     GNU General Public License version 3.0 (GPLv3)
 """
-from __future__ import absolute_import
-from __future__ import unicode_literals
-
 __author__ = 'Thomas Lawson, Martin Larralde'
 __credits__ = 'Thomas Lawson, Martin Larralde, Ralf Weber, Reza Salek, Ken Haug, Christoph Steinbeck'
 __version__ = '1.0.4'

@@ -32,10 +32,10 @@ import fs
 import fs.path
 import fs.errors
 import pronto
-import pkg_resources
 from pronto.utils.meta import typechecked
 
-from ._impl import etree, get_parent, cache, cached_property
+from . import ontologies
+from ._impl import etree, get_parent, cache, cached_property, importlib_resources
 
 
 class _CVParameter(
@@ -100,10 +100,9 @@ class MzMLFile(object):
 
     with warnings.catch_warnings(record=True): 
         warnings.simplefilter('ignore', pronto.warnings.SyntaxWarning)
-        # `~pronto.Ontology`: the default MS controlled vocabulary to use.
-        _VOCABULARY = pronto.Ontology(
-            pkg_resources.resource_filename("mzml2isa", "ontologies/psi-ms.obo"),
-        )
+        with importlib_resources.path(ontologies.__name__, "psi-ms.obo") as filename:
+            # `~pronto.Ontology`: the default MS controlled vocabulary to use.
+            _VOCABULARY = pronto.Ontology(filename)
 
     def __init__(self, filesystem, path, vocabulary=None):
         """Open an ``mzML`` file from the given filesystem and path.

@@ -14,8 +14,9 @@ import copy
 import warnings
 
 import pronto
-import pkg_resources
 
+from . import ontologies
+from ._impl import importlib_resources
 from .mzml import _CVParameter, MzMLFile
 
 
@@ -34,9 +35,8 @@ class ImzMLFile(MzMLFile):
 
     with warnings.catch_warnings(record=True): 
         warnings.simplefilter('ignore', pronto.warnings.SyntaxWarning)
-        _VOCABULARY = pronto.Ontology(
-            pkg_resources.resource_filename("mzml2isa", "ontologies/imagingMS.obo"),
-        )
+        with importlib_resources.path(ontologies.__name__, "imagingMS.obo") as filename:
+            _VOCABULARY = pronto.Ontology(filename)
 
     @classmethod
     def _assay_parameters(cls):

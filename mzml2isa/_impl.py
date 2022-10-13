@@ -47,7 +47,7 @@ except ImportError:
 # --- Available package resources --------------------------------------------
 
 try:
-    import importlib.resource as importlib_resources
+    import importlib.resources as importlib_resources
 except ImportError:
     import importlib_resources
 

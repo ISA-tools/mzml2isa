@@ -13,8 +13,6 @@ About:
 License:
     GNU General Public License version 3.0 (GPLv3)
 """
-from __future__ import absolute_import
-
 import os
 import csv
 import pkg_resources

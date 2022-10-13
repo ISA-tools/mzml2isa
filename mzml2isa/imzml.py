@@ -14,6 +14,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 import copy
+import warnings
 
 import pronto
 import pkg_resources
@@ -34,10 +35,11 @@ class ImzMLFile(MzMLFile):
         }
     )
 
-    _VOCABULARY = pronto.Ontology(
-        pkg_resources.resource_stream("mzml2isa", "ontologies/imagingMS.obo"),
-        # import_depth=1,
-    )
+    with warnings.catch_warnings(record=True): 
+        warnings.simplefilter('ignore', pronto.warnings.SyntaxWarning)
+        _VOCABULARY = pronto.Ontology(
+            pkg_resources.resource_filename("mzml2isa", "ontologies/imagingMS.obo"),
+        )
 
     @classmethod
     def _assay_parameters(cls):

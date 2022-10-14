@@ -2,3 +2,4 @@ isatools ~=0.10 ; python_version > '2.7'
 isatools <=0.10 ; python_version < '3'
 parameterized ~=0.6.1
 fs.archive[tar.xz] ~=0.5
+pronto ~=2.0

@@ -18,8 +18,6 @@ About:
 License:
     GNU General Public License version 3.0 (GPLv3)
 """
-from __future__ import absolute_import
-
 import argparse
 import contextlib
 import functools

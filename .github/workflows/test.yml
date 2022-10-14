@@ -18,17 +18,12 @@ jobs:
           - '3.7'
           - '3.8'
           - '3.9'
+          - '3.10'
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
       with:
         submodules: true
-    - name: Cache Python requirements
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}
-        restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}
     - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:

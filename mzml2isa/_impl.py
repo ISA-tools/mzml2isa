@@ -1,6 +1,20 @@
 """Conditional imports of optional dependencies.
 """
 
+# --- Available Cache --------------------------------------------------------
+
+try:
+    from functools import cache
+except ImportError:
+    from functools import lru_cache
+    cache = lru_cache(maxsize=None)
+
+try:
+    from functools import cached_property
+except ImportError:
+    from cached_property import cached_property
+
+
 # --- Available XML parser ---------------------------------------------------
 try:
     from lxml import etree
@@ -29,6 +43,19 @@ except ImportError:
         # {c:p for p in tree.iter() for c in p}[element]
         # next(p for p in tree.iter() for c in p if c==element)
         return next(p for p in tree.iter() if element in p)
+
+
+# --- Available package resources --------------------------------------------
+
+try:
+    import importlib.resources as importlib_resources
+except ImportError:
+    import importlib_resources
+
+try:
+    from importlib.resources import files as resource_files
+except ImportError:
+    from importlib_resources import files as resource_files
 
 
 # --- Optional progress bar --------------------------------------------------

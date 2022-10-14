@@ -5,7 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/ISA-Tools/mzml2isa/compare/v1.1.0...HEAD
+
+
+## [v1.1.0] - 2022-10-14
+[v1.1.0]: https://github.com/ISA-Tools/mzml2isa/compare/v1.0.4...v1.1.0
+
+### Added
+- Support for Python 3.10.
+### Changed
+- Updated redistributed PSI-MS file to latest version.
+- Bumped required `pronto` dependency to `v2.0` and up.
+- Use `functools.cached_property` instead of `cached_property.cached_property` in recent Python version where it is available.
+- Use `importlib.resources` instead of `pkg-resources` for managing the package resources.
+### Removed
+- Support for Python 2.7.
+- `six` dependency.
 
 
 ## [v1.0.4] - 2021-12-14

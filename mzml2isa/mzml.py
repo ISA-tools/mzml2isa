@@ -21,10 +21,8 @@ About:
 License:
     GNU General Public License version 3.0 (GPLv3)
 """
-from __future__ import absolute_import
-from __future__ import unicode_literals
-
 import collections
+import functools
 import ntpath
 import posixpath
 import re
@@ -34,11 +32,10 @@ import fs
 import fs.path
 import fs.errors
 import pronto
-import pkg_resources
-import six
-from cached_property import cached_property
+from pronto.utils.meta import typechecked
 
-from ._impl import etree, get_parent
+from . import ontologies
+from ._impl import etree, get_parent, cache, cached_property, importlib_resources
 
 
 class _CVParameter(
@@ -101,11 +98,11 @@ class MzMLFile(object):
         "ref_binary": "{scanList}/s:scan/s:referenceableParamGroupRef",
     }
 
-    # `~pronto.Ontology`: the default MS controlled vocabulary to use.
-    _VOCABULARY = pronto.Ontology(
-        pkg_resources.resource_stream("mzml2isa", "ontologies/psi-ms.obo"),
-        imports=False,
-    )
+    with warnings.catch_warnings(record=True): 
+        warnings.simplefilter('ignore', pronto.warnings.SyntaxWarning)
+        with importlib_resources.path(ontologies.__name__, "psi-ms.obo") as filename:
+            # `~pronto.Ontology`: the default MS controlled vocabulary to use.
+            _VOCABULARY = pronto.Ontology(filename)
 
     def __init__(self, filesystem, path, vocabulary=None):
         """Open an ``mzML`` file from the given filesystem and path.
@@ -741,7 +738,7 @@ class MzMLFile(object):
     def _urlize_meta(cls, meta):
         """Rewrite CV accessions in the given dictionary using URLs.
         """
-        for key, nested in six.iteritems(meta):
+        for key, nested in meta.items():
             if "accession" in nested:
                 nested["accession"] = cls._urlize_accession(nested["accession"])
             if "accession" in nested.get("unit", {}):
@@ -779,6 +776,15 @@ class MzMLFile(object):
         except ValueError:
             return accession
 
+    @cache
+    def _get_descendents(self, term_id, with_self=True, distance=None):
+        return (
+            self.vocabulary.get_term(term_id)
+                        .subclasses(with_self=with_self, distance=distance)
+                        .to_set()
+                        .ids
+        )
+
     # ENVIRONMENT ############################################################
 
     @cached_property
@@ -814,7 +820,7 @@ class MzMLFile(object):
         env = collections.OrderedDict()
 
         # setup XPaths variables
-        for key, paths in six.iteritems(self._environment_paths()):
+        for key, paths in self._environment_paths().items():
             for path in paths:
                 if self.tree.find(path.format(**env), ns) is not None:
                     # NB: XPaths are valid POSIX paths !
@@ -824,7 +830,7 @@ class MzMLFile(object):
                 env[key] = None
 
         # setup XPaths attributes variables
-        for key, paths in six.iteritems(self._environment_attributes()):
+        for key, paths in self._environment_attributes().items():
             for path in paths:
                 if self.tree.find(path.format(**env), ns) is not None:
                     env[key] = re.search(r"\[@(.*)\]", path).group(1)
@@ -908,13 +914,9 @@ class MzMLFile(object):
             meta (dict): the metadata dictionary to enrich.
 
         """
-        descendents = {
-            k: self.vocabulary[k].rchildren().id + [k]
-            for k in (param_info.accession for param_info in parameters)
-        }
-
         for param_info in parameters:
-            if element.attrib["accession"] in descendents[param_info.accession]:
+            descendents = self._get_descendents(param_info.accession)
+            if element.attrib["accession"] in descendents:
                 param = {}
 
                 if param_info.cv:
@@ -958,7 +960,7 @@ class MzMLFile(object):
         """Extract assay parameters into the metadata dictionary.
         """
         terms = self._assay_parameters()
-        for location, term in six.iteritems(terms):
+        for location, term in terms.items():
             for element in self._find_xpath(self._XPATHS[location]):
                 self._extract_cv_params(element, terms[location], meta)
 
@@ -1003,7 +1005,7 @@ class MzMLFile(object):
     def _extract_spectrum_representation(self, meta):
         """Extract spectrum representation into the metadata dictionary.
         """
-        representations = self.vocabulary["MS:1000525"].rchildren()
+        representations = self._get_descendents("MS:1000525", with_self=False)
         for element in self._find_xpath(self._XPATHS["sp_cv"]):
             if element.attrib["accession"] in representations:
                 meta["Spectrum representation"] = {
@@ -1087,7 +1089,7 @@ class MzMLFile(object):
         """Extract data file content into the metadata dictionary.
         """
 
-        file_contents = self.vocabulary["MS:1000524"].rchildren().id
+        file_contents = self._get_descendents("MS:1000524", with_self=False)
 
         def unique_everseen(it, key):
             memo = set()
@@ -1120,7 +1122,7 @@ class MzMLFile(object):
         # with its attached parameters or a referenceableParamGroup referenced
         # in the instrument
         instrument = self._find_instrument_config()
-        manufacturers = self.vocabulary["MS:1000031"].children.id
+        manufacturers = self._get_descendents("MS:1000031", with_self=False, distance=1)
 
         # The parameters we want to extract (Instrument Manufacturer will be
         # handled differently later)
@@ -1151,14 +1153,14 @@ class MzMLFile(object):
 
         if "Instrument" in meta:
             # Check the instrument name and accession are the same
-            term = self.vocabulary[meta["Instrument"]["accession"]]
+            term = self.vocabulary.get_term(meta["Instrument"]["accession"])
             if meta["Instrument"]["name"] != term.name:
                 msg = "The instrument name in the mzML file ({}) does not correspond to the instrument accession ({})"
                 warnings.warn(msg.format(meta["Instrument"]["name"], term.name))
                 meta["Instrument"]["name"] = term.name
 
             # Get the instrument manufacturer
-            man = next((p for p in term.rparents() if p.id in manufacturers), term)
+            man = next((p for p in term.superclasses(with_self=False) if p.id in manufacturers), term)
             meta["Instrument manufacturer"] = {
                 "accession": man.id,
                 "name": man.name,
@@ -1173,7 +1175,7 @@ class MzMLFile(object):
             IndexError,
             KeyError,
             StopIteration,
-        ):  # Sometimes <Instrument> contains no Software tag
+        ) as err:  # Sometimes <Instrument> contains no Software tag
             if "Instrument" in meta:
                 instrument = meta["Instrument"]["name"]
             elif "Instrument serial number" in meta:
@@ -1200,7 +1202,7 @@ class MzMLFile(object):
         ns = self.namespaces
 
         for spectrum in self._find_xpath(self._XPATHS["sp"]):
-            for location, parameters in six.iteritems(terms):
+            for location, parameters in terms.items():
                 xpath = self._XPATHS[location].format(**self.environment)
                 # we are extracting from a referenced parameter group
                 # so we must retrieve them before being able to extract
@@ -1258,23 +1260,24 @@ class MzMLFile(object):
     def metadata(self):
         meta = {}
 
-        self._extract_assay_parameters(meta)
-        self._extract_instrument(meta)
-        self._extract_derived_file(meta)
-        self._extract_raw_file(meta)
-        self._extract_polarity(meta)
-        self._extract_timerange(meta)
-        self._extract_mzrange(meta)
-        self._extract_scan_number(meta)
-        self._extract_scan_parameters(meta)
+        with typechecked.disabled():
+            self._extract_assay_parameters(meta)
+            self._extract_instrument(meta)
+            self._extract_derived_file(meta)
+            self._extract_raw_file(meta)
+            self._extract_polarity(meta)
+            self._extract_timerange(meta)
+            self._extract_mzrange(meta)
+            self._extract_scan_number(meta)
+            self._extract_scan_parameters(meta)
 
-        if "Spectrum representation" not in meta:
-            self._extract_spectrum_representation(meta)
-        if "Data file content" not in meta:
-            self._extract_data_file_content(meta)
+            if "Spectrum representation" not in meta:
+                self._extract_spectrum_representation(meta)
+            if "Data file content" not in meta:
+                self._extract_data_file_content(meta)
 
-        if "Spectrum representation" in meta:
-            self._merge_spectrum_representation(meta)
+            if "Spectrum representation" in meta:
+                self._merge_spectrum_representation(meta)
 
         self._urlize_meta(meta)
         return meta

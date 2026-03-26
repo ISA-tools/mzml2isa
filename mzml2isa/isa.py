@@ -15,10 +15,10 @@ License:
 """
 import os
 import csv
-import pkg_resources
 import re
 import sys
 import functools
+import copy
 from collections import ChainMap
 
 from . import (
@@ -61,12 +61,13 @@ class ISA_Tab(object):
                 "a_imzML.txt" in your custom template directory. If None, the uses the
                 ones shipping with mzml2isa, compatible with MetaboLights [default: None]
         """
-        usermeta = kwargs.get('usermeta', None)
+        usermeta = kwargs.get('usermeta', usermeta)
         template_default = resource_files(templates.__name__)
         template_directory = kwargs.get('template_directory') or template_default
 
         # Create one or several study files / one or several study section in investigation
-        self.usermeta = usermeta or {}
+        self.usermeta = copy.deepcopy(usermeta) if usermeta is not None else {}
+        self._set_default_usermeta(name)
         self.isa_env = {
             'out_dir': out_dir,
             'Study Identifier':  name,
@@ -85,6 +86,23 @@ class ISA_Tab(object):
 
         self.isa_env['Converter'] = __name__
         self.isa_env['Converter version'] = __version__
+
+    def _set_default_usermeta(self, name):
+        """Populate minimal study metadata required by ISA validators."""
+        defaults = {
+            'investigation': {
+                'title': name,
+                'description': "Generated from mzML metadata by mzml2isa.",
+            },
+            'study': {
+                'title': name,
+                'description': "Generated from mzML metadata by mzml2isa.",
+            },
+        }
+        for section, values in defaults.items():
+            target = self.usermeta.setdefault(section, {})
+            for key, value in values.items():
+                target.setdefault(key, value)
 
     def write(self, metalist, datatype, **kwargs):
         """Generate and write the ISA files

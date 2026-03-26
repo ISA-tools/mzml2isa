@@ -16,7 +16,7 @@ import warnings
 import pronto
 
 from . import ontologies
-from ._impl import importlib_resources
+from ._impl import cache, importlib_resources, load_pronto_ontology
 from .mzml import _CVParameter, MzMLFile
 
 
@@ -33,10 +33,13 @@ class ImzMLFile(MzMLFile):
         }
     )
 
-    with warnings.catch_warnings(record=True): 
-        warnings.simplefilter('ignore', pronto.warnings.SyntaxWarning)
-        with importlib_resources.path(ontologies.__name__, "imagingMS.obo") as filename:
-            _VOCABULARY = pronto.Ontology(filename)
+    @classmethod
+    @cache
+    def _default_vocabulary(cls):
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", pronto.warnings.SyntaxWarning)
+            with importlib_resources.path(ontologies.__name__, "imagingMS.obo") as filename:
+                return load_pronto_ontology(pronto, filename)
 
     @classmethod
     def _assay_parameters(cls):

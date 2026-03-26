@@ -28,14 +28,19 @@ import posixpath
 import re
 import warnings
 
-import fs
-import fs.path
-import fs.errors
 import pronto
 from pronto.utils.meta import typechecked
 
 from . import ontologies
-from ._impl import etree, get_parent, cache, cached_property, importlib_resources
+from ._fs import fs
+from ._impl import (
+    etree,
+    get_parent,
+    cache,
+    cached_property,
+    importlib_resources,
+    load_pronto_ontology,
+)
 
 
 class _CVParameter(
@@ -98,11 +103,13 @@ class MzMLFile(object):
         "ref_binary": "{scanList}/s:scan/s:referenceableParamGroupRef",
     }
 
-    with warnings.catch_warnings(record=True): 
-        warnings.simplefilter('ignore', pronto.warnings.SyntaxWarning)
-        with importlib_resources.path(ontologies.__name__, "psi-ms.obo") as filename:
-            # `~pronto.Ontology`: the default MS controlled vocabulary to use.
-            _VOCABULARY = pronto.Ontology(filename)
+    @classmethod
+    @cache
+    def _default_vocabulary(cls):
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", pronto.warnings.SyntaxWarning)
+            with importlib_resources.path(ontologies.__name__, "psi-ms.obo") as filename:
+                return load_pronto_ontology(pronto, filename)
 
     def __init__(self, filesystem, path, vocabulary=None):
         """Open an ``mzML`` file from the given filesystem and path.
@@ -121,7 +128,7 @@ class MzMLFile(object):
         """
         self.fs = fs.open_fs(filesystem)
         self.path = path
-        self.vocabulary = vocabulary or self._VOCABULARY
+        self.vocabulary = vocabulary or self._default_vocabulary()
 
         if self.fs.getinfo(self.path).is_dir:
             raise fs.errors.FileExpected(self.path)

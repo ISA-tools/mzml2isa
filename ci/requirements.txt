@@ -1,8 +1,7 @@
-coverage
-codecov
-green
-pip
-setuptools
-wheel
-twine
+build >=1.2,<2
+coverage >=7.6,<8
+pip >=25,<26
+setuptools >=69
+twine >=6,<7
+wheel >=0.45,<1
 pyinstaller>=3.6 ; sys_platform == 'win32'

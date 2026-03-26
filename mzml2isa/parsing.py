@@ -26,10 +26,8 @@ import os
 import sys
 import warnings
 
-import fs
-import fs.path
-
 from . import __author__, __version__, __name__, __license__
+from ._fs import fs
 from .isa import ISA_Tab
 from .mzml import MzMLFile
 from .imzml import ImzMLFile

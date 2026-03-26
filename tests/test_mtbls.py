@@ -7,14 +7,21 @@ import operator
 import os
 import re
 import unittest
+import warnings
 
-import fs
-import fs.errors
-import fs.path
 import parameterized
-from fs.archive.tarfs import TarFS
-from fs.tempfs import TempFS
-from fs.copy import copy_fs
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API\.",
+        category=UserWarning,
+    )
+    import fs
+    import fs.errors
+    import fs.path
+    from fs.archive.tarfs import TarFS
+    from fs.tempfs import TempFS
+    from fs.copy import copy_fs
 
 from mzml2isa.mzml import MzMLFile
 

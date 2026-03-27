@@ -35,9 +35,13 @@ jobs:
     - name: Test with coverage
       run: python -m coverage run -m unittest discover -vv
     - name: Upload to Codecov
+      if: ${{ secrets.CODECOV_TOKEN != '' }}
       uses: codecov/codecov-action@v4
       with:
         flags: ${{ matrix.python-version }}
         name: test-python-${{ matrix.python-version }}
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
+    - name: Skip Codecov upload
+      if: ${{ secrets.CODECOV_TOKEN == '' }}
+      run: echo "CODECOV_TOKEN is not set; skipping Codecov upload."

@@ -2,6 +2,7 @@ import json
 import openpyxl
 import os
 import collections
+from collections.abc import Mapping
 
 from . import __author__, __license__, __name__, __version__
 
@@ -380,7 +381,7 @@ class UserMetaLoader(object):
                     empty = not any(
                         v
                         for k, v in value.items()
-                        if not isinstance(v, collections.Mapping)
+                        if not isinstance(v, Mapping)
                     )
                     if empty:
                         self.usermeta[mv_key].remove(value)

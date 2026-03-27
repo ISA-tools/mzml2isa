@@ -1,18 +1,8 @@
-"""Conditional imports of optional dependencies.
-"""
+"""Compatibility helpers for supported Python versions."""
 
-# --- Available Cache --------------------------------------------------------
-
-try:
-    from functools import cache
-except ImportError:
-    from functools import lru_cache
-    cache = lru_cache(maxsize=None)
-
-try:
-    from functools import cached_property
-except ImportError:
-    from cached_property import cached_property
+from contextlib import contextmanager
+from functools import cache
+from functools import cached_property
 
 
 # --- Available XML parser ---------------------------------------------------
@@ -47,15 +37,8 @@ except ImportError:
 
 # --- Available package resources --------------------------------------------
 
-try:
-    import importlib.resources as importlib_resources
-except ImportError:
-    import importlib_resources
-
-try:
-    from importlib.resources import files as resource_files
-except ImportError:
-    from importlib_resources import files as resource_files
+import importlib.resources as importlib_resources
+from importlib.resources import files as resource_files
 
 
 # --- Optional progress bar --------------------------------------------------
@@ -64,3 +47,25 @@ try:
     import tqdm
 except ImportError:
     tqdm = None
+
+
+@contextmanager
+def pronto_no_multiprocessing():
+    """Force pronto to parse ontologies without creating multiprocessing pools."""
+    import pronto.utils.pool as pronto_pool
+
+    thread_pool = pronto_pool._ThreadPool
+    pronto_pool._ThreadPool = None
+    try:
+        yield
+    finally:
+        pronto_pool._ThreadPool = thread_pool
+
+
+def load_pronto_ontology(pronto_module, filename):
+    """Load a pronto ontology, falling back to sequential parsing if needed."""
+    try:
+        return pronto_module.Ontology(filename)
+    except PermissionError:
+        with pronto_no_multiprocessing():
+            return pronto_module.Ontology(filename)

@@ -4,9 +4,16 @@ from __future__ import unicode_literals
 
 import os
 import unittest
+import warnings
 from os.path import pardir
 
-import fs
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API\.",
+        category=UserWarning,
+    )
+    import fs
 
 from mzml2isa.mzml import MzMLFile
 from mzml2isa.isa import ISA_Tab

@@ -1,10 +1,17 @@
 # coding: utf-8
 
 import contextlib
+import warnings
 from urllib.request import urlopen
 from urllib.parse import quote
 
-from fs.wrapfs import WrapFS
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API\.",
+        category=UserWarning,
+    )
+    from fs.wrapfs import WrapFS
 
 try:
     from isatools import isatab

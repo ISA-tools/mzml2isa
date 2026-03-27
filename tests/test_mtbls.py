@@ -6,19 +6,34 @@ import json
 import operator
 import os
 import re
+import tarfile
 import unittest
+import warnings
 
-import fs
-import fs.errors
-import fs.path
 import parameterized
-from fs.archive.tarfs import TarFS
-from fs.tempfs import TempFS
-from fs.copy import copy_fs
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API\.",
+        category=UserWarning,
+    )
+    import fs
+    import fs.errors
+    import fs.path
+    from fs.archive.tarfs import TarFS
+    from fs.tempfs import TempFS
+    from fs.copy import copy_fs
 
 from mzml2isa.mzml import MzMLFile
 
 from ._utils import HTTPDownloader
+
+
+def _local_study_ids(data_root):
+    with fs.open_fs(data_root) as data_fs:
+        with open(data_fs.getsyspath("MTBLS-no-binary.tar.xz"), "rb") as handle:
+            with TarFS(handle) as archive:
+                return archive.listdir("/")
 
 
 class TestRemoteMTBLS(unittest.TestCase):
@@ -52,29 +67,30 @@ class TestRemoteMTBLS(unittest.TestCase):
     def _test_study(self, study_id, instrument=None):
 
         # open the study directory and find the smallest mzML file
-        study_fs = self.ebifs.opendir(study_id)
-        file_info = next(
-            iter(
-                sorted(
-                    study_fs.filterdir(
-                        "/",
-                        files=["*.mzML"],
-                        exclude_dirs=["*"],
-                        namespaces=["expected"],
-                    ),
-                    key=operator.attrgetter("size"),
+        with self.ebifs.opendir(study_id) as study_fs:
+            candidates = []
+            for path in study_fs.walk.files(filter=["*.mzML", "*.mzml"]):
+                info = study_fs.getinfo(path, namespaces=["details"])
+                size = getattr(info, "size", None)
+                if size is None:
+                    size = info.raw.get("details", {}).get("size")
+                candidates.append((size if size is not None else float("inf"), path))
+
+            if not candidates:
+                raise unittest.SkipTest(
+                    "study {} does not currently expose any mzML files".format(study_id)
                 )
-            )
-        )
 
-        # open and parse mzML file
-        mzml_file = MzMLFile(study_fs, file_info.name)
-        self.assertIsNotNone(mzml_file.tree)
-        self.assertIsNotNone(mzml_file.metadata)
+            _, path = min(candidates, key=operator.itemgetter(0))
 
-        # check instrument
-        if instrument is not None:
-            self.assertEqual(mzml_file.metadata["Instrument"]["name"], instrument)
+            # open and parse mzML file
+            mzml_file = MzMLFile(study_fs, path)
+            self.assertIsNotNone(mzml_file.tree)
+            self.assertIsNotNone(mzml_file.metadata)
+
+            # check instrument
+            if instrument is not None:
+                self.assertEqual(mzml_file.metadata["Instrument"]["name"], instrument)
 
     # --- Metabolights studies -----------------------------------------------
 
@@ -92,42 +108,50 @@ class TestLocalMTBLS(unittest.TestCase):
 
     # --- Setup / Teardown --------------------------------------------------
 
-    _DATA_FS = fs.open_fs(os.path.join(__file__, os.pardir, "data"))
-    _MZML_FS = TarFS(_DATA_FS.getsyspath("MTBLS-no-binary.tar.xz"))
+    _DATA_ROOT = os.path.join(__file__, os.pardir, "data")
 
     @classmethod
     def _get_json_meta_results(cls, data_fs):
         results = {}
-        with TarFS(data_fs.getsyspath("MTBLS-json-meta.tar.xz")) as archive:
-            for path in archive.walk.files(filter=["*.json"]):
-                match = re.match("^(MTBLS\d*)-(.*).json", fs.path.basename(path))
-                if match is not None:
-                    id_, name = match.groups()
-                    with archive.open(path) as f:
-                        results[id_] = json.load(f)
+        with tarfile.open(data_fs.getsyspath("MTBLS-json-meta.tar.xz"), mode="r:*") as archive:
+            for member in archive.getmembers():
+                if not member.isfile() or not member.name.endswith(".json"):
+                    continue
+                match = re.match(r"^(MTBLS\d*)-(.*).json", fs.path.basename(member.name))
+                if match is None:
+                    continue
+                id_, name = match.groups()
+                extracted = archive.extractfile(member)
+                if extracted is None:
+                    continue
+                with extracted as f:
+                    results[id_] = json.load(f)
         return results
 
     @classmethod
     def setUpClass(cls):
+        cls._DATA_FS = fs.open_fs(cls._DATA_ROOT)
+        cls._MZML_FS = TempFS()
+        with open(cls._DATA_FS.getsyspath("MTBLS-no-binary.tar.xz"), "rb") as handle:
+            with TarFS(handle) as archive:
+                copy_fs(archive, cls._MZML_FS)
         cls.results_original = cls._get_json_meta_results(cls._DATA_FS)
 
     @classmethod
     def tearDownClass(cls):
-        cls._DATA_FS.close()
         cls._MZML_FS.close()
+        cls._DATA_FS.close()
 
     # --- Parameterised test case  ------------------------------------------
 
     @parameterized.parameterized.expand(
-        _MZML_FS.listdir("/"),
+        _local_study_ids(_DATA_ROOT),
         name_func=lambda f, n, p: str("{}_{}".format(f.__name__, p.args[0])),
     )
     def test(self, id_):
-
-        data_fs = self._MZML_FS.opendir(id_)
-        path = next(data_fs.walk.files(filter=["*.mzml", "*.mzML"]))
-
-        result = MzMLFile(data_fs, path).metadata
+        with self._MZML_FS.opendir(id_) as study_fs:
+            path = next(study_fs.walk.files(filter=["*.mzml", "*.mzML"]))
+            result = MzMLFile(study_fs, path).metadata
         expected = self.results_original[id_]
 
         keys = (

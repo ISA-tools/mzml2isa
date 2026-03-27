@@ -1,5 +1,4 @@
-isatools ~=0.10 ; python_version > '2.7'
-isatools <=0.10 ; python_version < '3'
-parameterized ~=0.6.1
-fs.archive[tar.xz] ~=0.5
-pronto ~=2.0
+coverage >=7.6,<8
+fs.archive[tar.xz] >=0.7,<1
+isatools >=0.14,<0.15
+parameterized >=0.9,<1

@@ -129,6 +129,7 @@ class MzMLFile(object):
         self.fs = fs.open_fs(filesystem)
         self.path = path
         self.vocabulary = vocabulary or self._default_vocabulary()
+        self._descendents_cache = {}
 
         if self.fs.getinfo(self.path).is_dir:
             raise fs.errors.FileExpected(self.path)
@@ -783,14 +784,33 @@ class MzMLFile(object):
         except ValueError:
             return accession
 
-    @cache
     def _get_descendents(self, term_id, with_self=True, distance=None):
-        return (
-            self.vocabulary.get_term(term_id)
-                        .subclasses(with_self=with_self, distance=distance)
-                        .to_set()
-                        .ids
-        )
+        key = term_id, with_self, distance
+        if key not in self._descendents_cache:
+            self._descendents_cache[key] = (
+                self.vocabulary.get_term(term_id)
+                .subclasses(with_self=with_self, distance=distance)
+                .to_set()
+                .ids
+            )
+        return self._descendents_cache[key]
+
+    @staticmethod
+    def _is_binary_element(element):
+        return element.tag.rsplit("}", 1)[-1] == "binary"
+
+    @classmethod
+    def _parse_tree(cls, source):
+        context = etree.iterparse(source, events=("end",))
+        for _, element in context:
+            if cls._is_binary_element(element):
+                element.text = None
+
+        root = context.root
+        close = getattr(context, "close", None)
+        if close is not None:
+            close()
+        return etree.ElementTree(root)
 
     # ENVIRONMENT ############################################################
 
@@ -799,9 +819,9 @@ class MzMLFile(object):
         """An XML element tree representation of the ``mzML`` file.
         """
         if self.fs.hassyspath(self.path):
-            return etree.parse(self.fs.getsyspath(self.path))
+            return self._parse_tree(self.fs.getsyspath(self.path))
         with self.fs.openbin(self.path) as handle:
-            return etree.parse(handle)
+            return self._parse_tree(handle)
 
     @cached_property
     def namespaces(self):  # noqa: D401
